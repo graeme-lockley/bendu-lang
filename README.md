@@ -24,6 +24,7 @@ Bendu has the following features:
 - First class functions
 - Pattern matching
 - Algebraic data types
+- Script based
 
 The tooling is written in Zig with ancillary tools written in Bandu.
 
