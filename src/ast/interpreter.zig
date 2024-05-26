@@ -51,7 +51,7 @@ fn evalExpression(ast: *AST.Expression, runtime: *Runtime) !i64 {
                 std.process.exit(1);
             }
 
-            try runtime.state.put(ast.kind.idDeclaration.name, result);
+            try runtime.state.put(ast.kind.idDeclaration.name.incRefR(), result);
             return result;
         },
         .identifier => if (runtime.state.get(ast.kind.identifier.name)) |value| {
