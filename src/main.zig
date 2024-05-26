@@ -39,7 +39,8 @@ pub fn main() !void {
         try stdout.print("executing AST\n", .{});
         try @import("./ast/interpreter.zig").eval(program, allocator);
     } else if (std.mem.eql(u8, args[1], "--bc")) {
-        try stdout.print("BC\n", .{});
+        try stdout.print("executing BC\n", .{});
+        try @import("./bc/interpreter.zig").eval(program, allocator);
     } else if (std.mem.eql(u8, args[1], "--wasm")) {
         try stdout.print("WASM\n", .{});
     } else if (std.mem.eql(u8, args[1], "--llvm")) {
