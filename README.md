@@ -26,9 +26,9 @@ Bendu has the following features:
 - Algebraic data types
 - Script based
 
-The tooling is written in Zig with ancillary tools written in Bandu.
+The tooling is written in Zig with ancillary tools written in Bendu.
 
-A final comment.  Bandu has multiple ways of executing code - it is AST based interpreted, bytecode compiled, WASM compiled and native compiled using LLVM.  The AST interpreter is used for testing and the other methods are used for production.  The AST interpreter is very fast and is used to execute the markdown tests.
+A final comment.  Bendu has multiple ways of executing code - it is AST based interpreted, bytecode compiled, WASM compiled and native compiled using LLVM.  The AST interpreter is used for testing and the other methods are used for production.  The AST interpreter is very fast and is used to execute the markdown tests.
 
 ## Examples
 
