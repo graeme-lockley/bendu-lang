@@ -54,24 +54,24 @@ fn evalExpression(ast: *AST.Expression, runtime: *Runtime) !i64 {
             try runtime.state.put(ast.kind.idDeclaration.name, result);
             return result;
         },
-        .identifier => {
-            const value = runtime.state.get(ast.kind.identifier.name);
-
-            if (value == null) {
-                try std.io.getStdErr().writer().print("Error: Undefined variable {s}\n", .{ast.kind.identifier.name.slice()});
-                std.process.exit(1);
-            }
-
-            return value.?;
+        .identifier => if (runtime.state.get(ast.kind.identifier.name)) |value| {
+            return value;
+        } else {
+            try std.io.getStdErr().writer().print("Error: Undefined variable {s}\n", .{ast.kind.identifier.name.slice()});
+            std.process.exit(1);
         },
         .literalInt => return ast.kind.literalInt.value,
         .println => {
+            const writer = std.io.getStdOut().writer();
+
             var result: i64 = 0;
+
             for (ast.kind.println.exprs) |expr| {
                 result = try evalExpression(expr, runtime);
-                try std.io.getStdOut().writer().print("{d} ", .{result});
+                try writer.print("{d} ", .{result});
             }
-            try std.io.getStdOut().writer().print("\n", .{});
+            try writer.print("\n", .{});
+
             return result;
         },
     }

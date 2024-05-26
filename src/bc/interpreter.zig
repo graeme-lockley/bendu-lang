@@ -130,6 +130,7 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
 }
 
 fn execute(bc: []u8, allocator: std.mem.Allocator) !void {
+    const writer = std.io.getStdOut().writer();
     var ip: usize = 0;
     var stack = std.ArrayList(i64).init(allocator);
     defer stack.deinit();
@@ -161,11 +162,11 @@ fn execute(bc: []u8, allocator: std.mem.Allocator) !void {
             },
             .print_int => {
                 const v = stack.pop();
-                try std.io.getStdOut().writer().print("{d}", .{v});
+                try writer.print("{d}", .{v});
                 ip += 1;
             },
             .print_ln => {
-                try std.io.getStdOut().writer().print("\n", .{});
+                try writer.print("\n", .{});
                 ip += 1;
             },
         }
