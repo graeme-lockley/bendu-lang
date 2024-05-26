@@ -25,7 +25,8 @@ pub fn main() !void {
     defer program.decRef(allocator);
 
     if (args.len == 1) {
-        try stdout.print("default -- AST\n", .{});
+        try stdout.print("executing AST\n", .{});
+        try @import("./ast/interpreter.zig").eval(program, allocator);
         return;
     }
 
@@ -35,7 +36,8 @@ pub fn main() !void {
     }
 
     if (std.mem.eql(u8, args[1], "--ast")) {
-        try stdout.print("AST\n", .{});
+        try stdout.print("executing AST\n", .{});
+        try @import("./ast/interpreter.zig").eval(program, allocator);
     } else if (std.mem.eql(u8, args[1], "--bc")) {
         try stdout.print("BC\n", .{});
     } else if (std.mem.eql(u8, args[1], "--wasm")) {
