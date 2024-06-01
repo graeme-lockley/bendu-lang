@@ -44,7 +44,8 @@ pub fn main() !void {
     } else if (std.mem.eql(u8, args[1], "--wasm")) {
         try stdout.print("WASM\n", .{});
     } else if (std.mem.eql(u8, args[1], "--llvm")) {
-        try stdout.print("LLVM\n", .{});
+        try stdout.print("executing LLVM\n", .{});
+        try @import("./native/interpreter.zig").eval(program, allocator);
     } else {
         try stdout.print("Invalid argument: {s}\n", .{args[1]});
     }

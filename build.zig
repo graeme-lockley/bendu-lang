@@ -36,6 +36,20 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    exe.defineCMacro("__STDC_CONSTANT_MACROS", null);
+    exe.defineCMacro("__STDC_FORMAT_MACROS", null);
+    exe.defineCMacro("__STDC_LIMIT_MACROS", null);
+
+    exe.addIncludePath(.{
+        .path = "/usr/local/Cellar/llvm/18.1.6/include/",
+    });
+    exe.addLibraryPath(.{
+        .path = "/usr/local/Cellar/llvm/18.1.6/lib/",
+    });
+    exe.linkSystemLibrary("LLVM");
+
+    // exe.linkLibC();
+
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).
