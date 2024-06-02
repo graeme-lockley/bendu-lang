@@ -80,7 +80,7 @@ let _next(reader)  {
       if Str.digit?(reader.peek()) -> {
          while Str.digit?(reader.peek()) -> reader.next()
 
-         if (reader.peek() == '.') -> {
+         if reader.peek() == '.' -> {
             reader.next()
 
             while Str.digit?(reader.peek()) -> reader.next()
@@ -89,7 +89,7 @@ let _next(reader)  {
          } |
          { kind: "LiteralInt", value: int(reader.slice(start, reader.idx())), start: start, end: reader.idx() }
       }
-      | (reader.peek() == '>') -> {
+      | reader.peek() == '>' -> {
          reader.next()
          { kind: "MinusGreater", value: "->", start: start, end: reader.idx() }
       }
@@ -99,7 +99,7 @@ let _next(reader)  {
       if Str.digit?(c) -> {
          while Str.digit?(reader.peek()) -> reader.next()
 
-         if (reader.peek() == '.') -> {
+         if reader.peek() == '.' -> {
             reader.next()
 
             while Str.digit?(reader.peek()) -> reader.next()
