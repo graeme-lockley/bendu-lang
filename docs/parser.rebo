@@ -1,0 +1,389 @@
+let Str = import("str")
+
+let keywords = {
+   "let": "Let",
+   "type": "Type"
+}
+
+let _Reader(input) {
+   let _idx = 0
+
+   let self = {
+      peek: fn() input[_idx],
+      eos?: fn() _idx >= len(input),
+      next: fn() {
+         let char = input[_idx]
+         _idx := _idx + 1
+         char
+      },
+      idx: fn() _idx,
+      slice: fn(start, end) input[start:end],
+      matchSlice: fn(slice) {
+         let start = _idx
+         let end = start + len(slice)
+
+         if input[start:end] == slice -> {
+            _idx := end
+            true
+         } | false
+      },
+      skipWhitespace: fn() {
+         while Str.whitespace?(self.peek()) -> self.next()
+      }
+   }
+
+   self
+}
+
+let Scanner(input) {
+   let reader = _Reader(input)
+   let token = _next(reader)
+
+   {
+      eos?: fn() token.kind == "EOF",
+      peek: fn() token,
+      next!: fn() {
+         token := _next(reader)
+      }
+   }
+}
+
+let _next(reader)  {
+   reader.skipWhitespace()
+
+   let start = reader.idx()
+   let c = reader.peek()
+   reader.next()
+
+   match c
+   | () -> { kind: "EOF", value: (), start: start, end: start }
+   | '/' -> {
+      if reader.peek() == '/' -> {
+         while reader.peek() != '\n' -> reader.next()
+         _next(reader)
+      } | raise { kind: "SyntaxError", expected: '&', got: reader.peek(), position: reader.idx() }
+   }
+   | '(' -> { kind: "LParen", value: '(', start: start, end: reader.idx() }
+   | ')' -> { kind: "RParen", value: ')', start: start, end: reader.idx() }
+   | '{' -> { kind: "LCurley", value: '{', start: start, end: reader.idx() }
+   | '}' -> { kind: "RCurley", value: '}', start: start, end: reader.idx() }
+   | '[' -> { kind: "LBracket", value: '[', start: start, end: reader.idx() }
+   | ']' -> { kind: "RBracket", value: ']', start: start, end: reader.idx() }
+   | ',' -> { kind: "Comma", value: ',', start: start, end: reader.idx() }
+   | '+' -> { kind: "Plus", value: '+', start: start, end: reader.idx() }
+   | '*' -> { kind: "Star", value: '*', start: start, end: reader.idx() }
+   | ':' -> { kind: "Colon", value: ':', start: start, end: reader.idx() }
+   | ';' -> { kind: "Semicolon", value: ';', start: start, end: reader.idx() }
+   | '|' -> { kind: "Bar", value: ';', start: start, end: reader.idx() }
+   | '=' -> { kind: "Equals", value: '=', start: start, end: reader.idx() }
+   | '-' -> { 
+      if Str.digit?(reader.peek()) -> {
+         while Str.digit?(reader.peek()) -> reader.next()
+
+         if (reader.peek() == '.') -> {
+            reader.next()
+
+            while Str.digit?(reader.peek()) -> reader.next()
+
+            { kind: "LiteralFloat", value: float(reader.slice(start, reader.idx())), start: start, end: reader.idx() }
+         } |
+         { kind: "LiteralInt", value: int(reader.slice(start, reader.idx())), start: start, end: reader.idx() }
+      }
+      | (reader.peek() == '>') -> {
+         reader.next()
+         { kind: "MinusGreater", value: "->", start: start, end: reader.idx() }
+      }
+      | { kind: "Minus", value: '-', start: start, end: reader.idx() }
+   }
+   | _ -> {
+      if Str.digit?(c) -> {
+         while Str.digit?(reader.peek()) -> reader.next()
+
+         if (reader.peek() == '.') -> {
+            reader.next()
+
+            while Str.digit?(reader.peek()) -> reader.next()
+
+            { kind: "LiteralFloat", value: float(reader.slice(start, reader.idx())), start: start, end: reader.idx() }
+         } | { kind: "LiteralInt", value: int(reader.slice(start, reader.idx())), start: start, end: reader.idx() }
+      }
+      | Str.lowerAlpha?(c) -> {
+         while Str.alpha?(reader.peek()) || Str.digit?(reader.peek()) -> reader.next()
+
+         let lexeme = reader.slice(start, reader.idx())
+
+         { kind: keywords[lexeme] ? "LowerID", value: lexeme, start: start, end: reader.idx() }
+      }
+      | Str.upperAlpha?(c) -> {
+         while Str.alpha?(reader.peek()) || Str.digit?(reader.peek()) -> reader.next()
+
+         let lexeme = reader.slice(start, reader.idx())
+
+         { kind: keywords[lexeme] ? "UpperID", value: lexeme, start: start, end: reader.idx() }
+      }
+      | raise { kind: "SyntaxError", expected: ['-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], got: c, position: reader.idx() }
+   }
+}
+
+let scan(input) {
+   let scanner = Scanner(input)
+   let result = []
+
+   while !scanner.eos?() -> {
+      result <! scanner.peek()
+      scanner.next!()
+   }
+
+   result
+}
+
+let using(input, production) =
+   Scanner(input) |> production()
+
+let parse(input) =
+  Scanner(input) |> program()
+
+let program(scanner) {
+  let decls = []
+
+  while !scanner.eos?() -> {
+      decls <! declaration(scanner)
+
+      if scanner.peek().kind == "Semicolon" -> {
+         scanner.next!()
+      }
+  }
+  
+  decls
+}
+
+let declaration(scanner) =
+   match scanner.peek().kind
+   | "Type" -> typeDecl(scanner)
+   | "Let" -> valueDecl(scanner)
+   | _ -> expression(scanner)
+
+let typeDecl(scanner) {
+   _match1("Type", scanner)
+   let name = _match("UpperID", scanner).value
+   _match1("Equals", scanner)
+   let t = type(scanner)
+
+   { kind: "TypeDecl", name: name, type: t }
+}
+
+let valueDecl(scanner) {
+   _match1("Let", scanner)
+   let name = scanner.peek().value
+   _match1("LowerID", scanner)
+
+   let bindings = ()
+   if scanner.peek().kind == "LBracket" -> {
+      bindings := typeNameBindings(scanner)
+   }
+
+   let args = ()
+   if scanner.peek().kind == "LParen" -> {
+      args := []
+
+      _match1("LParen", scanner)
+
+      if scanner.peek().kind != "RParen" -> {
+         let n = _match("LowerID", scanner).value
+         let t = ()
+         if scanner.peek().kind == "Colon" -> {
+            scanner.next!()
+            t := type(scanner)
+         }
+         args <! { name: n, type: t }
+
+         while scanner.peek().kind == "Comma" -> {
+            scanner.next!()
+            n := _match("LowerID", scanner).value
+            t := ()
+            if scanner.peek().kind == "Colon" -> {
+               scanner.next!()
+               t := type(scanner)
+            }
+
+            args <! { name: n, type: t }
+         }
+      }
+
+      _match1("RParen", scanner)
+   }
+
+   let t = ()
+   if scanner.peek().kind == "Colon" -> {
+      scanner.next!()
+      t := type(scanner)
+   }
+
+   _match1("Equals", scanner)
+   let expr = expression(scanner)
+
+   { kind: "ValueDecl", name: name, bindings: bindings, args: args, type: t, expr: expr }
+}
+
+let typeNameBindings(scanner) {
+   let bindings = []
+
+   _match1("LBracket", scanner)
+
+   let name = _match("LowerID", scanner).value
+   _match1("Colon", scanner)
+   let t = type(scanner)
+
+   bindings <! { name: name, type: t }
+
+   while scanner.peek().kind == "Comma" -> {
+      scanner.next!()
+      name := _match("LowerID", scanner).value
+      _match1("Colon", scanner)
+      t := type(scanner)
+
+      bindings <! { name: name, type: t }
+   }
+
+   _match1("RBracket", scanner)
+
+   bindings
+}
+
+let type(scanner) {
+   let t = typeFunction(scanner)
+
+   if scanner.peek().kind == "Bar" -> {
+      let args = [t]
+      
+      while scanner.peek().kind == "Bar" -> {
+         scanner.next!()
+         args <! typeFunction(scanner)
+      }
+
+      { kind: "Or", args: args }
+   } | t
+}
+
+let typeFunction(scanner) {
+   let t = typeTuple(scanner)
+
+   while scanner.peek().kind == "MinusGreater" -> {
+      scanner.next!()
+      t := { kind: "Function", domain: t, range: typeTuple(scanner) }
+   }
+   
+   t
+}
+
+let typeTuple(scanner) {
+  let t = typeTerm(scanner)
+
+   if scanner.peek().kind == "Star" -> {
+      let types = [t]
+
+      while scanner.peek().kind == "Star" -> {
+         scanner.next!()
+         types <! typeTerm(scanner)
+      }
+
+      { kind: "Tuple", types: types }
+   } | t
+}
+
+let typeTerm(scanner) =
+   match scanner.peek().kind
+   | "LowerID" -> {
+      let token = scanner.peek()
+      scanner.next!()
+      { kind: "Variable", name: token.value }
+   }
+   | "UpperID" -> {
+      let token = scanner.peek()
+      scanner.next!()
+      { kind: "Constructor", name: token.value }
+   }
+   | "LParen" -> {
+      scanner.next!()
+      let type = type(scanner)
+      _match1("RParen", scanner)
+      type
+   }
+   | _ -> raise { kind: "SyntaxError", expected: ["LowerID", "UpperID", "LParen"], got: scanner.peek().kind, position: scanner.peek().start }
+
+let expression(scanner) {
+   let e = addExpression(scanner)
+
+   if scanner.peek().kind == "Colon" -> {
+      scanner.next!()
+      { kind: "Typed", expr: e, type: type(scanner)}
+   } | e
+}
+
+let addExpression(scanner) {
+   let lhs = term(scanner)
+
+   let op = scanner.peek().kind
+   while op == "Plus" -> {
+      scanner.next!()
+      lhs := { kind: "Add", lhs: lhs, rhs: term(scanner) }
+      op := scanner.peek().kind
+   }
+
+   lhs
+}
+
+let term(scanner) =
+   match scanner.peek().kind
+   | "LiteralFloat" -> {
+      let token = scanner.peek()
+      scanner.next!()
+      { kind: "LiteralFloat", value: token.value }
+   }
+   | "LiteralInt" -> {
+      let token = scanner.peek()
+      scanner.next!()
+      { kind: "LiteralInt", value: token.value }
+   }
+   | "LowerID" -> {
+      let token = scanner.peek()
+      scanner.next!()
+
+      if scanner.peek().kind == "LParen" -> {
+         scanner.next!()
+         let args = []
+
+         if scanner.peek().kind != "RParen" -> {
+            args <! expression(scanner)
+
+            while scanner.peek().kind == "Comma" -> {
+               scanner.next!()
+               args <! expression(scanner)
+            }
+         }
+
+         _match1("RParen", scanner)
+
+         { kind: "Call", name: token.value, args: args }
+      } |
+      { kind: "Identifier", value: token.value }
+   }
+   | "LParen" -> {
+      scanner.next!()
+      let expr = expression(scanner)
+      _match1("RParen", scanner)
+      expr
+   }
+   | _ -> raise { kind: "SyntaxError", expected: ["LiteralFloat", "LiteralInt", "LowerID", "LParen"], got: scanner.peek().kind, position: scanner.peek().start }
+
+
+let _match(kind, scanner) =
+   if scanner.peek().kind == kind -> {
+      let token = scanner.peek()
+      scanner.next!()
+      token
+   } | raise { kind: "SyntaxError", expected: kind, got: scanner.peek().kind, position: scanner.peek().start }
+
+let _match1(kind, scanner) =
+   if scanner.peek().kind == kind -> scanner.next!()
+    | raise { kind: "SyntaxError", expected: kind, got: scanner.peek().kind, position: scanner.peek().start }
