@@ -231,16 +231,22 @@ let typeNameBindings(scanner) {
    _match1("LBracket", scanner)
 
    let name = _match("LowerID", scanner).value
-   _match1("Colon", scanner)
-   let t = type(scanner)
+   let t = ()
+   if scanner.peek().kind == "Colon" -> {
+      scanner.next!()
+      t := type(scanner)
+   }
 
    bindings <! { name: name, type: t }
 
    while scanner.peek().kind == "Comma" -> {
       scanner.next!()
       name := _match("LowerID", scanner).value
-      _match1("Colon", scanner)
-      t := type(scanner)
+      t := ()
+      if scanner.peek().kind == "Colon" -> {
+         scanner.next!()
+         t := type(scanner)
+      }
 
       bindings <! { name: name, type: t }
    }

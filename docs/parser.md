@@ -94,7 +94,7 @@ typeDecl: "type" UpperID "=" type;
 
 valueDecl: "let" LowerID [typeNameBindings] ["(" [LowerID [":" type] {"," LowerID [":" type] }] ")"] [":" type] "=" expression;
 
-typeNameBindings: "[" LowerID ":" type {"," LowerID ":" type} "]";
+typeNameBindings: "[" LowerID [":" type] {"," LowerID [":" type]} "]";
 
 type: typeFunction {"|" typeFunction};
 typeFunction: typeTuple {"->" typeFunction};
@@ -206,7 +206,10 @@ The grammar defines the structure of the language. The grammar is used by the pa
 > Parser.using("let add(a: Int, b) = a + b", Parser.valueDecl)
 { kind: "ValueDecl"
 , name: "add"
-, args: [{ name: "a", type: { kind: "Constructor", name: "Int" } }, { name: "b" }]
+, args: 
+  [ { name: "a", type: { kind: "Constructor", name: "Int" } }
+  , { name: "b" }
+  ]
 , expr: 
   { kind: "Add"
   , lhs: { kind: "Identifier", value: "a" }
@@ -217,12 +220,10 @@ The grammar defines the structure of the language. The grammar is used by the pa
 > Parser.using("let add[a: Num](x: a, y: a): a = x + y", Parser.valueDecl)
 { kind: "ValueDecl"
 , name: "add"
-, bindings: [ 
-    { name: "a", type: { kind: "Constructor", name: "Num" }}
-  ]
+, bindings: [ { name: "a", type: { kind: "Constructor", name: "Num" } } ]
 , args: 
   [ { name: "x", type: { kind: "Variable", name: "a" } }
-  , { name: "y" , type: { kind: "Variable", name: "a" } }
+  , { name: "y", type: { kind: "Variable", name: "a" } }
   ]
 , type: { kind: "Variable", name: "a" }
 , expr: 
@@ -237,6 +238,10 @@ The grammar defines the structure of the language. The grammar is used by the pa
 
 ```rebo-repl
 > let Parser = import("./parser.rebo")
+
+> Parser.using("[a]", Parser.typeNameBindings)
+[ { name: "a" }
+] 
 
 > Parser.using("[a: Int]", Parser.typeNameBindings)
 [ { name: "a", type: { kind: "Constructor", name: "Int" } }
