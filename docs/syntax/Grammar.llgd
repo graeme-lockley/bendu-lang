@@ -1,0 +1,114 @@
+uses "./Scanner.llld";
+
+Module
+    : {Expression {";"}}
+    ;
+
+Expression
+    : "let" Pattern "=" Expression
+    | "let" Identifier FunctionTail
+    | "if" ["|"] Expression "->" Expression {"|" Expression "->" Expression}
+    | "while" Expression "->" Expression
+    | "match" Expression ["|"] MatchCase {"|" MatchCase}
+    | "raise" Expression
+    | Catch [":=" Expression]
+    ;
+
+MatchCase
+    : Pattern "->" Expression
+    ;
+
+Pattern
+    : "(" [Pattern] ")"
+    | Identifier
+    | LiteralChar
+    | LiteralFloat
+    | LiteralInt
+    | LiteralString
+    | "[" [Pattern {"," Pattern} ["," "..." Identifier]] "]" ["@" Identifier]
+    | "{" [MapPattern {"," MapPattern} ["," "..." Identifier]] "}" ["@" Identifier]
+    | "true" 
+    | "false"
+    ;
+
+MapPattern
+    : [LiteralString | Identifier] [":" Pattern]
+    ;
+
+Catch
+    : Pipe ["catch" ["|"] MatchCase {"|" MatchCase}]
+    ;
+
+Pipe
+    : Or {"|>" Or}
+
+Or
+    : And {"||" And}
+    ;
+
+And
+    : Equality {"&&" Equality}
+    ;
+
+Equality
+    : Starpend [("==" | "!=" | "<" | "<=" | ">" | ">=") Starpend]
+    ;
+
+Starpend
+    : Additive {(">>" | ">!" | "<<" | "<!") Additive}
+    ;
+
+Additive
+    : Multiplicative {["+" | "-"] Multiplicative}
+    ;
+
+Multiplicative
+    : NullDefault {["*" | "/" | "%"] NullDefault}
+    ;
+
+NullDefault
+    : Qualifier ["?" Qualifier]
+    ;
+
+Qualifier
+    : Factor { FactorSuffix }
+    ;
+
+FactorSuffix
+    : "(" [Expression {"," Expression}] ")"
+    | "[" (Expression | [Expression] ":" [Expression]) "]"
+    | "." Identifier
+    ;
+
+Factor
+    : "(" [Expression] ")"
+    | "{" [RecordItem {"," RecordItem}]"}"
+    | "{" Expression {";" Expression} "}"
+    | Identifier
+    | "false"
+    | "true"
+    | LiteralChar
+    | LiteralFloat
+    | LiteralInt
+    | LiteralString
+    | "[" [Expression {"," ["..."] Expression}] "]"
+    | "fn" FunctionTail
+    | "!" Qualifier
+    ;
+
+FunctionTail
+    : Parameters ["="] Expression
+    ;
+
+RecordItem
+    : [LiteralString | Identifier] ":" Expression
+    | "..." Expression
+    ;
+
+Parameters
+    : "(" [(Parameter {"," Parameter} ["," "..." Identifier]) | ("..." Identifier)] ")"
+    ;
+
+Parameter
+    : Identifier ["=" Expression]
+    ;
