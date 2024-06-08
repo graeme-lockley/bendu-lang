@@ -20,6 +20,19 @@ jobs:
         with:
           zig-version: 0.13.0 # released versions or master
 
+      - name: Install Rebo
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/graeme-lockley/rebo-lang/main/tasks/install.sh)" -- ./rebo
+          echo "$(pwd)/rebo/bin" >> $GITHUB_PATH
+    
+      - name: Build
+        run: |
+          zig build
+
       - name: Test Build
         run: |
           zig build test
+
+      - name: Run Tests
+        run: |
+          ./bin/bendu-test

@@ -3,11 +3,11 @@ const std = @import("std");
 const AST = @import("../ast.zig");
 const SP = @import("../string_pool.zig");
 
-pub fn eval(ast: *AST.Expression, allocator: std.mem.Allocator) !void {
+pub fn eval(ast: *AST.Expression, allocator: std.mem.Allocator) !i64 {
     const bc = try compile(ast, allocator);
     defer allocator.free(bc);
 
-    try execute(bc, allocator);
+    return try execute(bc, allocator);
 }
 
 const Op = enum(u8) {
@@ -145,7 +145,7 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
     }
 }
 
-fn execute(bc: []u8, allocator: std.mem.Allocator) !void {
+fn execute(bc: []u8, allocator: std.mem.Allocator) !i64 {
     const writer = std.io.getStdOut().writer();
     var ip: usize = 0;
     var stack = std.ArrayList(i64).init(allocator);
@@ -157,7 +157,7 @@ fn execute(bc: []u8, allocator: std.mem.Allocator) !void {
         // std.io.getStdOut().writer().print("instruction: ip={d}, op={}, stack={}\n", .{ ip, op, stack }) catch {};
 
         switch (op) {
-            .ret => break,
+            .ret => return stack.pop(),
             .discard => {
                 _ = stack.pop();
                 ip += 1;

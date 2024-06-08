@@ -3,11 +3,11 @@ const std = @import("std");
 const AST = @import("../ast.zig");
 const SP = @import("../string_pool.zig");
 
-pub fn eval(ast: *AST.Expression, allocator: std.mem.Allocator) !void {
+pub fn eval(ast: *AST.Expression, allocator: std.mem.Allocator) !i64 {
     var runtime = Runtime.init(allocator);
     defer runtime.deinit();
 
-    _ = try evalExpression(ast, &runtime);
+    return try evalExpression(ast, &runtime);
 }
 
 const Runtime = struct {

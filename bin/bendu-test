@@ -1,0 +1,30 @@
+#!/usr/bin/env rebo
+
+let CLI = import("cli")
+let Str = import("str")
+let Test = import("test")
+
+let Markdown = import("./src/test-bendu-markdown.rebo")
+
+let cli = CLI.parse({
+   cmd: false,
+   enforcing: true,
+   opts: {
+      silent: false,
+      totals: true
+   }    
+})
+
+if len(cli.args) == 0 -> 
+   cli.args := import("fs").files(".", { predicate: fn(n) Str.endsWith?(n, ".md")})
+
+let test = Test.harness("suite")
+
+cli.args|> each(fn(name) 
+   if Str.endsWith?(name, ".md") -> Markdown.process(name, test, cli.opts.silent)
+    | println("Unknown file type: " + name + " - ignoring")
+)
+
+let stats = test.report(cli.opts.totals, true)
+
+exit(stats.failed)

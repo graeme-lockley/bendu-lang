@@ -26,7 +26,8 @@ pub fn main() !void {
         var program = try Parser.parse(&sp, "script.bendu", args[1]);
         defer program.decRef(allocator);
 
-        try @import("./ast/interpreter.zig").eval(program, allocator);
+        const v = try @import("./ast/interpreter.zig").eval(program, allocator);
+        try stdout.print("{d}", .{v});
         return;
     }
 
@@ -40,9 +41,11 @@ pub fn main() !void {
     defer program.decRef(allocator);
 
     if (std.mem.eql(u8, args[1], "--ast")) {
-        try @import("./ast/interpreter.zig").eval(program, allocator);
+        const v = try @import("./ast/interpreter.zig").eval(program, allocator);
+        try stdout.print("{d}n", .{v});
     } else if (std.mem.eql(u8, args[1], "--bc")) {
-        try @import("./bc/interpreter.zig").eval(program, allocator);
+        const v = try @import("./bc/interpreter.zig").eval(program, allocator);
+        try stdout.print("{d}", .{v});
         // } else if (std.mem.eql(u8, args[1], "--wasm")) {
         //     try stdout.print("WASM\n", .{});
         // } else if (std.mem.eql(u8, args[1], "--llvm")) {
@@ -50,6 +53,7 @@ pub fn main() !void {
         //     try @import("./native/interpreter.zig").eval(program, allocator);
     } else {
         try stdout.print("Invalid argument: {s}\n", .{args[1]});
+        std.process.exit(1);
     }
 }
 
