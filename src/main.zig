@@ -21,7 +21,7 @@ pub fn main() !void {
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
 
-    var program = try mkProgram(allocator, &sp);
+    var program = try mkProgram(&sp);
     defer program.decRef(allocator);
 
     if (args.len == 1) {
@@ -52,25 +52,13 @@ pub fn main() !void {
     }
 }
 
-fn mkProgram(allocator: std.mem.Allocator, sp: *SP.StringPool) !*AST.Expression {
-    const e1 = try AST.Expression.create(allocator, AST.ExpressionKind{ .idDeclaration = AST.IdDeclarationExpression{ .name = try sp.intern("x"), .value = try AST.Expression.create(allocator, AST.ExpressionKind{ .literalInt = AST.LiteralIntExpression{ .value = 42 } }) } });
+fn mkProgram(sp: *SP.StringPool) !*AST.Expression {
+    const Parser = @import("./parser.zig");
 
-    var printlnExprs = std.ArrayList(*AST.Expression).init(allocator);
-    defer printlnExprs.deinit();
-
-    try printlnExprs.append(try AST.Expression.create(allocator, AST.ExpressionKind{ .identifier = AST.IdentifierExpression{ .name = try sp.intern("x") } }));
-
-    const e2 = try AST.Expression.create(allocator, AST.ExpressionKind{ .println = AST.PrintlnExpression{ .exprs = try printlnExprs.toOwnedSlice() } });
-
-    var exprs = std.ArrayList(*AST.Expression).init(allocator);
-    defer exprs.deinit();
-
-    try exprs.append(e1);
-    try exprs.append(e2);
-
-    return try AST.Expression.create(allocator, AST.ExpressionKind{ .block = AST.BlockExpression{ .exprs = try exprs.toOwnedSlice() } });
+    return try Parser.parse(sp, "test.bendu", "let x = 42; println(x)");
 }
 
 test "All tests" {
     _ = @import("./lexer.zig");
+    _ = @import("./parser.zig");
 }

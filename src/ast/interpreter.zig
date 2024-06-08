@@ -34,10 +34,35 @@ const Runtime = struct {
 
 fn evalExpression(ast: *AST.Expression, runtime: *Runtime) !i64 {
     switch (ast.kind) {
-        .block => {
+        .call => {
+            if (ast.kind.call.callee.kind != .identifier) {
+                try std.io.getStdErr().writer().print("Error: Expected identifier\n", .{});
+                std.process.exit(1);
+            } else {
+                const callee = ast.kind.call.callee.kind.identifier.slice();
+
+                if (std.mem.eql(u8, callee, "println")) {
+                    const writer = std.io.getStdOut().writer();
+
+                    var result: i64 = 0;
+
+                    for (ast.kind.call.args) |expr| {
+                        result = try evalExpression(expr, runtime);
+                        try writer.print("{d} ", .{result});
+                    }
+                    try writer.print("\n", .{});
+
+                    return result;
+                } else {
+                    try std.io.getStdErr().writer().print("Error: Unknown function {s}\n", .{callee});
+                    std.process.exit(1);
+                }
+            }
+        },
+        .exprs => {
             var result: i64 = 0;
 
-            for (ast.kind.block.exprs) |expr| {
+            for (ast.kind.exprs) |expr| {
                 result = try evalExpression(expr, runtime);
             }
 
@@ -54,25 +79,16 @@ fn evalExpression(ast: *AST.Expression, runtime: *Runtime) !i64 {
             try runtime.state.put(ast.kind.idDeclaration.name.incRefR(), result);
             return result;
         },
-        .identifier => if (runtime.state.get(ast.kind.identifier.name)) |value| {
+        .identifier => if (runtime.state.get(ast.kind.identifier)) |value| {
             return value;
         } else {
-            try std.io.getStdErr().writer().print("Error: Undefined variable {s}\n", .{ast.kind.identifier.name.slice()});
+            try std.io.getStdErr().writer().print("Error: Undefined variable {s}\n", .{ast.kind.identifier.slice()});
             std.process.exit(1);
         },
-        .literalInt => return ast.kind.literalInt.value,
-        .println => {
-            const writer = std.io.getStdOut().writer();
-
-            var result: i64 = 0;
-
-            for (ast.kind.println.exprs) |expr| {
-                result = try evalExpression(expr, runtime);
-                try writer.print("{d} ", .{result});
-            }
-            try writer.print("\n", .{});
-
-            return result;
+        .literalInt => return ast.kind.literalInt,
+        else => {
+            try std.io.getStdErr().writer().print("Error: Unsupported expression kind\n", .{});
+            std.process.exit(1);
         },
     }
 }

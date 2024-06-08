@@ -77,9 +77,32 @@ const CompileState = struct {
 
 fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
     switch (ast.kind) {
-        .block => {
-            const exprCount = ast.kind.block.exprs.len;
-            for (ast.kind.block.exprs, 0..) |item, idx| {
+        .call => {
+            if (ast.kind.call.callee.kind != .identifier) {
+                try std.io.getStdErr().writer().print("Error: Expected identifier\n", .{});
+                std.process.exit(1);
+            } else {
+                const callee = ast.kind.call.callee.kind.identifier.slice();
+
+                if (std.mem.eql(u8, callee, "println")) {
+                    const exprCount = ast.kind.call.args.len;
+                    for (ast.kind.call.args, 0..) |expr, idx| {
+                        try compileExpr(expr, state);
+                        if (idx == exprCount - 1) {
+                            try state.appendOp(Op.duplicate);
+                        }
+                        try state.appendOp(Op.print_int);
+                    }
+                    try state.appendOp(Op.print_ln);
+                } else {
+                    try std.io.getStdErr().writer().print("Error: Unknown function {s}\n", .{callee});
+                    std.process.exit(1);
+                }
+            }
+        },
+        .exprs => {
+            const exprCount = ast.kind.exprs.len;
+            for (ast.kind.exprs, 0..) |item, idx| {
                 try compileExpr(item, state);
                 if (idx != exprCount - 1) {
                     try state.appendOp(Op.discard);
@@ -101,30 +124,23 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
             }
         },
         .identifier => {
-            const name = ast.kind.identifier.name;
+            const name = ast.kind.identifier;
 
             if (state.bindings.get(name)) |binding| {
                 try state.appendOp(Op.push_global);
                 try state.append(@intCast(binding));
             } else {
-                try std.io.getStdErr().writer().print("Error: Use of undeclared identifier {s}\n", .{ast.kind.identifier.name.slice()});
+                try std.io.getStdErr().writer().print("Error: Use of undeclared identifier {s}\n", .{name.slice()});
                 std.process.exit(1);
             }
         },
         .literalInt => {
             try state.appendOp(Op.push_int);
-            try state.append(ast.kind.literalInt.value);
+            try state.append(ast.kind.literalInt);
         },
-        .println => {
-            const exprCount = ast.kind.println.exprs.len;
-            for (ast.kind.println.exprs, 0..) |expr, idx| {
-                try compileExpr(expr, state);
-                if (idx == exprCount - 1) {
-                    try state.appendOp(Op.duplicate);
-                }
-                try state.appendOp(Op.print_int);
-            }
-            try state.appendOp(Op.print_ln);
+        else => {
+            try std.io.getStdErr().writer().print("Error: Unsupported expression kind\n", .{});
+            std.process.exit(1);
         },
     }
 }
