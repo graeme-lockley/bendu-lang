@@ -22,7 +22,6 @@ pub fn parse(sp: *SP.StringPool, name: []const u8, buffer: []const u8) !Result(*
     var p = Parser.init(sp, l);
 
     const e = p.module() catch {
-        if (l.err != null) {}
         return Result(*AST.Expression, Errors.Error){ .Err = p.grabErr().? };
     };
 
