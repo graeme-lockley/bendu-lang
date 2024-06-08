@@ -1,12 +1,28 @@
 uses "./Scanner.llld";
 
 Module
-    : {Expression {";"}}
+    : {Declaration {";"}}
     ;
+
+Declaration
+    : TypeDeclaration
+    | Expression
+    ;
+
+TypeDeclaration
+    : "type" UpperID [TypeNameBindings] = Type
+    ;
+
+TypeNameBindings: "[" LowerID [":" Type] {"," LowerID [":" Type]} "]";
+
+Type: TypeFunction {"|" TypeFunction};
+TypeFunction: TypeTuple {"->" TypeTuple};
+TypeTuple: TypeTerm {"*" TypeTerm};
+TypeTerm: LowerID | UpperID {Type} | "(" Type ")" | "{" [LowerID [":" Type] {"," LowerID [":" Type]} "," "..."] | "..." "}";
 
 Expression
     : "let" Pattern "=" Expression
-    | "let" Identifier FunctionTail
+    | "let" Identifier ["!"] ["+"] FunctionTail
     | "if" ["|"] Expression "->" Expression {"|" Expression "->" Expression}
     | "while" Expression "->" Expression
     | "match" Expression ["|"] MatchCase {"|" MatchCase}
@@ -20,7 +36,7 @@ MatchCase
 
 Pattern
     : "(" [Pattern] ")"
-    | Identifier
+    | Identifier ["*"] [":" Type]
     | LiteralChar
     | LiteralFloat
     | LiteralInt
@@ -84,7 +100,7 @@ Factor
     : "(" [Expression] ")"
     | "{" [RecordItem {"," RecordItem}]"}"
     | "{" Expression {";" Expression} "}"
-    | Identifier
+    | Identifier [":" Type]
     | "false"
     | "true"
     | LiteralChar
@@ -97,7 +113,7 @@ Factor
     ;
 
 FunctionTail
-    : Parameters ["="] Expression
+    : [TypeNameBindings] Parameters [":" Type] ["="] Expression
     ;
 
 RecordItem
@@ -110,5 +126,5 @@ Parameters
     ;
 
 Parameter
-    : Identifier ["=" Expression]
+    : Identifier [":" Type] ["=" Expression]
     ;
