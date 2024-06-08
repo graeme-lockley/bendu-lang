@@ -70,3 +70,7 @@ fn mkProgram(allocator: std.mem.Allocator, sp: *SP.StringPool) !*AST.Expression 
 
     return try AST.Expression.create(allocator, AST.ExpressionKind{ .block = AST.BlockExpression{ .exprs = try exprs.toOwnedSlice() } });
 }
+
+test "All tests" {
+    _ = @import("./lexer.zig");
+}
