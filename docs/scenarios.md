@@ -15,3 +15,25 @@ Let's get started.
 > x
 42
 ```
+
+# Error Reporting
+
+There are a number of error scenarios that need to be tested.
+
+## Lexical Errors
+
+A lexer errors when the scanner encounters a character that it does not recognize.  The scanner reports the error and stops processing the input.
+
+```bendu-repl
+> '\1'
+Error: 1:1-2: Lexical error: '\
+```
+
+## Parser Error
+
+A parser error occurs when the parser encounters a token that it does not expect.  The parser reports the error and stops processing the input.
+
+```bendu-repl
+> let x = inc)
+Error: 1:12: Syntax error: Found ")", expected one of '[', '{', identifier, '(', false, true, literal char, literal float, literal int, literal string, fn
+```

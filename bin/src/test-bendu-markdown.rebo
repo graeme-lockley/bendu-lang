@@ -48,11 +48,11 @@ let process(path, test, silent = false) {
       let result1 = rebo.os.exec(["./zig-out/bin/bendu-lang", "--ast", script])
       let result2 = rebo.os.exec(["./zig-out/bin/bendu-lang", "--bc", script])
 
-      ; [result1.stdout + result1.stderr, result2.stdout + result2.stderr]
+      ; [Str.trim(result1.stdout) + Str.trim(result1.stderr), Str.trim(result2.stdout) + Str.trim(result2.stderr)]
    }
 
    let executeBendu(suite, path, startLine, endLine, code) {
-      let cmd = "1"
+      let cmd = ()
       let lp = 0
 
       while lp < len(code) -> {
@@ -67,7 +67,9 @@ let process(path, test, silent = false) {
                lp := lp + 1
             }
 
-            cmd := cmd + " ; " + cmdSegment
+            if cmd == () -> cmd := cmdSegment
+             | cmd := cmd + " ; " + cmdSegment
+
             let result = evalBendu(cmd) catch e -> e
 
             let expected = ""
@@ -78,7 +80,7 @@ let process(path, test, silent = false) {
             
             if len(expected) > 0 -> {
                if typeof(result) == "Function" -> suite.eq(formatCmdSegment(cmdSegment), str(result), expected, cmd)
-                | suite.eq(formatCmdSegment(cmdSegment), result, evalBendu(expected), cmd)
+                | suite.eq(formatCmdSegment(cmdSegment), result, [expected, expected], cmd)
             }
          } | {
             println("Error: ", path, ": ", startLine + lp, ": ", code[lp], " needed to start with '>'")

@@ -5,14 +5,28 @@ const Errors = @import("./errors.zig");
 const Lexer = @import("./lexer.zig");
 const SP = @import("./string_pool.zig");
 
-pub fn parse(sp: *SP.StringPool, name: []const u8, buffer: []const u8) !*AST.Expression {
+pub fn Result(T: type, E: type) type {
+    return union(enum) {
+        Ok: T,
+        Err: E,
+    };
+}
+
+pub fn parse(sp: *SP.StringPool, name: []const u8, buffer: []const u8) !Result(*AST.Expression, Errors.Error) {
     var l = Lexer.Lexer.init(sp.allocator);
 
-    try l.initBuffer(name, buffer);
+    l.initBuffer(name, buffer) catch {
+        return Result(*AST.Expression, Errors.Error){ .Err = l.grabErr().? };
+    };
 
     var p = Parser.init(sp, l);
 
-    return p.module();
+    const e = p.module() catch {
+        if (l.err != null) {}
+        return Result(*AST.Expression, Errors.Error){ .Err = p.grabErr().? };
+    };
+
+    return Result(*AST.Expression, Errors.Error){ .Ok = e };
 }
 
 pub const Parser = struct {

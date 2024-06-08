@@ -22,38 +22,49 @@ pub fn main() !void {
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
 
+    var action: []const u8 = undefined;
+    var script: []const u8 = undefined;
+
     if (args.len == 2) {
-        var program = try Parser.parse(&sp, "script.bendu", args[1]);
-        defer program.decRef(allocator);
-
-        const v = try @import("./ast/interpreter.zig").eval(program, allocator);
-        try stdout.print("{d}", .{v});
-        return;
-    }
-
-    if (args.len != 3) {
+        action = "--ast";
+        script = args[1];
+    } else if (args.len == 3) {
+        action = args[1];
+        script = args[2];
+    } else {
         try stdout.print("Usage: {s} [--ast|--bc] script\n", .{args[0]});
         // try stdout.print("Usage: {s} [--ast|--bc|--wasm|--llvm]\n", .{args[0]});
         return;
     }
 
-    var program = try Parser.parse(&sp, "script.bendu", args[2]);
-    defer program.decRef(allocator);
+    var parseResult = try Parser.parse(&sp, "script.bendu", script);
+    defer switch (parseResult) {
+        .Ok => parseResult.Ok.decRef(allocator),
+        .Err => parseResult.Err.deinit(),
+    };
 
-    if (std.mem.eql(u8, args[1], "--ast")) {
-        const v = try @import("./ast/interpreter.zig").eval(program, allocator);
-        try stdout.print("{d}n", .{v});
-    } else if (std.mem.eql(u8, args[1], "--bc")) {
-        const v = try @import("./bc/interpreter.zig").eval(program, allocator);
-        try stdout.print("{d}", .{v});
-        // } else if (std.mem.eql(u8, args[1], "--wasm")) {
-        //     try stdout.print("WASM\n", .{});
-        // } else if (std.mem.eql(u8, args[1], "--llvm")) {
-        //     try stdout.print("executing LLVM\n", .{});
-        //     try @import("./native/interpreter.zig").eval(program, allocator);
-    } else {
-        try stdout.print("Invalid argument: {s}\n", .{args[1]});
-        std.process.exit(1);
+    switch (parseResult) {
+        .Ok => if (std.mem.eql(u8, action, "--ast")) {
+            const v = try @import("./ast/interpreter.zig").eval(parseResult.Ok, allocator);
+            try stdout.print("{d}", .{v});
+        } else if (std.mem.eql(u8, action, "--bc")) {
+            const v = try @import("./bc/interpreter.zig").eval(parseResult.Ok, allocator);
+            try stdout.print("{d}", .{v});
+            // } else if (std.mem.eql(u8, args[1], "--wasm")) {
+            //     try stdout.print("WASM\n", .{});
+            // } else if (std.mem.eql(u8, args[1], "--llvm")) {
+            //     try stdout.print("executing LLVM\n", .{});
+            //     try @import("./native/interpreter.zig").eval(program, allocator);
+        } else {
+            try stdout.print("Invalid argument: {s}\n", .{action});
+            std.process.exit(1);
+        },
+        .Err => {
+            const msg = try parseResult.Err.toString(allocator);
+            defer allocator.free(msg);
+            try stdout.print("Error: {s}\n", .{msg});
+            std.process.exit(1);
+        },
     }
 }
 

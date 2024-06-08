@@ -10,5 +10,5 @@ The following *definition of done* is used to determine when a feature is comple
 
 # Scaffolding
 
-- [ ] Have lexical errors propagate through to main
-- [ ] Have syntax errors propagate through to main
+- [X] Have lexical errors propagate through to main
+- [X] Have syntax errors propagate through to main

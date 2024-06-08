@@ -48,6 +48,40 @@ pub const Error = struct {
     pub fn deinit(self: *Error) void {
         self.detail.deinit(self.allocator);
     }
+
+    pub fn toString(self: *Error, allocator: std.mem.Allocator) ![]u8 {
+        var buffer = std.ArrayList(u8).init(allocator);
+        defer buffer.deinit();
+
+        const writer = buffer.writer();
+
+        try writer.print("{d}:", .{self.locationRange.from.line});
+        if (self.locationRange.from.line != self.locationRange.to.line) {
+            try writer.print("{d}-{d}:{d}: ", .{ self.locationRange.from.column, self.locationRange.to.line, self.locationRange.to.column - 1 });
+        } else if (self.locationRange.from.column != self.locationRange.to.column - 1) {
+            try writer.print("{d}-{d}: ", .{ self.locationRange.from.column, self.locationRange.to.column - 1 });
+        } else {
+            try writer.print("{d}: ", .{self.locationRange.from.column});
+        }
+
+        switch (self.detail) {
+            .FunctionValueExpectedKind => try buffer.appendSlice("Function value expected"),
+            .LexicalKind => try writer.print("Lexical error: {s}", .{self.detail.LexicalKind.lexeme}),
+            .LiteralFloatOverflowKind => try writer.print("Literal float overflow: {s}", .{self.detail.LiteralFloatOverflowKind.lexeme}),
+            .LiteralIntOverflowKind => try writer.print("Literal int overflow: {s}", .{self.detail.LiteralIntOverflowKind.lexeme}),
+            .ParserKind => {
+                try writer.print("Syntax error: Found \"{s}\", expected one of ", .{self.detail.ParserKind.lexeme});
+                for (self.detail.ParserKind.expected, 0..) |expected, idx| {
+                    if (idx > 0) {
+                        try buffer.appendSlice(", ");
+                    }
+                    try buffer.appendSlice(expected.toString());
+                }
+            },
+        }
+
+        return buffer.toOwnedSlice();
+    }
 };
 
 pub const ErrorKind = enum {
