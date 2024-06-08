@@ -46,7 +46,7 @@ pub fn main() !void {
 
     switch (parseResult) {
         .Ok => {
-            try Static.analysis(parseResult.Ok);
+            try Static.analysis(parseResult.Ok, allocator);
 
             if (std.mem.eql(u8, action, "--ast")) {
                 const v = try @import("./ast/interpreter.zig").eval(parseResult.Ok, allocator);

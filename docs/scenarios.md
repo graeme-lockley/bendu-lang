@@ -4,7 +4,10 @@ This document serves as the functional description of Bendu in that it:
 - Acts as the definitive guide for the language's behavior, and
 - Is the automated test pack for the language.
 
-It is rather helpful in that, as the implementation evolves, the scenarios can be used to verify that the implementations are not introducing any new defects.  It should be pointed out the this document will also show off the error scenarios as well as the successful scenarios.
+It is rather helpful in that, as the implementation evolves, the scenarios can
+be used to verify that the implementations are not introducing any new defects.
+It should be pointed out the this document will also show off the error
+scenarios as well as the successful scenarios.
 
 Let's get started.
 
@@ -22,7 +25,8 @@ There are a number of error scenarios that need to be tested.
 
 ## Lexical Errors
 
-A lexer errors when the scanner encounters a character that it does not recognize.  The scanner reports the error and stops processing the input.
+A lexer errors when the scanner encounters a character that it does not
+recognize. The scanner reports the error and stops processing the input.
 
 ```bendu-repl
 > '\1'
@@ -31,9 +35,24 @@ Error: 1:1-2: Lexical error: '\
 
 ## Parser Error
 
-A parser error occurs when the parser encounters a token that it does not expect.  The parser reports the error and stops processing the input.
+A parser error occurs when the parser encounters a token that it does not
+expect. The parser reports the error and stops processing the input.
 
 ```bendu-repl
 > let x = inc)
 Error: 1:12: Syntax error: Found ")", expected one of '[', '{', identifier, '(', false, true, literal char, literal float, literal int, literal string, fn
+```
+
+## Unknown Identifier
+
+There are a number of scenarios where an identifier is not defined:
+
+- A value declaration is unknown,
+- A field value is unknown,
+- A reference to an unknown type, and
+- A reference to an unknown type variable
+
+```bendus-repl
+> x
+Error: 1:1: Unknown identifier: x
 ```

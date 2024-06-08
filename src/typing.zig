@@ -1,10 +1,17 @@
 const std = @import("std");
 
-const SP = @import("./string_pool.zig");
+const SP = @import("string_pool.zig");
 
-const Scheme = struct {
+pub const Scheme = struct {
     names: []*SP.String,
     type: *Type,
+
+    pub fn deinit(self: *Scheme, allocator: std.mem.Allocator) void {
+        self.type.decRef(allocator);
+        for (self.names) |name| {
+            name.decRef();
+        }
+    }
 };
 
 pub const Type = struct {
