@@ -1,8 +1,9 @@
 const std = @import("std");
 
 const AST = @import("ast.zig");
-const Parser = @import("./parser.zig");
+const Parser = @import("parser.zig");
 const SP = @import("string_pool.zig");
+const Static = @import("static.zig");
 
 const stdout = std.io.getStdOut().writer();
 
@@ -44,20 +45,24 @@ pub fn main() !void {
     };
 
     switch (parseResult) {
-        .Ok => if (std.mem.eql(u8, action, "--ast")) {
-            const v = try @import("./ast/interpreter.zig").eval(parseResult.Ok, allocator);
-            try stdout.print("{d}", .{v});
-        } else if (std.mem.eql(u8, action, "--bc")) {
-            const v = try @import("./bc/interpreter.zig").eval(parseResult.Ok, allocator);
-            try stdout.print("{d}", .{v});
-            // } else if (std.mem.eql(u8, args[1], "--wasm")) {
-            //     try stdout.print("WASM\n", .{});
-            // } else if (std.mem.eql(u8, args[1], "--llvm")) {
-            //     try stdout.print("executing LLVM\n", .{});
-            //     try @import("./native/interpreter.zig").eval(program, allocator);
-        } else {
-            try stdout.print("Invalid argument: {s}\n", .{action});
-            std.process.exit(1);
+        .Ok => {
+            try Static.analysis(parseResult.Ok);
+
+            if (std.mem.eql(u8, action, "--ast")) {
+                const v = try @import("./ast/interpreter.zig").eval(parseResult.Ok, allocator);
+                try stdout.print("{d}", .{v});
+            } else if (std.mem.eql(u8, action, "--bc")) {
+                const v = try @import("./bc/interpreter.zig").eval(parseResult.Ok, allocator);
+                try stdout.print("{d}", .{v});
+                // } else if (std.mem.eql(u8, args[1], "--wasm")) {
+                //     try stdout.print("WASM\n", .{});
+                // } else if (std.mem.eql(u8, args[1], "--llvm")) {
+                //     try stdout.print("executing LLVM\n", .{});
+                //     try @import("./native/interpreter.zig").eval(program, allocator);
+            } else {
+                try stdout.print("Invalid argument: {s}\n", .{action});
+                std.process.exit(1);
+            }
         },
         .Err => {
             const msg = try parseResult.Err.toString(allocator);
@@ -71,4 +76,5 @@ pub fn main() !void {
 test "All tests" {
     _ = @import("./lexer.zig");
     _ = @import("./parser.zig");
+    _ = @import("./typing.zig");
 }

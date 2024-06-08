@@ -1,7 +1,8 @@
 const std = @import("std");
 
-const Errors = @import("./errors.zig");
-const SP = @import("./string_pool.zig");
+const Errors = @import("errors.zig");
+const SP = @import("string_pool.zig");
+const Typing = @import("typing.zig");
 
 pub const Operator = enum {
     Plus,
@@ -52,12 +53,14 @@ pub const Operator = enum {
 pub const Expression = struct {
     kind: ExpressionKind,
     locationRange: Errors.LocationRange,
+    type: ?Typing.Type,
     count: u32,
 
     fn init(kind: ExpressionKind, locationRange: Errors.LocationRange) Expression {
         return Expression{
             .kind = kind,
             .locationRange = locationRange,
+            .type = null,
             .count = 1,
         };
     }
@@ -352,6 +355,10 @@ fn destroyExpr(allocator: std.mem.Allocator, expr: *Expression) void {
                 destroyExpr(allocator, expr.kind.whilee.condition);
                 destroyExpr(allocator, expr.kind.whilee.body);
             },
+        }
+
+        if (expr.type) |*typ| {
+            typ.decRef(allocator);
         }
 
         allocator.destroy(expr);
