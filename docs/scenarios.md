@@ -13,28 +13,30 @@ Let's get started.
 
 ```bendu-repl
 > let x = 42
-42: Int
+42: S64
 
 > x
-42: Int
+42: S64
 ```
 
 # Data Types
 
-You have seen the `Int` type in the previous example.  Bendu has a number of builtin data types.  These are:
+You have seen the `Int` type in the previous example. Bendu has a number of
+builtin data types. These are:
 
-| Type | Description |
-|-----|-------------|
-| Unit | A type with a single value, `()` |
-| I64 | A 64-bit signed integer. |
-| F64 | A 64-bit floating point number |
-| Char | A single character |
-| String | A sequence of characters |
-| Bool | A boolean value |
+| Type   | Description                      |
+| ------ | -------------------------------- |
+| Unit   | A type with a single value, `()` |
+| S64    | A 64-bit signed integer.         |
+| F64    | A 64-bit floating point number   |
+| Char   | A single character               |
+| String | A sequence of characters         |
+| Bool   | A boolean value                  |
 
 ## Unit
 
-The `Unit` type is a type with a single value, `()`.  It is used to represent the absence of a value.
+The `Unit` type is a type with a single value, `()`. It is used to represent the
+absence of a value.
 
 ```bendus-repl
 > ()
@@ -47,16 +49,16 @@ There are a number of error scenarios that need to be tested.
 
 ## Duplicate Declaration
 
-A duplicate declaration occurs when a value is declared more than once.  There are a number of situations where this can occur:
+A duplicate declaration occurs when a value is declared more than once. There
+are a number of situations where this can occur:
 
 - A value's name is used within the current scope,
 - A type's name is used within the current scope, and
 - A type variable's name is used within the current scheme.
 
-
 ```bendu-repl
 > let x = 12
-12: Int
+12: S64
 
 > let x = 13
 Error: 1:14-23: Duplicate declaration: x
