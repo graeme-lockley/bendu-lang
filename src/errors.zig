@@ -81,7 +81,7 @@ pub const Error = struct {
         }
 
         switch (self.detail) {
-            .DuplicateDeclarationKind => try writer.print("Duplicate declaration attempt: {s}", .{self.detail.DuplicateDeclarationKind.name}),
+            .DuplicateDeclarationKind => try writer.print("Duplicate declaration: {s}", .{self.detail.DuplicateDeclarationKind.name}),
             .FunctionValueExpectedKind => try buffer.appendSlice("Function value expected"),
             .LexicalKind => try writer.print("Lexical error: {s}", .{self.detail.LexicalKind.lexeme}),
             .LiteralFloatOverflowKind => try writer.print("Literal float overflow: {s}", .{self.detail.LiteralFloatOverflowKind.lexeme}),

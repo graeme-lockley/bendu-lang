@@ -23,6 +23,23 @@ Let's get started.
 
 There are a number of error scenarios that need to be tested.
 
+## Duplicate Declaration
+
+A duplicate declaration occurs when a value is declared more than once.  There are a number of situations where this can occur:
+
+- A value's name is used within the current scope,
+- A type's name is used within the current scope, and
+- A type variable's name is used within the current scheme.
+
+
+```bendu-repl
+> let x = 12
+12
+
+> let x = 13
+Error: 1:14-23: Duplicate declaration: x
+```
+
 ## Lexical Errors
 
 A lexer errors when the scanner encounters a character that it does not
