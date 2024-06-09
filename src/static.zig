@@ -6,22 +6,45 @@ const SP = @import("string_pool.zig");
 const Typing = @import("typing.zig");
 
 const Env = struct {
+    errorType: *Typing.Type,
+    intType: *Typing.Type,
+    floatType: *Typing.Type,
+
     names: std.ArrayList(std.AutoHashMap(*SP.String, Typing.Scheme)),
     schemes: std.AutoHashMap(*SP.String, Typing.Scheme),
     errors: std.ArrayList(Errors.Error),
+    sp: *SP.StringPool,
 
-    pub fn init(allocator: std.mem.Allocator) !Env {
-        var names = std.ArrayList(std.AutoHashMap(*SP.String, Typing.Scheme)).init(allocator);
-        try names.append(std.AutoHashMap(*SP.String, Typing.Scheme).init(allocator));
+    pub fn init(sp: *SP.StringPool) !Env {
+        var names = std.ArrayList(std.AutoHashMap(*SP.String, Typing.Scheme)).init(sp.allocator);
+        try names.append(std.AutoHashMap(*SP.String, Typing.Scheme).init(sp.allocator));
+
+        var schemes = std.AutoHashMap(*SP.String, Typing.Scheme).init(sp.allocator);
+
+        const errorType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Error") } });
+        const intType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Int") } });
+        const floatType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Float") } });
+
+        try schemes.put(try sp.intern("*Error*"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = errorType });
+        try schemes.put(try sp.intern("Int"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = intType });
+        try schemes.put(try sp.intern("Float"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = floatType });
 
         return Env{
+            .errorType = errorType,
+            .intType = intType,
+            .floatType = floatType,
             .names = names,
-            .schemes = std.AutoHashMap(*SP.String, Typing.Scheme).init(allocator),
-            .errors = std.ArrayList(Errors.Error).init(allocator),
+            .schemes = schemes,
+            .errors = std.ArrayList(Errors.Error).init(sp.allocator),
+            .sp = sp,
         };
     }
 
     pub fn deinit(self: *Env, allocator: std.mem.Allocator) void {
+        self.errorType.decRef(allocator);
+        self.intType.decRef(allocator);
+        self.floatType.decRef(allocator);
+
         for (self.names.items) |*names| {
             var iterator = names.iterator();
             while (iterator.next()) |*entry| {
@@ -39,129 +62,215 @@ const Env = struct {
         }
         self.schemes.deinit();
     }
+
+    pub fn openScope(self: *Env) !void {
+        try self.names.append(std.AutoHashMap(*SP.String, Typing.Scheme).init(self.sp.allocator));
+    }
+
+    pub fn closeScope(self: *Env) void {
+        var names = self.names.pop();
+
+        var iterator = names.iterator();
+        while (iterator.next()) |*entry| {
+            entry.key_ptr.*.decRef();
+            entry.value_ptr.*.deinit(self.sp.allocator);
+        }
+        names.deinit();
+    }
+
+    pub fn appendError(self: *Env, err: Errors.Error) !void {
+        try self.errors.append(err);
+    }
+
+    pub fn newName(self: *Env, name: *SP.String, scheme: Typing.Scheme) !void {
+        if (self.names.items.len > 0) {
+            var scope = &self.names.items[self.names.items.len - 1];
+
+            if (scope.get(name)) |oldScheme| {
+                try scope.put(name, scheme);
+                oldScheme.deinit(self.sp.allocator);
+            } else {
+                try scope.put(name.incRefR(), scheme);
+            }
+        }
+    }
+
+    pub fn findNameInScope(self: *Env, name: *SP.String) ?Typing.Scheme {
+        if (self.names.getLastOrNull()) |scope| {
+            if (scope.get(name)) |scheme| {
+                return scheme;
+            }
+        }
+
+        return null;
+    }
+
+    pub fn findName(self: *Env, name: *SP.String) ?Typing.Scheme {
+        var i = self.names.items.len;
+
+        while (i > 0) : (i -= 1) {
+            var scope = &self.names.items[i - 1];
+
+            if (scope.get(name)) |scheme| {
+                return scheme;
+            }
+        }
+
+        return null;
+    }
 };
 
-pub fn analysis(ast: *AST.Expression, allocator: std.mem.Allocator) !void {
-    var env = try Env.init(allocator);
-    defer env.deinit(allocator);
+pub fn analysis(ast: *AST.Expression, sp: *SP.StringPool) ![]Errors.Error {
+    var env = try Env.init(sp);
+    defer env.deinit(sp.allocator);
 
-    try expression(ast, &env);
+    _ = try expression(ast, &env);
+
+    return env.errors.toOwnedSlice();
 }
 
-fn expression(ast: *AST.Expression, env: *Env) !void {
+fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
     switch (ast.kind) {
         .assignment => {
-            try expression(ast.kind.assignment.lhs, env);
-            try expression(ast.kind.assignment.rhs, env);
+            _ = try expression(ast.kind.assignment.lhs, env);
+            _ = try expression(ast.kind.assignment.rhs, env);
         },
         .binaryOp => {
-            try expression(ast.kind.binaryOp.lhs, env);
-            try expression(ast.kind.binaryOp.rhs, env);
+            _ = try expression(ast.kind.binaryOp.lhs, env);
+            _ = try expression(ast.kind.binaryOp.rhs, env);
         },
         .call => {
-            try expression(ast.kind.call.callee, env);
+            _ = try expression(ast.kind.call.callee, env);
             for (ast.kind.call.args) |arg| {
-                try expression(arg, env);
+                _ = try expression(arg, env);
             }
         },
         .catche => {
-            try expression(ast.kind.catche.value, env);
+            _ = try expression(ast.kind.catche.value, env);
             for (ast.kind.catche.cases) |case| {
-                try pattern(case.pattern, env);
-                try expression(case.body, env);
+                _ = try pattern(case.pattern, env);
+                _ = try expression(case.body, env);
             }
         },
         .dot => {
-            try expression(ast.kind.dot.record, env);
+            _ = try expression(ast.kind.dot.record, env);
+        },
+        .exprs => {
+            var last: *Typing.Type = env.errorType;
+
+            for (ast.kind.exprs) |expr| {
+                last = try expression(expr, env);
+            }
+
+            return last;
         },
         .idDeclaration => {
-            try expression(ast.kind.idDeclaration.value, env);
+            const t = try expression(ast.kind.idDeclaration.value, env);
+
+            if (env.findNameInScope(ast.kind.idDeclaration.name)) |_| {
+                try env.appendError(try Errors.duplicateDeclarationError(env.sp.allocator, ast.locationRange, ast.kind.idDeclaration.name.slice()));
+            } else {
+                try env.newName(ast.kind.idDeclaration.name, Typing.Scheme{ .names = &[_]*SP.String{}, .type = t.incRefR() });
+            }
+        },
+        .identifier => {
+            if (env.findName(ast.kind.identifier)) |scheme| {
+                return scheme.type;
+            } else {
+                try env.appendError(try Errors.undefinedNameError(env.sp.allocator, ast.locationRange, ast.kind.identifier.slice()));
+            }
         },
         .ifte => {
             for (ast.kind.ifte) |case| {
                 if (case.condition) |condition| {
-                    try expression(condition, env);
+                    _ = try expression(condition, env);
                 }
-                try expression(case.then, env);
+                _ = try expression(case.then, env);
             }
         },
         .indexRange => {
-            try expression(ast.kind.indexRange.expr, env);
+            _ = try expression(ast.kind.indexRange.expr, env);
 
             if (ast.kind.indexRange.start) |start| {
-                try expression(start, env);
+                _ = try expression(start, env);
             }
             if (ast.kind.indexRange.end) |end| {
-                try expression(end, env);
+                _ = try expression(end, env);
             }
         },
         .indexValue => {
-            try expression(ast.kind.indexValue.expr, env);
-            try expression(ast.kind.indexValue.index, env);
+            _ = try expression(ast.kind.indexValue.expr, env);
+            _ = try expression(ast.kind.indexValue.index, env);
         },
+        .literalFloat => return env.floatType,
         .literalFunction => {
             for (ast.kind.literalFunction.params) |param| {
                 if (param.default) |d| {
-                    try expression(d, env);
+                    _ = try expression(d, env);
                 }
             }
-            try expression(ast.kind.literalFunction.body, env);
+            _ = try expression(ast.kind.literalFunction.body, env);
         },
+        .literalInt => return env.intType,
         .literalRecord => {
             for (ast.kind.literalRecord) |field| {
                 switch (field) {
-                    .value => try expression(field.value.value, env),
-                    .record => try expression(field.record, env),
+                    .value => _ = try expression(field.value.value, env),
+                    .record => _ = try expression(field.record, env),
                 }
             }
         },
         .literalSequence => {
             for (ast.kind.literalSequence) |elem| {
                 switch (elem) {
-                    .value => try expression(elem.value, env),
-                    .sequence => try expression(elem.sequence, env),
+                    .value => _ = try expression(elem.value, env),
+                    .sequence => _ = try expression(elem.sequence, env),
                 }
             }
         },
         .match => {
-            try expression(ast.kind.match.value, env);
+            _ = try expression(ast.kind.match.value, env);
             for (ast.kind.match.cases) |case| {
-                try pattern(case.pattern, env);
-                try expression(case.body, env);
+                _ = try pattern(case.pattern, env);
+                _ = try expression(case.body, env);
             }
         },
         .notOp => {
-            try expression(ast.kind.notOp.value, env);
+            _ = try expression(ast.kind.notOp.value, env);
         },
         .patternDeclaration => {
-            try pattern(ast.kind.patternDeclaration.pattern, env);
-            try expression(ast.kind.patternDeclaration.value, env);
+            _ = try pattern(ast.kind.patternDeclaration.pattern, env);
+            _ = try expression(ast.kind.patternDeclaration.value, env);
         },
         .raise => {
-            try expression(ast.kind.raise.expr, env);
+            _ = try expression(ast.kind.raise.expr, env);
         },
         .whilee => {
-            try expression(ast.kind.whilee.condition, env);
-            try expression(ast.kind.whilee.body, env);
+            _ = try expression(ast.kind.whilee.condition, env);
+            _ = try expression(ast.kind.whilee.body, env);
         },
         else => {},
     }
+
+    return env.errorType;
 }
 
-fn pattern(ast: *AST.Pattern, env: *Env) !void {
+fn pattern(ast: *AST.Pattern, env: *Env) !*Typing.Type {
     switch (ast.kind) {
         .record => {
             for (ast.kind.record.entries) |field| {
                 if (field.pattern) |p| {
-                    try pattern(p, env);
+                    _ = try pattern(p, env);
                 }
             }
         },
         .sequence => {
             for (ast.kind.sequence.patterns) |p| {
-                try pattern(p, env);
+                _ = try pattern(p, env);
             }
         },
         else => {},
     }
+
+    return env.errorType;
 }

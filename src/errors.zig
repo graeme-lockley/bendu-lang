@@ -16,13 +16,29 @@ pub const LocationRange = struct {
     to: Location,
 };
 
+pub const DuplicateDeclarationError = struct {
+    name: []const u8,
+
+    pub fn deinit(self: DuplicateDeclarationError, allocator: std.mem.Allocator) void {
+        allocator.free(self.name);
+    }
+};
+
 pub const FunctionValueExpectedError = struct {};
 
 pub const LexicalError = struct {
-    lexeme: []u8,
+    lexeme: []const u8,
 
     pub fn deinit(self: LexicalError, allocator: std.mem.Allocator) void {
         allocator.free(self.lexeme);
+    }
+};
+
+pub const UndefinedNameError = struct {
+    name: []const u8,
+
+    pub fn deinit(self: UndefinedNameError, allocator: std.mem.Allocator) void {
+        allocator.free(self.name);
     }
 };
 
@@ -65,6 +81,7 @@ pub const Error = struct {
         }
 
         switch (self.detail) {
+            .DuplicateDeclarationKind => try writer.print("Duplicate declaration attempt: {s}", .{self.detail.DuplicateDeclarationKind.name}),
             .FunctionValueExpectedKind => try buffer.appendSlice("Function value expected"),
             .LexicalKind => try writer.print("Lexical error: {s}", .{self.detail.LexicalKind.lexeme}),
             .LiteralFloatOverflowKind => try writer.print("Literal float overflow: {s}", .{self.detail.LiteralFloatOverflowKind.lexeme}),
@@ -78,6 +95,7 @@ pub const Error = struct {
                     try buffer.appendSlice(expected.toString());
                 }
             },
+            .UndefinedNameKind => try writer.print("Unknown name: {s}", .{self.detail.UndefinedNameKind.name}),
         }
 
         return buffer.toOwnedSlice();
@@ -85,30 +103,42 @@ pub const Error = struct {
 };
 
 pub const ErrorKind = enum {
+    DuplicateDeclarationKind,
     FunctionValueExpectedKind,
     LexicalKind,
     LiteralFloatOverflowKind,
     LiteralIntOverflowKind,
     ParserKind,
+    UndefinedNameKind,
 };
 
 pub const ErrorDetail = union(ErrorKind) {
+    DuplicateDeclarationKind: DuplicateDeclarationError,
     FunctionValueExpectedKind: FunctionValueExpectedError,
     LexicalKind: LexicalError,
     LiteralFloatOverflowKind: LexicalError,
     LiteralIntOverflowKind: LexicalError,
     ParserKind: ParserError,
+    UndefinedNameKind: UndefinedNameError,
 
     pub fn deinit(self: ErrorDetail, allocator: std.mem.Allocator) void {
         switch (self) {
+            .DuplicateDeclarationKind => self.DuplicateDeclarationKind.deinit(allocator),
             .FunctionValueExpectedKind => {},
             .LexicalKind => self.LexicalKind.deinit(allocator),
             .LiteralFloatOverflowKind => self.LiteralFloatOverflowKind.deinit(allocator),
             .LiteralIntOverflowKind => self.LiteralIntOverflowKind.deinit(allocator),
             .ParserKind => self.ParserKind.deinit(allocator),
+            .UndefinedNameKind => self.UndefinedNameKind.deinit(allocator),
         }
     }
 };
+
+pub fn duplicateDeclarationError(allocator: std.mem.Allocator, locationRange: LocationRange, name: []const u8) !Error {
+    return try Error.init(allocator, locationRange, ErrorDetail{ .DuplicateDeclarationKind = .{
+        .name = try allocator.dupe(u8, name),
+    } });
+}
 
 pub fn functionValueExpectedError(allocator: std.mem.Allocator, locationRange: LocationRange) !Error {
     return try Error.init(allocator, locationRange, ErrorDetail{ .FunctionValueExpectedKind = .{} });
@@ -136,5 +166,11 @@ pub fn parserError(allocator: std.mem.Allocator, locationRange: LocationRange, l
     return try Error.init(allocator, locationRange, ErrorDetail{ .ParserKind = .{
         .lexeme = try allocator.dupe(u8, lexeme),
         .expected = try allocator.dupe(TokenKind, expected),
+    } });
+}
+
+pub fn undefinedNameError(allocator: std.mem.Allocator, locationRange: LocationRange, name: []const u8) !Error {
+    return try Error.init(allocator, locationRange, ErrorDetail{ .UndefinedNameKind = .{
+        .name = try allocator.dupe(u8, name),
     } });
 }

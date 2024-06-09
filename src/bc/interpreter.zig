@@ -79,7 +79,7 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
     switch (ast.kind) {
         .call => {
             if (ast.kind.call.callee.kind != .identifier) {
-                try std.io.getStdErr().writer().print("Error: Expected identifier\n", .{});
+                try std.io.getStdErr().writer().print("Internal Error: Expected identifier\n", .{});
                 std.process.exit(1);
             } else {
                 const callee = ast.kind.call.callee.kind.identifier.slice();
@@ -95,7 +95,7 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                     }
                     try state.appendOp(Op.print_ln);
                 } else {
-                    try std.io.getStdErr().writer().print("Error: Unknown function {s}\n", .{callee});
+                    try std.io.getStdErr().writer().print("Internal Error: Unknown function {s}\n", .{callee});
                     std.process.exit(1);
                 }
             }
@@ -113,7 +113,7 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
             const name = ast.kind.idDeclaration.name;
 
             if (state.bindings.get(name)) |_| {
-                try std.io.getStdErr().writer().print("Error: Attempt to redefine {s}\n", .{ast.kind.idDeclaration.name.slice()});
+                try std.io.getStdErr().writer().print("Internal Error: Attempt to redefine {s}\n", .{ast.kind.idDeclaration.name.slice()});
                 std.process.exit(1);
             } else {
                 try state.bindings.put(name, state.nextGlobalBinding);
@@ -130,7 +130,7 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                 try state.appendOp(Op.push_global);
                 try state.append(@intCast(binding));
             } else {
-                try std.io.getStdErr().writer().print("Error: Use of undeclared identifier {s}\n", .{name.slice()});
+                try std.io.getStdErr().writer().print("Internal Error: Use of undeclared identifier {s}\n", .{name.slice()});
                 std.process.exit(1);
             }
         },
@@ -139,7 +139,7 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
             try state.append(ast.kind.literalInt);
         },
         else => {
-            try std.io.getStdErr().writer().print("Error: Unsupported expression kind\n", .{});
+            try std.io.getStdErr().writer().print("Internal Error: Unsupported expression kind\n", .{});
             std.process.exit(1);
         },
     }

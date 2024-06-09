@@ -12,3 +12,16 @@ The following *definition of done* is used to determine when a feature is comple
 
 - [X] Have lexical errors propagate through to main
 - [X] Have syntax errors propagate through to main
+
+# Language
+
+# Data Types
+
+## Record
+
+- [ ] Report an error when attempt is made to reference or assign to an unknown field
+- [ ] Incorporate mutable fields
+
+# Typing
+
+- [ ] Report an error when attempt is made to reference unknown type variable

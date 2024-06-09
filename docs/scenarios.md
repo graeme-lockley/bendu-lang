@@ -52,7 +52,7 @@ There are a number of scenarios where an identifier is not defined:
 - A reference to an unknown type, and
 - A reference to an unknown type variable
 
-```bendus-repl
+```bendu-repl
 > x
-Error: 1:1: Unknown identifier: x
+Error: 1:1: Unknown name: x
 ```

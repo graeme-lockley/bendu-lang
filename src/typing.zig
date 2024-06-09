@@ -3,10 +3,10 @@ const std = @import("std");
 const SP = @import("string_pool.zig");
 
 pub const Scheme = struct {
-    names: []*SP.String,
+    names: []const *SP.String,
     type: *Type,
 
-    pub fn deinit(self: *Scheme, allocator: std.mem.Allocator) void {
+    pub fn deinit(self: Scheme, allocator: std.mem.Allocator) void {
         self.type.decRef(allocator);
         for (self.names) |name| {
             name.decRef();
@@ -17,6 +17,14 @@ pub const Scheme = struct {
 pub const Type = struct {
     kind: TypeKind,
     count: u32,
+
+    pub fn create(allocator: std.mem.Allocator, kind: TypeKind) !*Type {
+        const self = try allocator.create(Type);
+        self.kind = kind;
+        self.count = 1;
+
+        return self;
+    }
 
     pub fn decRef(self: *Type, allocator: std.mem.Allocator) void {
         if (self.count == 0) {
@@ -50,13 +58,13 @@ pub const Type = struct {
     }
 };
 
-const TypeKind = union(enum) {
+pub const TypeKind = union(enum) {
     Function: FunctionType,
     Tag: TagType,
     Variable: VariableType,
 };
 
-const FunctionType = struct {
+pub const FunctionType = struct {
     domain: *Type,
     range: *Type,
 
@@ -66,7 +74,7 @@ const FunctionType = struct {
     }
 };
 
-const TagType = struct {
+pub const TagType = struct {
     name: *SP.String,
 
     pub fn deinit(self: *TagType) void {
@@ -74,7 +82,7 @@ const TagType = struct {
     }
 };
 
-const VariableType = struct {
+pub const VariableType = struct {
     name: *SP.String,
 
     pub fn deinit(self: *VariableType) void {

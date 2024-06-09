@@ -36,7 +36,7 @@ fn evalExpression(ast: *AST.Expression, runtime: *Runtime) !i64 {
     switch (ast.kind) {
         .call => {
             if (ast.kind.call.callee.kind != .identifier) {
-                try std.io.getStdErr().writer().print("Error: Expected identifier\n", .{});
+                try std.io.getStdErr().writer().print("Internal Error: Expected identifier\n", .{});
                 std.process.exit(1);
             } else {
                 const callee = ast.kind.call.callee.kind.identifier.slice();
@@ -54,7 +54,7 @@ fn evalExpression(ast: *AST.Expression, runtime: *Runtime) !i64 {
 
                     return result;
                 } else {
-                    try std.io.getStdErr().writer().print("Error: Unknown function {s}\n", .{callee});
+                    try std.io.getStdErr().writer().print("Internal Error: Unknown function {s}\n", .{callee});
                     std.process.exit(1);
                 }
             }
@@ -72,7 +72,7 @@ fn evalExpression(ast: *AST.Expression, runtime: *Runtime) !i64 {
             const result = try evalExpression(ast.kind.idDeclaration.value, runtime);
 
             if (runtime.state.get(ast.kind.idDeclaration.name) != null) {
-                try std.io.getStdErr().writer().print("Error: Attempt to redefine {s}\n", .{ast.kind.idDeclaration.name.slice()});
+                try std.io.getStdErr().writer().print("Internal Error: Attempt to redefine {s}\n", .{ast.kind.idDeclaration.name.slice()});
                 std.process.exit(1);
             }
 
@@ -82,12 +82,12 @@ fn evalExpression(ast: *AST.Expression, runtime: *Runtime) !i64 {
         .identifier => if (runtime.state.get(ast.kind.identifier)) |value| {
             return value;
         } else {
-            try std.io.getStdErr().writer().print("Error: Undefined variable {s}\n", .{ast.kind.identifier.slice()});
+            try std.io.getStdErr().writer().print("Internal Error: Undefined variable {s}\n", .{ast.kind.identifier.slice()});
             std.process.exit(1);
         },
         .literalInt => return ast.kind.literalInt,
         else => {
-            try std.io.getStdErr().writer().print("Error: Unsupported expression kind\n", .{});
+            try std.io.getStdErr().writer().print("Internal Error: Unsupported expression kind\n", .{});
             std.process.exit(1);
         },
     }

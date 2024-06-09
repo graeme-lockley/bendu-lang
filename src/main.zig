@@ -46,7 +46,22 @@ pub fn main() !void {
 
     switch (parseResult) {
         .Ok => {
-            try Static.analysis(parseResult.Ok, allocator);
+            const errors = try Static.analysis(parseResult.Ok, &sp);
+            defer {
+                for (errors) |*err| {
+                    err.deinit();
+                }
+            }
+
+            if (errors.len > 0) {
+                for (errors) |*err| {
+                    const msg = try err.toString(allocator);
+                    defer allocator.free(msg);
+
+                    try stdout.print("Error: {s}\n", .{msg});
+                }
+                std.process.exit(1);
+            }
 
             if (std.mem.eql(u8, action, "--ast")) {
                 const v = try @import("./ast/interpreter.zig").eval(parseResult.Ok, allocator);
