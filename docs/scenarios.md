@@ -19,6 +19,28 @@ Let's get started.
 42: Int
 ```
 
+# Data Types
+
+You have seen the `Int` type in the previous example.  Bendu has a number of builtin data types.  These are:
+
+| Type | Description |
+|-----|-------------|
+| Unit | A type with a single value, `()` |
+| I64 | A 64-bit signed integer. |
+| F64 | A 64-bit floating point number |
+| Char | A single character |
+| String | A sequence of characters |
+| Bool | A boolean value |
+
+## Unit
+
+The `Unit` type is a type with a single value, `()`.  It is used to represent the absence of a value.
+
+```bendus-repl
+> ()
+(): Unit
+```
+
 # Error Reporting
 
 There are a number of error scenarios that need to be tested.

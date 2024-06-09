@@ -17,6 +17,13 @@ The following *definition of done* is used to determine when a feature is comple
 
 # Data Types
 
+## Unit
+
+- [ ] Implement the `Unit` type
+- [ ] Implement the `Unit` type in the AST interpreter
+- [ ] Implement the `Unit` type in the BC interpreter
+- [ ] Integrate into main so that the value can be viewed.
+
 ## Record
 
 - [ ] Report an error when attempt is made to reference or assign to an unknown field
