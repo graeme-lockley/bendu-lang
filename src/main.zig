@@ -46,15 +46,11 @@ pub fn main() !void {
 
     switch (parseResult) {
         .Ok => {
-            const errors = try Static.analysis(parseResult.Ok, &sp);
-            defer {
-                for (errors) |*err| {
-                    err.deinit();
-                }
-            }
+            const analysisResult = try Static.analysis(parseResult.Ok, &sp);
+            defer analysisResult.deinit(allocator);
 
-            if (errors.len > 0) {
-                for (errors) |*err| {
+            if (analysisResult.errors.len > 0) {
+                for (analysisResult.errors) |*err| {
                     const msg = try err.toString(allocator);
                     defer allocator.free(msg);
 
@@ -62,13 +58,15 @@ pub fn main() !void {
                 }
                 std.process.exit(1);
             }
+            const typeString = try analysisResult.type.toString(allocator);
+            defer allocator.free(typeString);
 
             if (std.mem.eql(u8, action, "--ast")) {
                 const v = try @import("./ast/interpreter.zig").eval(parseResult.Ok, allocator);
-                try stdout.print("{d}", .{v});
+                try stdout.print("{d}: {s}", .{ v, typeString });
             } else if (std.mem.eql(u8, action, "--bc")) {
                 const v = try @import("./bc/interpreter.zig").eval(parseResult.Ok, allocator);
-                try stdout.print("{d}", .{v});
+                try stdout.print("{d}: {s}", .{ v, typeString });
                 // } else if (std.mem.eql(u8, args[1], "--wasm")) {
                 //     try stdout.print("WASM\n", .{});
                 // } else if (std.mem.eql(u8, args[1], "--llvm")) {

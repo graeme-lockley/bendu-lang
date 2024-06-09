@@ -25,9 +25,9 @@ const Env = struct {
         const intType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Int") } });
         const floatType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Float") } });
 
-        try schemes.put(try sp.intern("*Error*"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = errorType });
-        try schemes.put(try sp.intern("Int"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = intType });
-        try schemes.put(try sp.intern("Float"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = floatType });
+        try schemes.put(try sp.intern("*Error*"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = errorType.incRefR() });
+        try schemes.put(try sp.intern("Int"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = intType.incRefR() });
+        try schemes.put(try sp.intern("Float"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = floatType.incRefR() });
 
         return Env{
             .errorType = errorType,
@@ -120,13 +120,25 @@ const Env = struct {
     }
 };
 
-pub fn analysis(ast: *AST.Expression, sp: *SP.StringPool) ![]Errors.Error {
+pub const AnalysisResult = struct {
+    errors: []Errors.Error,
+    type: *Typing.Type,
+
+    pub fn deinit(self: AnalysisResult, allocator: std.mem.Allocator) void {
+        for (self.errors) |*err| {
+            err.deinit();
+        }
+        self.type.decRef(allocator);
+    }
+};
+
+pub fn analysis(ast: *AST.Expression, sp: *SP.StringPool) !AnalysisResult {
     var env = try Env.init(sp);
     defer env.deinit(sp.allocator);
 
-    _ = try expression(ast, &env);
+    const typ = try expression(ast, &env);
 
-    return env.errors.toOwnedSlice();
+    return AnalysisResult{ .errors = try env.errors.toOwnedSlice(), .type = typ.incRefR() };
 }
 
 fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
@@ -172,9 +184,12 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             } else {
                 try env.newName(ast.kind.idDeclaration.name, Typing.Scheme{ .names = &[_]*SP.String{}, .type = t.incRefR() });
             }
+
+            return t;
         },
         .identifier => {
             if (env.findName(ast.kind.identifier)) |scheme| {
+                ast.type = scheme.type.incRefR();
                 return scheme.type;
             } else {
                 try env.appendError(try Errors.undefinedNameError(env.sp.allocator, ast.locationRange, ast.kind.identifier.slice()));
@@ -202,7 +217,10 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             _ = try expression(ast.kind.indexValue.expr, env);
             _ = try expression(ast.kind.indexValue.index, env);
         },
-        .literalFloat => return env.floatType,
+        .literalFloat => {
+            ast.type = env.floatType.incRefR();
+            return env.floatType;
+        },
         .literalFunction => {
             for (ast.kind.literalFunction.params) |param| {
                 if (param.default) |d| {
@@ -211,7 +229,10 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             }
             _ = try expression(ast.kind.literalFunction.body, env);
         },
-        .literalInt => return env.intType,
+        .literalInt => {
+            ast.type = env.intType.incRefR();
+            return env.intType;
+        },
         .literalRecord => {
             for (ast.kind.literalRecord) |field| {
                 switch (field) {

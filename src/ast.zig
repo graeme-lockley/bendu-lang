@@ -53,7 +53,7 @@ pub const Operator = enum {
 pub const Expression = struct {
     kind: ExpressionKind,
     locationRange: Errors.LocationRange,
-    type: ?Typing.Type,
+    type: ?*Typing.Type,
     count: u32,
 
     fn init(kind: ExpressionKind, locationRange: Errors.LocationRange) Expression {
@@ -358,7 +358,7 @@ fn destroyExpr(allocator: std.mem.Allocator, expr: *Expression) void {
         }
 
         if (expr.type) |*typ| {
-            typ.decRef(allocator);
+            typ.*.decRef(allocator);
         }
 
         allocator.destroy(expr);

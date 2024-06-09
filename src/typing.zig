@@ -31,7 +31,6 @@ pub const Type = struct {
             return;
         }
         if (self.count == 1) {
-            self.count = 0;
             switch (self.kind) {
                 TypeKind.Function => self.kind.Function.deinit(allocator),
                 TypeKind.Tag => self.kind.Tag.deinit(),
@@ -56,6 +55,22 @@ pub const Type = struct {
 
         return this;
     }
+
+    pub fn toString(self: *Type, allocator: std.mem.Allocator) std.mem.Allocator.Error![]u8 {
+        var buffer = std.ArrayList(u8).init(allocator);
+
+        try self.append(&buffer);
+
+        return try buffer.toOwnedSlice();
+    }
+
+    pub fn append(self: *Type, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
+        switch (self.kind) {
+            TypeKind.Function => try self.kind.Function.append(buffer),
+            TypeKind.Tag => try self.kind.Tag.append(buffer),
+            TypeKind.Variable => try self.kind.Variable.append(buffer),
+        }
+    }
 };
 
 pub const TypeKind = union(enum) {
@@ -72,6 +87,18 @@ pub const FunctionType = struct {
         self.domain.decRef(allocator);
         self.range.decRef(allocator);
     }
+
+    pub fn append(self: *FunctionType, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
+        try self.domain.append(buffer);
+        try buffer.appendSlice(" -> ");
+        if (self.range.kind == TypeKind.Function) {
+            try buffer.append('(');
+            try self.range.append(buffer);
+            try buffer.append(')');
+        } else {
+            try self.range.append(buffer);
+        }
+    }
 };
 
 pub const TagType = struct {
@@ -80,6 +107,10 @@ pub const TagType = struct {
     pub fn deinit(self: *TagType) void {
         self.name.decRef();
     }
+
+    pub fn append(self: *TagType, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
+        try buffer.appendSlice(self.name.slice());
+    }
 };
 
 pub const VariableType = struct {
@@ -87,5 +118,9 @@ pub const VariableType = struct {
 
     pub fn deinit(self: *VariableType) void {
         self.name.decRef();
+    }
+
+    pub fn append(self: *VariableType, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
+        try buffer.appendSlice(self.name.slice());
     }
 };

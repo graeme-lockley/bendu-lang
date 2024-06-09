@@ -13,10 +13,10 @@ Let's get started.
 
 ```bendu-repl
 > let x = 42
-42
+42: Int
 
 > x
-42
+42: Int
 ```
 
 # Error Reporting
@@ -34,7 +34,7 @@ A duplicate declaration occurs when a value is declared more than once.  There a
 
 ```bendu-repl
 > let x = 12
-12
+12: Int
 
 > let x = 13
 Error: 1:14-23: Duplicate declaration: x
