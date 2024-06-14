@@ -42,7 +42,7 @@ pub const Runtime = struct {
     }
 
     pub inline fn discard(self: *Runtime) void {
-        _ = self.stack.pop();
+        self.stack.items.len -= 1;
     }
 
     pub inline fn duplicate(self: *Runtime) !void {
