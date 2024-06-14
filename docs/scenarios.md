@@ -27,18 +27,18 @@ builtin data types. These are:
 | Type   | Description                      |
 | ------ | -------------------------------- |
 | Unit   | A type with a single value, `()` |
+| Bool   | A boolean value                  |
 | Int    | A 63-bit signed integer.         |
 | Float  | A 64-bit floating point number   |
 | Char   | A single character               |
 | String | A sequence of characters         |
-| Bool   | A boolean value                  |
 
 ## Unit
 
 The `Unit` type is a type with a single value, `()`. It is used to represent the
 absence of a value.
 
-```bendus-repl
+```bendu-repl
 > ()
 (): Unit
 ```

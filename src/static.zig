@@ -7,8 +7,9 @@ const Typing = @import("typing.zig");
 
 const Env = struct {
     errorType: *Typing.Type,
-    intType: *Typing.Type,
     floatType: *Typing.Type,
+    intType: *Typing.Type,
+    unitType: *Typing.Type,
 
     names: std.ArrayList(std.AutoHashMap(*SP.String, Typing.Scheme)),
     schemes: std.AutoHashMap(*SP.String, Typing.Scheme),
@@ -22,17 +23,20 @@ const Env = struct {
         var schemes = std.AutoHashMap(*SP.String, Typing.Scheme).init(sp.allocator);
 
         const errorType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Error") } });
-        const intType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Int") } });
         const floatType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Float") } });
+        const intType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Int") } });
+        const unitType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Unit") } });
 
         try schemes.put(try sp.intern("*Error*"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = errorType.incRefR() });
         try schemes.put(try sp.intern("Int"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = intType.incRefR() });
         try schemes.put(try sp.intern("Float"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = floatType.incRefR() });
+        try schemes.put(try sp.intern("Unit"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = unitType.incRefR() });
 
         return Env{
             .errorType = errorType,
-            .intType = intType,
             .floatType = floatType,
+            .intType = intType,
+            .unitType = unitType,
             .names = names,
             .schemes = schemes,
             .errors = std.ArrayList(Errors.Error).init(sp.allocator),
@@ -42,8 +46,9 @@ const Env = struct {
 
     pub fn deinit(self: *Env, allocator: std.mem.Allocator) void {
         self.errorType.decRef(allocator);
-        self.intType.decRef(allocator);
         self.floatType.decRef(allocator);
+        self.intType.decRef(allocator);
+        self.unitType.decRef(allocator);
 
         for (self.names.items) |*names| {
             var iterator = names.iterator();
@@ -248,6 +253,10 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
                     .sequence => _ = try expression(elem.sequence, env),
                 }
             }
+        },
+        .literalVoid => {
+            ast.type = env.unitType.incRefR();
+            return env.unitType;
         },
         .match => {
             _ = try expression(ast.kind.match.value, env);

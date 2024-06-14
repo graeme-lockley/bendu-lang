@@ -19,10 +19,10 @@ The following *definition of done* is used to determine when a feature is comple
 
 ## Unit
 
-- [ ] Implement the `Unit` type
-- [ ] Implement the `Unit` type in the AST interpreter
-- [ ] Implement the `Unit` type in the BC interpreter
-- [ ] Integrate into main so that the value can be viewed.
+- [X] Implement the `Unit` type
+- [X] Implement the `Unit` type in the AST interpreter
+- [X] Implement the `Unit` type in the BC interpreter
+- [X] Integrate into main so that the value can be viewed.
 
 ## Record
 

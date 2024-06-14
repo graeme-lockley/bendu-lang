@@ -1,13 +1,15 @@
 const std = @import("std");
 
 const AST = @import("../ast.zig");
+const Pointer = @import("../runtime/pointer.zig");
+const Runtime = @import("../runtime/runtime.zig").Runtime;
 const SP = @import("../string_pool.zig");
 
-pub fn eval(ast: *AST.Expression, allocator: std.mem.Allocator) !i64 {
-    const bc = try compile(ast, allocator);
-    defer allocator.free(bc);
+pub fn eval(ast: *AST.Expression, runtime: *Runtime) !void {
+    const bc = try compile(ast, runtime.allocator);
+    defer runtime.allocator.free(bc);
 
-    return try execute(bc, allocator);
+    try execute(bc, runtime);
 }
 
 const Op = enum(u8) {
@@ -16,6 +18,7 @@ const Op = enum(u8) {
     duplicate,
 
     push_int,
+    push_unit,
     push_global,
 
     print_int,
@@ -138,6 +141,7 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
             try state.appendOp(Op.push_int);
             try state.append(ast.kind.literalInt);
         },
+        .literalVoid => try state.appendOp(Op.push_unit),
         else => {
             try std.io.getStdErr().writer().print("Internal Error: Unsupported expression kind\n", .{});
             std.process.exit(1);
@@ -145,11 +149,9 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
     }
 }
 
-fn execute(bc: []u8, allocator: std.mem.Allocator) !i64 {
+fn execute(bc: []u8, runtime: *Runtime) !void {
     const writer = std.io.getStdOut().writer();
     var ip: usize = 0;
-    var stack = std.ArrayList(i64).init(allocator);
-    defer stack.deinit();
 
     while (true) {
         const op = @as(Op, @enumFromInt(bc[ip]));
@@ -157,27 +159,29 @@ fn execute(bc: []u8, allocator: std.mem.Allocator) !i64 {
         // std.io.getStdOut().writer().print("instruction: ip={d}, op={}, stack={}\n", .{ ip, op, stack }) catch {};
 
         switch (op) {
-            .ret => return stack.pop(),
+            .ret => return,
             .discard => {
-                _ = stack.pop();
+                runtime.discard();
                 ip += 1;
             },
             .duplicate => {
-                const v = stack.pop();
-                try stack.append(v);
-                try stack.append(v);
+                try runtime.duplicate();
                 ip += 1;
             },
             .push_int => {
-                try stack.append(readInt(bc, ip + 1));
+                try runtime.push_int(@intCast(readInt(bc, ip + 1)));
                 ip += 9;
             },
+            .push_unit => {
+                try runtime.push_unit();
+                ip += 1;
+            },
             .push_global => {
-                try stack.append(stack.items[@intCast(readInt(bc, ip + 1))]);
+                try runtime.push_pointer(runtime.stackItem(@intCast(readInt(bc, ip + 1))));
                 ip += 9;
             },
             .print_int => {
-                const v = stack.pop();
+                const v = runtime.pop();
                 try writer.print("{d}", .{v});
                 ip += 1;
             },

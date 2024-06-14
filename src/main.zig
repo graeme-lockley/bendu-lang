@@ -2,8 +2,11 @@ const std = @import("std");
 
 const AST = @import("ast.zig");
 const Parser = @import("parser.zig");
+const Pointer = @import("./runtime/pointer.zig");
+const Runtime = @import("./runtime/runtime.zig");
 const SP = @import("string_pool.zig");
 const Static = @import("static.zig");
+const Typing = @import("typing.zig");
 
 const stdout = std.io.getStdOut().writer();
 
@@ -61,12 +64,14 @@ pub fn main() !void {
             const typeString = try analysisResult.type.toString(allocator);
             defer allocator.free(typeString);
 
+            var runtime = Runtime.Runtime.init(allocator);
+            defer runtime.deinit();
+
             if (std.mem.eql(u8, action, "--ast")) {
-                const v = try @import("./ast/interpreter.zig").eval(parseResult.Ok, allocator);
-                try stdout.print("{d}: {s}", .{ v, typeString });
+                try @import("./ast/interpreter.zig").eval(parseResult.Ok, &runtime);
             } else if (std.mem.eql(u8, action, "--bc")) {
-                const v = try @import("./bc/interpreter.zig").eval(parseResult.Ok, allocator);
-                try stdout.print("{d}: {s}", .{ v, typeString });
+                try @import("./bc/interpreter.zig").eval(parseResult.Ok, &runtime);
+                // try stdout.print("{d}: {s}", .{ v, typeString });
                 // } else if (std.mem.eql(u8, args[1], "--wasm")) {
                 //     try stdout.print("WASM\n", .{});
                 // } else if (std.mem.eql(u8, args[1], "--llvm")) {
@@ -76,12 +81,38 @@ pub fn main() !void {
                 try stdout.print("Invalid argument: {s}\n", .{action});
                 std.process.exit(1);
             }
+            try printValue(runtime.peek().?, analysisResult.type);
+            try stdout.print(": {s}", .{typeString});
         },
         .Err => {
             const msg = try parseResult.Err.toString(allocator);
             defer allocator.free(msg);
             try stdout.print("Error: {s}\n", .{msg});
             std.process.exit(1);
+        },
+    }
+}
+
+fn printValue(v: Pointer.Pointer, typ: *Typing.Type) !void {
+    switch (typ.kind) {
+        .Function => {
+            try stdout.print("Function", .{});
+        },
+        .Tag => {
+            const name = typ.kind.Tag.name.slice();
+
+            if (std.mem.eql(u8, name, "Int")) {
+                try stdout.print("{d}", .{Pointer.asInt(v)});
+            } else if (std.mem.eql(u8, name, "Bool")) {
+                try stdout.print("{s}", .{if (Pointer.asInt(v) == 0) "false" else "true"});
+            } else if (std.mem.eql(u8, name, "Unit")) {
+                try stdout.print("()", .{});
+            } else {
+                try stdout.print("Tag", .{});
+            }
+        },
+        .Variable => {
+            try stdout.print("Variable", .{});
         },
     }
 }
