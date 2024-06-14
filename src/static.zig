@@ -7,8 +7,8 @@ const Typing = @import("typing.zig");
 
 const Env = struct {
     errorType: *Typing.Type,
-    s64Type: *Typing.Type,
-    f64Type: *Typing.Type,
+    intType: *Typing.Type,
+    floatType: *Typing.Type,
 
     names: std.ArrayList(std.AutoHashMap(*SP.String, Typing.Scheme)),
     schemes: std.AutoHashMap(*SP.String, Typing.Scheme),
@@ -22,17 +22,17 @@ const Env = struct {
         var schemes = std.AutoHashMap(*SP.String, Typing.Scheme).init(sp.allocator);
 
         const errorType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Error") } });
-        const s64Type = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("S64") } });
-        const f64Type = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("F64") } });
+        const intType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Int") } });
+        const floatType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Float") } });
 
         try schemes.put(try sp.intern("*Error*"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = errorType.incRefR() });
-        try schemes.put(try sp.intern("S64"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = s64Type.incRefR() });
-        try schemes.put(try sp.intern("F64"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = f64Type.incRefR() });
+        try schemes.put(try sp.intern("Int"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = intType.incRefR() });
+        try schemes.put(try sp.intern("Float"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = floatType.incRefR() });
 
         return Env{
             .errorType = errorType,
-            .s64Type = s64Type,
-            .f64Type = f64Type,
+            .intType = intType,
+            .floatType = floatType,
             .names = names,
             .schemes = schemes,
             .errors = std.ArrayList(Errors.Error).init(sp.allocator),
@@ -42,8 +42,8 @@ const Env = struct {
 
     pub fn deinit(self: *Env, allocator: std.mem.Allocator) void {
         self.errorType.decRef(allocator);
-        self.s64Type.decRef(allocator);
-        self.f64Type.decRef(allocator);
+        self.intType.decRef(allocator);
+        self.floatType.decRef(allocator);
 
         for (self.names.items) |*names| {
             var iterator = names.iterator();
@@ -218,8 +218,8 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             _ = try expression(ast.kind.indexValue.index, env);
         },
         .literalFloat => {
-            ast.type = env.f64Type.incRefR();
-            return env.f64Type;
+            ast.type = env.floatType.incRefR();
+            return env.floatType;
         },
         .literalFunction => {
             for (ast.kind.literalFunction.params) |param| {
@@ -230,8 +230,8 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             _ = try expression(ast.kind.literalFunction.body, env);
         },
         .literalInt => {
-            ast.type = env.s64Type.incRefR();
-            return env.s64Type;
+            ast.type = env.intType.incRefR();
+            return env.intType;
         },
         .literalRecord => {
             for (ast.kind.literalRecord) |field| {

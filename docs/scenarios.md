@@ -13,10 +13,10 @@ Let's get started.
 
 ```bendu-repl
 > let x = 42
-42: S64
+42: Int
 
 > x
-42: S64
+42: Int
 ```
 
 # Data Types
@@ -27,8 +27,8 @@ builtin data types. These are:
 | Type   | Description                      |
 | ------ | -------------------------------- |
 | Unit   | A type with a single value, `()` |
-| S64    | A 64-bit signed integer.         |
-| F64    | A 64-bit floating point number   |
+| Int    | A 63-bit signed integer.         |
+| Float  | A 64-bit floating point number   |
 | Char   | A single character               |
 | String | A sequence of characters         |
 | Bool   | A boolean value                  |
@@ -58,7 +58,7 @@ are a number of situations where this can occur:
 
 ```bendu-repl
 > let x = 12
-12: S64
+12: Int
 
 > let x = 13
 Error: 1:14-23: Duplicate declaration: x
