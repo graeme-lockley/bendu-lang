@@ -89,5 +89,6 @@ pub fn main() !void {
 test "All tests" {
     _ = @import("./lexer.zig");
     _ = @import("./parser.zig");
+    _ = @import("./runtime/pointer.zig");
     _ = @import("./typing.zig");
 }
