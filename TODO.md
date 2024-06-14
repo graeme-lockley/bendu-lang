@@ -15,6 +15,22 @@ The following *definition of done* is used to determine when a feature is comple
 
 # Language
 
+## assignment
+
+- [ ] Implement mutable package variables
+- [ ] Implement mutable local variables
+- [ ] Implement mutable parameters variables
+   
+## if
+
+- [ ] Implement the `if` expression in the AST interpreter
+- [ ] Implement the `if` expression in the BC interpreter
+
+## while
+
+- [ ] Implement the `while` expression in the AST interpreter
+- [ ] Implement the `while` expression in the BC interpreter
+
 # Data Types
 
 ## Unit
@@ -34,6 +50,46 @@ The following *definition of done* is used to determine when a feature is comple
 - [ ] Implement &&
 - [ ] Implement ||
 - [ ] Implement not
+- [ ] Implement ==
+
+## Int
+
+- [X] Add the `Int` type to the language
+- [X] Infer `Int` literal values
+- [X] Implement the `Int` type in the AST interpreter
+- [X] Implement the `Int` type in the BC interpreter
+- [X] Integrate into main so that the value can be viewed.
+- [ ] Implement +, -, *, /, %, **
+- [ ] Implement ==, !=, <, <=, >, >=
+
+## Float
+
+- [ ] Add the `Float` type to the language
+- [ ] Infer `Float` literal values
+- [ ] Implement the `Float` type in the AST interpreter
+- [ ] Implement the `Float` type in the BC interpreter
+- [ ] Integrate into main so that the value can be viewed.
+- [ ] Implement +, -, *, /, %
+- [ ] Implement ==, !=, <, <=, >, >=
+
+## Char
+
+- [ ] Add the `Char` type to the language
+- [ ] Infer `Char` literal values
+- [ ] Implement the `Char` type in the AST interpreter
+- [ ] Implement the `Char` type in the BC interpreter
+- [ ] Integrate into main so that the value can be viewed.
+- [ ] Implement ==, !=, <, <=, >, >=
+
+## String
+
+- [X] Add the `String` type to the language
+- [X] Infer `String` literal values
+- [X] Implement the `String` type in the AST interpreter
+- [X] Implement the `String` type in the BC interpreter
+- [X] Integrate into main so that the value can be viewed.
+- [ ] Implement +, *
+- [ ] Implement ==, !=
 
 ## Record
 
