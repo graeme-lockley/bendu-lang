@@ -84,6 +84,7 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
             try std.io.getStdErr().writer().print("Internal Error: Undefined variable {s}\n", .{ast.kind.identifier.slice()});
             std.process.exit(1);
         },
+        .literalBool => try env.runtime.push_bool(ast.kind.literalBool),
         .literalInt => try env.runtime.push_int(@intCast(ast.kind.literalInt)),
         .literalVoid => try env.runtime.push_int(0),
         else => {

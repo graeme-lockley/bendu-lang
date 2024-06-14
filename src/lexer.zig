@@ -9,14 +9,15 @@ pub const Token = struct {
 };
 
 const keywords = std.StaticStringMap(TokenKind).initComptime(.{
+    .{ "False", TokenKind.LiteralBoolFalse },
+    .{ "True", TokenKind.LiteralBoolTrue },
+
     .{ "catch", TokenKind.Catch },
-    .{ "false", TokenKind.LiteralBoolFalse },
     .{ "fn", TokenKind.Fn },
     .{ "if", TokenKind.If },
     .{ "let", TokenKind.Let },
     .{ "match", TokenKind.Match },
     .{ "raise", TokenKind.Raise },
-    .{ "true", TokenKind.LiteralBoolTrue },
     .{ "while", TokenKind.While },
 });
 
@@ -471,7 +472,7 @@ test "identifier and keywords" {
 
 test "literal bool" {
     var lexer = Lexer.init(std.heap.page_allocator);
-    try lexer.initBuffer("test.bendu", "true   false");
+    try lexer.initBuffer("test.bendu", "True   False");
 
     try expectEqual(lexer.current.kind, TokenKind.LiteralBoolTrue);
     try lexer.next();

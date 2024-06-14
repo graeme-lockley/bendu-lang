@@ -104,7 +104,7 @@ fn printValue(v: Pointer.Pointer, typ: *Typing.Type) !void {
             if (std.mem.eql(u8, name, "Int")) {
                 try stdout.print("{d}", .{Pointer.asInt(v)});
             } else if (std.mem.eql(u8, name, "Bool")) {
-                try stdout.print("{s}", .{if (Pointer.asInt(v) == 0) "false" else "true"});
+                try stdout.print("{s}", .{if (Pointer.asInt(v) == 0) "False" else "True"});
             } else if (std.mem.eql(u8, name, "Unit")) {
                 try stdout.print("()", .{});
             } else {

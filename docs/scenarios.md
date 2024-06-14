@@ -43,6 +43,25 @@ absence of a value.
 (): Unit
 ```
 
+## Bool
+
+The `Bool` type is a boolean value with two values `True` and `False`.  This type is built into the language however it could be defined in the prelude as:
+
+```bendu
+type Bool = True | False
+```
+
+The `Bool` type is used to represent the truth value of an expression.
+
+```bendu-repl
+> True
+True: Bool
+
+> False
+False: Bool
+```
+
+
 # Error Reporting
 
 There are a number of error scenarios that need to be tested.

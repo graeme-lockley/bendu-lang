@@ -21,6 +21,14 @@ pub const Runtime = struct {
         return self.stack.pop();
     }
 
+    pub inline fn push_bool(self: *Runtime, value: bool) !void {
+        if (value) {
+            try self.stack.append(Pointer.fromInt(1));
+        } else {
+            try self.stack.append(Pointer.fromInt(0));
+        }
+    }
+
     pub inline fn push_int(self: *Runtime, value: i63) !void {
         try self.stack.append(Pointer.fromInt(value));
     }

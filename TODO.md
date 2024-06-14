@@ -24,6 +24,17 @@ The following *definition of done* is used to determine when a feature is comple
 - [X] Implement the `Unit` type in the BC interpreter
 - [X] Integrate into main so that the value can be viewed.
 
+## Bool
+
+- [X] Add the `Bool` type to the language
+- [X] Infer `Bool` literal values
+- [X] Implement the `Bool` type in the AST interpreter
+- [X] Implement the `Bool` type in the BC interpreter
+- [X] Integrate into main so that the value can be viewed.
+- [ ] Implement &&
+- [ ] Implement ||
+- [ ] Implement not
+
 ## Record
 
 - [ ] Report an error when attempt is made to reference or assign to an unknown field

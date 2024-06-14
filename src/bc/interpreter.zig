@@ -17,7 +17,9 @@ const Op = enum(u8) {
     discard,
     duplicate,
 
+    push_false,
     push_int,
+    push_true,
     push_unit,
     push_global,
 
@@ -137,6 +139,7 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                 std.process.exit(1);
             }
         },
+        .literalBool => try state.appendOp(if (ast.kind.literalBool) Op.push_true else Op.push_false),
         .literalInt => {
             try state.appendOp(Op.push_int);
             try state.append(ast.kind.literalInt);
@@ -168,9 +171,17 @@ fn execute(bc: []u8, runtime: *Runtime) !void {
                 try runtime.duplicate();
                 ip += 1;
             },
+            .push_false => {
+                try runtime.push_bool(false);
+                ip += 1;
+            },
             .push_int => {
                 try runtime.push_int(@intCast(readInt(bc, ip + 1)));
                 ip += 9;
+            },
+            .push_true => {
+                try runtime.push_bool(true);
+                ip += 1;
             },
             .push_unit => {
                 try runtime.push_unit();
