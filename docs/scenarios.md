@@ -43,6 +43,10 @@ absence of a value.
 (): Unit
 ```
 
+The unit literal is typed as follows:
+
+$$\frac{}{\mathtt{(): {\rm Unit}}}$$
+
 ## Bool
 
 The `Bool` type is a boolean value with two values `True` and `False`.  This type is built into the language however it could be defined in the prelude as:
@@ -60,6 +64,10 @@ True: Bool
 > False
 False: Bool
 ```
+
+Boolean literals are typed as follows:
+
+$$\frac{}{\mathtt{{\tt True}: {\rm Bool}}} \ \ \ \frac{}{\mathtt{{\tt False}: {\rm Bool}}}$$
 
 
 # Error Reporting
@@ -116,3 +124,8 @@ There are a number of scenarios where an identifier is not defined:
 > x
 Error: 1:1: Unknown name: x
 ```
+
+# Scratch Pad
+
+$$\frac{\mathtt{t \to t'}}{\mathtt{t_1 t_2 \to t_1' t_2}}  (E-APP-1)$$
+
