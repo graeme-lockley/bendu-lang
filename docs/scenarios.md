@@ -69,7 +69,6 @@ Boolean literals are typed as follows:
 
 $$\frac{}{\mathtt{{\tt True}: {\rm Bool}}} \ \ \ \frac{}{\mathtt{{\tt False}: {\rm Bool}}}$$
 
-
 ## Char
 
 The char value is a single character.  It is written as `'c'` where `c` is any character.  Internally a char value is represented as an 8 bit unsigned byte.
@@ -99,6 +98,10 @@ There are 4 special forms that can be used as a char literal.
 ```
 
 The last special character is the escape character and used when special characters are needed in char literals.
+
+Char literals are typed as follows:
+
+$$\frac{\mathtt{C \in \cal{C}}}{\mathtt{C: {\rm Char}}}$$
 
 # Error Reporting
 
