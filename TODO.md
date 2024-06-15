@@ -74,11 +74,11 @@ The following *definition of done* is used to determine when a feature is comple
 
 ## Char
 
-- [ ] Add the `Char` type to the language
-- [ ] Infer `Char` literal values
-- [ ] Implement the `Char` type in the AST interpreter
-- [ ] Implement the `Char` type in the BC interpreter
-- [ ] Integrate into main so that the value can be viewed.
+- [X] Add the `Char` type to the language
+- [X] Infer `Char` literal values
+- [X] Implement the `Char` type in the AST interpreter
+- [X] Implement the `Char` type in the BC interpreter
+- [X] Integrate into main so that the value can be viewed.
 - [ ] Implement ==, !=, <, <=, >, >=
 
 ## String
@@ -99,3 +99,7 @@ The following *definition of done* is used to determine when a feature is comple
 # Typing
 
 - [ ] Report an error when attempt is made to reference unknown type variable
+
+# Builtins
+
+- [ ] int: [a: Bool | Int | Float | Char | String] a -> Int

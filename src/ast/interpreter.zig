@@ -85,6 +85,7 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
             std.process.exit(1);
         },
         .literalBool => try env.runtime.push_bool(ast.kind.literalBool),
+        .literalChar => try env.runtime.push_int(@intCast(ast.kind.literalChar)),
         .literalInt => try env.runtime.push_int(@intCast(ast.kind.literalInt)),
         .literalVoid => try env.runtime.push_int(0),
         else => {

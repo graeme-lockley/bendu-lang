@@ -140,6 +140,10 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
             }
         },
         .literalBool => try state.appendOp(if (ast.kind.literalBool) Op.push_true else Op.push_false),
+        .literalChar => {
+            try state.appendOp(Op.push_int);
+            try state.append(@intCast(ast.kind.literalChar));
+        },
         .literalInt => {
             try state.appendOp(Op.push_int);
             try state.append(ast.kind.literalInt);

@@ -103,6 +103,15 @@ fn printValue(v: Pointer.Pointer, typ: *Typing.Type) !void {
 
             if (std.mem.eql(u8, name, "Int")) {
                 try stdout.print("{d}", .{Pointer.asInt(v)});
+            } else if (std.mem.eql(u8, name, "Char")) {
+                const c: u8 = @intCast(Pointer.asInt(v));
+                switch (c) {
+                    10 => try stdout.print("'\\n'", .{}),
+                    39 => try stdout.print("'\\''", .{}),
+                    92 => try stdout.print("'\\\\'", .{}),
+                    0...9, 11...31 => try stdout.print("'\\x{d}'", .{c}),
+                    else => try stdout.print("'{c}'", .{c}),
+                }
             } else if (std.mem.eql(u8, name, "Bool")) {
                 try stdout.print("{s}", .{if (Pointer.asInt(v) == 0) "False" else "True"});
             } else if (std.mem.eql(u8, name, "Unit")) {

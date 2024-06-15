@@ -70,6 +70,36 @@ Boolean literals are typed as follows:
 $$\frac{}{\mathtt{{\tt True}: {\rm Bool}}} \ \ \ \frac{}{\mathtt{{\tt False}: {\rm Bool}}}$$
 
 
+## Char
+
+The char value is a single character.  It is written as `'c'` where `c` is any character.  Internally a char value is represented as an 8 bit unsigned byte.
+
+```bendu-repl
+> 'a'
+'a': Char
+
+> '1'
+'1': Char
+```
+
+There are 4 special forms that can be used as a char literal.
+
+```rebo-repl
+> int('\n')
+10
+
+> int('\\')
+92
+
+> int('\'')
+39
+
+> int('\x13')
+13
+```
+
+The last special character is the escape character and used when special characters are needed in char literals.
+
 # Error Reporting
 
 There are a number of error scenarios that need to be tested.

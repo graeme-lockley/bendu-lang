@@ -7,6 +7,7 @@ const Typing = @import("typing.zig");
 
 const Env = struct {
     boolType: *Typing.Type,
+    charType: *Typing.Type,
     errorType: *Typing.Type,
     floatType: *Typing.Type,
     intType: *Typing.Type,
@@ -24,12 +25,14 @@ const Env = struct {
         var schemes = std.AutoHashMap(*SP.String, Typing.Scheme).init(sp.allocator);
 
         const boolType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Bool") } });
+        const charType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Char") } });
         const errorType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Error") } });
         const floatType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Float") } });
         const intType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Int") } });
         const unitType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Unit") } });
 
         try schemes.put(try sp.intern("Bool"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = boolType.incRefR() });
+        try schemes.put(try sp.intern("Char"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = charType.incRefR() });
         try schemes.put(try sp.intern("*Error*"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = errorType.incRefR() });
         try schemes.put(try sp.intern("Int"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = intType.incRefR() });
         try schemes.put(try sp.intern("Float"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = floatType.incRefR() });
@@ -37,6 +40,7 @@ const Env = struct {
 
         return Env{
             .boolType = boolType,
+            .charType = charType,
             .errorType = errorType,
             .floatType = floatType,
             .intType = intType,
@@ -50,6 +54,7 @@ const Env = struct {
 
     pub fn deinit(self: *Env, allocator: std.mem.Allocator) void {
         self.boolType.decRef(allocator);
+        self.charType.decRef(allocator);
         self.errorType.decRef(allocator);
         self.floatType.decRef(allocator);
         self.intType.decRef(allocator);
@@ -230,6 +235,10 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
         .literalBool => {
             ast.type = env.boolType.incRefR();
             return env.boolType;
+        },
+        .literalChar => {
+            ast.type = env.charType.incRefR();
+            return env.charType;
         },
         .literalFloat => {
             ast.type = env.floatType.incRefR();
