@@ -83,11 +83,11 @@ The following *definition of done* is used to determine when a feature is comple
 
 ## String
 
-- [X] Add the `String` type to the language
-- [X] Infer `String` literal values
-- [X] Implement the `String` type in the AST interpreter
-- [X] Implement the `String` type in the BC interpreter
-- [X] Integrate into main so that the value can be viewed.
+- [ ] Add the `String` type to the language
+- [ ] Infer `String` literal values
+- [ ] Implement the `String` type in the AST interpreter
+- [ ] Implement the `String` type in the BC interpreter
+- [ ] Integrate into main so that the value can be viewed.
 - [ ] Implement +, *
 - [ ] Implement ==, !=
 
