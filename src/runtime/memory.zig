@@ -73,28 +73,16 @@ pub const Memory = struct {
         var last = &self.pages;
 
         while (last.* != null) {
-            var lp: usize = 0;
-            while (lp < PAGE_SIZE) {
-                const item = &last.*.?.data[lp];
-                if (item.ctrl & 0b11 == @intFromEnum(Colour.Grey)) {
-                    item.ctrl = item.ctrl & 0b11100 | @intFromEnum(self.colour);
-                    return item;
-                }
-                lp += 1;
+            if (last.*.?.item(self.colour)) |potential| {
+                return potential;
             }
 
             last = &last.*.?.next;
         }
 
-        const page = try self.allocator.create(Page);
+        const page = try Page.new(self.allocator);
         last.* = page;
 
-        page.next = null;
-        var lp: usize = 0;
-        while (lp < PAGE_SIZE) {
-            page.data[lp].ctrl = @intFromEnum(Colour.Grey);
-            lp += 1;
-        }
         return &page.data[0];
     }
 
@@ -113,6 +101,32 @@ const PageItem = struct {
 const Page = struct {
     next: ?*Page,
     data: [PAGE_SIZE]PageItem,
+
+    pub fn new(allocator: std.mem.Allocator) !*Page {
+        const page = try allocator.create(Page);
+
+        page.next = null;
+        var lp: usize = 0;
+        while (lp < PAGE_SIZE) {
+            page.data[lp].ctrl = @intFromEnum(Colour.Grey);
+            lp += 1;
+        }
+
+        return page;
+    }
+
+    pub fn item(self: *Page, colour: Colour) ?*PageItem {
+        var lp: usize = 0;
+        while (lp < PAGE_SIZE) {
+            const potential = &self.data[lp];
+            if (potential.ctrl & 0b11 == @intFromEnum(Colour.Grey)) {
+                potential.ctrl = potential.ctrl & 0b11100 | @intFromEnum(colour);
+                return potential;
+            }
+            lp += 1;
+        }
+        return null;
+    }
 };
 
 pub const StringValue = struct {
@@ -124,10 +138,9 @@ pub const StringValue = struct {
     }
 };
 
-const expectEqual = std.testing.expectEqual;
-const expectEqualStrings = std.testing.expectEqualStrings;
-
 test "This thing" {
+    const expectEqualStrings = std.testing.expectEqualStrings;
+
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
     defer {
