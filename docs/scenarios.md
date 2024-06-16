@@ -103,6 +103,29 @@ Char literals are typed as follows:
 
 $$\frac{\mathtt{C \in \cal{C}}}{\mathtt{C: {\rm Char}}}$$
 
+## String
+
+A string value is an immutable sequence of characters.  It is written as `"s"` where `s` is any sequence of characters.  Internally a string value is represented as a sequence of 8 bit unsigned bytes.
+
+```bendu-repl
+> "Hello World"
+"Hello World": String
+```
+
+Like character, there are 4 special characters that can be used in a string literal.
+
+```bendu-repl
+> "Hello\n \\ \"World\""
+"Hello\n \\ \"World\"": String
+
+> "\x72;\x101;\x108;\x108;\x111;"
+"Hello": String
+```
+
+String literals are typed as follows:
+
+$$\frac{\mathtt{S \in \cal{S}}}{\mathtt{S: {\rm String}}}$$
+
 # Error Reporting
 
 There are a number of error scenarios that need to be tested.

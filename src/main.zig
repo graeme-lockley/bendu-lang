@@ -2,6 +2,7 @@ const std = @import("std");
 
 const AST = @import("ast.zig");
 const Parser = @import("parser.zig");
+const Memory = @import("./runtime/memory.zig");
 const Pointer = @import("./runtime/pointer.zig");
 const Runtime = @import("./runtime/runtime.zig");
 const SP = @import("string_pool.zig");
@@ -64,7 +65,7 @@ pub fn main() !void {
             const typeString = try analysisResult.type.toString(allocator);
             defer allocator.free(typeString);
 
-            var runtime = Runtime.Runtime.init(allocator);
+            var runtime = Runtime.Runtime.init(&sp);
             defer runtime.deinit();
 
             if (std.mem.eql(u8, action, "--ast")) {
@@ -101,8 +102,8 @@ fn printValue(v: Pointer.Pointer, typ: *Typing.Type) !void {
         .Tag => {
             const name = typ.kind.Tag.name.slice();
 
-            if (std.mem.eql(u8, name, "Int")) {
-                try stdout.print("{d}", .{Pointer.asInt(v)});
+            if (std.mem.eql(u8, name, "Bool")) {
+                try stdout.print("{s}", .{if (Pointer.asInt(v) == 0) "False" else "True"});
             } else if (std.mem.eql(u8, name, "Char")) {
                 const c: u8 = @intCast(Pointer.asInt(v));
                 switch (c) {
@@ -112,8 +113,22 @@ fn printValue(v: Pointer.Pointer, typ: *Typing.Type) !void {
                     0...9, 11...31 => try stdout.print("'\\x{d}'", .{c}),
                     else => try stdout.print("'{c}'", .{c}),
                 }
-            } else if (std.mem.eql(u8, name, "Bool")) {
-                try stdout.print("{s}", .{if (Pointer.asInt(v) == 0) "False" else "True"});
+            } else if (std.mem.eql(u8, name, "Int")) {
+                try stdout.print("{d}", .{Pointer.asInt(v)});
+            } else if (std.mem.eql(u8, name, "String")) {
+                const str = @as(*Memory.StringValue, @ptrFromInt(v)).value.slice();
+
+                try stdout.print("\"", .{});
+                for (str) |c| {
+                    switch (c) {
+                        10 => try stdout.print("\\n", .{}),
+                        34 => try stdout.print("\\\"", .{}),
+                        92 => try stdout.print("\\\\", .{}),
+                        0...9, 11...31 => try stdout.print("\\x{d};", .{c}),
+                        else => try stdout.print("{c}", .{c}),
+                    }
+                }
+                try stdout.print("\"", .{});
             } else if (std.mem.eql(u8, name, "Unit")) {
                 try stdout.print("()", .{});
             } else {
@@ -129,6 +144,7 @@ fn printValue(v: Pointer.Pointer, typ: *Typing.Type) !void {
 test "All tests" {
     _ = @import("./lexer.zig");
     _ = @import("./parser.zig");
+    _ = @import("./runtime/memory.zig");
     _ = @import("./runtime/pointer.zig");
     _ = @import("./typing.zig");
 }

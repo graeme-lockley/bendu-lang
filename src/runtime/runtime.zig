@@ -1,20 +1,29 @@
 const std = @import("std");
 
+const Memory = @import("memory.zig");
 const Pointer = @import("pointer.zig");
+const SP = @import("../string_pool.zig");
 
 pub const Runtime = struct {
     allocator: std.mem.Allocator,
+    memory: Memory.Memory,
+    sp: *SP.StringPool,
     stack: std.ArrayList(Pointer.Pointer),
 
-    pub fn init(allocator: std.mem.Allocator) Runtime {
+    pub fn init(sp: *SP.StringPool) Runtime {
+        const allocator = sp.allocator;
+
         return Runtime{
             .allocator = allocator,
+            .memory = Memory.Memory.init(allocator),
+            .sp = sp,
             .stack = std.ArrayList(Pointer.Pointer).init(allocator),
         };
     }
 
     pub fn deinit(self: *Runtime) void {
         self.stack.deinit();
+        self.memory.deinit();
     }
 
     pub inline fn pop(self: *Runtime) Pointer.Pointer {
@@ -35,6 +44,11 @@ pub const Runtime = struct {
 
     pub inline fn push_pointer(self: *Runtime, value: Pointer.Pointer) !void {
         try self.stack.append(value);
+    }
+
+    pub inline fn push_string(self: *Runtime, value: *SP.String) !void {
+        const pointer: Pointer.Pointer = @intFromPtr(try self.memory.allocateString(value));
+        try self.stack.append(pointer);
     }
 
     pub inline fn push_unit(self: *Runtime) !void {

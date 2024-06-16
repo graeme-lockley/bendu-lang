@@ -19,6 +19,7 @@ const Op = enum(u8) {
 
     push_false,
     push_int,
+    push_string,
     push_true,
     push_unit,
     push_global,
@@ -77,6 +78,13 @@ const CompileState = struct {
         try self.bc.append(v6);
         try self.bc.append(v7);
         try self.bc.append(v8);
+    }
+
+    fn appendString(self: *CompileState, s: []const u8) !void {
+        try self.append(@intCast(s.len));
+        for (s) |c| {
+            try self.bc.append(c);
+        }
     }
 };
 
@@ -148,6 +156,10 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
             try state.appendOp(Op.push_int);
             try state.append(ast.kind.literalInt);
         },
+        .literalString => {
+            try state.appendOp(Op.push_string);
+            try state.appendString(ast.kind.literalString.slice());
+        },
         .literalVoid => try state.appendOp(Op.push_unit),
         else => {
             try std.io.getStdErr().writer().print("Internal Error: Unsupported expression kind\n", .{});
@@ -182,6 +194,14 @@ fn execute(bc: []u8, runtime: *Runtime) !void {
             .push_int => {
                 try runtime.push_int(@intCast(readInt(bc, ip + 1)));
                 ip += 9;
+            },
+            .push_string => {
+                const len: usize = @intCast(readInt(bc, ip + 1));
+                const s = try runtime.sp.intern(bc[ip + 9 .. ip + 9 + len]);
+                defer s.decRef();
+
+                try runtime.push_pointer(@intFromPtr(try runtime.memory.allocateString(s)));
+                ip += 9 + len;
             },
             .push_true => {
                 try runtime.push_bool(true);

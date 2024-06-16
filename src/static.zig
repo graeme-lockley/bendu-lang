@@ -11,6 +11,7 @@ const Env = struct {
     errorType: *Typing.Type,
     floatType: *Typing.Type,
     intType: *Typing.Type,
+    stringType: *Typing.Type,
     unitType: *Typing.Type,
 
     names: std.ArrayList(std.AutoHashMap(*SP.String, Typing.Scheme)),
@@ -29,6 +30,7 @@ const Env = struct {
         const errorType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Error") } });
         const floatType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Float") } });
         const intType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Int") } });
+        const stringType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("String") } });
         const unitType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Unit") } });
 
         try schemes.put(try sp.intern("Bool"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = boolType.incRefR() });
@@ -36,6 +38,7 @@ const Env = struct {
         try schemes.put(try sp.intern("*Error*"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = errorType.incRefR() });
         try schemes.put(try sp.intern("Int"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = intType.incRefR() });
         try schemes.put(try sp.intern("Float"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = floatType.incRefR() });
+        try schemes.put(try sp.intern("String"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = stringType.incRefR() });
         try schemes.put(try sp.intern("Unit"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = unitType.incRefR() });
 
         return Env{
@@ -44,6 +47,7 @@ const Env = struct {
             .errorType = errorType,
             .floatType = floatType,
             .intType = intType,
+            .stringType = stringType,
             .unitType = unitType,
             .names = names,
             .schemes = schemes,
@@ -58,6 +62,7 @@ const Env = struct {
         self.errorType.decRef(allocator);
         self.floatType.decRef(allocator);
         self.intType.decRef(allocator);
+        self.stringType.decRef(allocator);
         self.unitType.decRef(allocator);
 
         for (self.names.items) |*names| {
@@ -272,6 +277,10 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
                 }
             }
         },
+        .literalString => {
+            ast.type = env.stringType.incRefR();
+            return env.stringType;
+        },
         .literalVoid => {
             ast.type = env.unitType.incRefR();
             return env.unitType;
@@ -297,7 +306,7 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             _ = try expression(ast.kind.whilee.condition, env);
             _ = try expression(ast.kind.whilee.body, env);
         },
-        else => {},
+        // else => {},
     }
 
     return env.errorType;
