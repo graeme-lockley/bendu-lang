@@ -15,7 +15,7 @@ pub const SchemeBinding = struct {
 };
 
 pub const Scheme = struct {
-    names: []const SchemeBinding,
+    names: []SchemeBinding,
     type: *Type,
 
     pub fn deinit(self: Scheme, allocator: std.mem.Allocator) void {
@@ -23,6 +23,9 @@ pub const Scheme = struct {
             name.deinit(allocator);
         }
         self.type.decRef(allocator);
+        if (self.names.len > 0) {
+            allocator.free(self.names);
+        }
     }
 };
 
@@ -101,6 +104,15 @@ pub const FunctionType = struct {
     domain: *Type,
     range: *Type,
 
+    pub fn new(allocator: std.mem.Allocator, domain: *Type, range: *Type) !*Type {
+        const self = try Type.create(allocator, TypeKind{ .Function = FunctionType{
+            .domain = domain,
+            .range = range,
+        } });
+
+        return self;
+    }
+
     pub fn deinit(self: *FunctionType, allocator: std.mem.Allocator) void {
         self.domain.decRef(allocator);
         self.range.decRef(allocator);
@@ -120,6 +132,12 @@ pub const FunctionType = struct {
 };
 
 pub const OrEmptyType = struct {
+    pub fn new(allocator: std.mem.Allocator) !*Type {
+        const self = try Type.create(allocator, TypeKind{ .OrEmpty = OrEmptyType{} });
+
+        return self;
+    }
+
     pub fn deinit(self: *OrEmptyType) void {
         _ = self;
     }
@@ -135,6 +153,15 @@ pub const OrEmptyType = struct {
 pub const OrExtendType = struct {
     component: *Type,
     rest: *Type,
+
+    pub fn new(allocator: std.mem.Allocator, component: *Type, rest: *Type) !*Type {
+        const self = try Type.create(allocator, TypeKind{ .OrExtend = OrExtendType{
+            .component = component,
+            .rest = rest,
+        } });
+
+        return self;
+    }
 
     pub fn deinit(self: *OrExtendType, allocator: std.mem.Allocator) void {
         self.component.decRef(allocator);
@@ -156,6 +183,14 @@ pub const OrExtendType = struct {
 pub const TagType = struct {
     name: *SP.String,
 
+    pub fn new(allocator: std.mem.Allocator, name: *SP.String) !*Type {
+        const self = try Type.create(allocator, TypeKind{ .Tag = TagType{
+            .name = name,
+        } });
+
+        return self;
+    }
+
     pub fn deinit(self: *TagType) void {
         self.name.decRef();
     }
@@ -167,6 +202,14 @@ pub const TagType = struct {
 
 pub const VariableType = struct {
     name: *SP.String,
+
+    pub fn new(allocator: std.mem.Allocator, name: *SP.String) !*Type {
+        const self = try Type.create(allocator, TypeKind{ .Variable = VariableType{
+            .name = name,
+        } });
+
+        return self;
+    }
 
     pub fn deinit(self: *VariableType) void {
         self.name.decRef();

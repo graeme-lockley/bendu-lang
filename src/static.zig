@@ -20,26 +20,46 @@ const Env = struct {
     sp: *SP.StringPool,
 
     pub fn init(sp: *SP.StringPool) !Env {
-        var names = std.ArrayList(std.AutoHashMap(*SP.String, Typing.Scheme)).init(sp.allocator);
-        try names.append(std.AutoHashMap(*SP.String, Typing.Scheme).init(sp.allocator));
+        const allocator = sp.allocator;
 
-        var schemes = std.AutoHashMap(*SP.String, Typing.Scheme).init(sp.allocator);
+        var names = std.ArrayList(std.AutoHashMap(*SP.String, Typing.Scheme)).init(allocator);
+        try names.append(std.AutoHashMap(*SP.String, Typing.Scheme).init(allocator));
 
-        const boolType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Bool") } });
-        const charType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Char") } });
-        const errorType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Error") } });
-        const floatType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Float") } });
-        const intType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Int") } });
-        const stringType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("String") } });
-        const unitType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Unit") } });
+        var schemes = std.AutoHashMap(*SP.String, Typing.Scheme).init(allocator);
 
-        try schemes.put(try sp.intern("Bool"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = boolType.incRefR() });
-        try schemes.put(try sp.intern("Char"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = charType.incRefR() });
-        try schemes.put(try sp.intern("*Error*"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = errorType.incRefR() });
-        try schemes.put(try sp.intern("Int"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = intType.incRefR() });
-        try schemes.put(try sp.intern("Float"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = floatType.incRefR() });
-        try schemes.put(try sp.intern("String"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = stringType.incRefR() });
-        try schemes.put(try sp.intern("Unit"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = unitType.incRefR() });
+        const boolType = try Typing.TagType.new(allocator, try sp.intern("Bool"));
+        const charType = try Typing.TagType.new(allocator, try sp.intern("Char"));
+        const errorType = try Typing.TagType.new(allocator, try sp.intern("Error"));
+        const floatType = try Typing.TagType.new(allocator, try sp.intern("Float"));
+        const intType = try Typing.TagType.new(allocator, try sp.intern("Int"));
+        const stringType = try Typing.TagType.new(allocator, try sp.intern("String"));
+        const unitType = try Typing.TagType.new(allocator, try sp.intern("Unit"));
+
+        try schemes.put(boolType.kind.Tag.name.incRefR(), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = boolType.incRefR() });
+        try schemes.put(charType.kind.Tag.name.incRefR(), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = charType.incRefR() });
+        try schemes.put(errorType.kind.Tag.name.incRefR(), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = errorType.incRefR() });
+        try schemes.put(intType.kind.Tag.name.incRefR(), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = intType.incRefR() });
+        try schemes.put(floatType.kind.Tag.name.incRefR(), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = floatType.incRefR() });
+        try schemes.put(stringType.kind.Tag.name.incRefR(), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = stringType.incRefR() });
+        try schemes.put(unitType.kind.Tag.name.incRefR(), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = unitType.incRefR() });
+
+        {
+            const aType = try Typing.VariableType.new(allocator, try sp.intern("a"));
+            defer aType.decRef(allocator);
+
+            const fType = try Typing.FunctionType.new(allocator, aType.incRefR(), try Typing.FunctionType.new(allocator, aType.incRefR(), aType.incRefR()));
+            errdefer fType.decRef(allocator);
+
+            var nms = try allocator.alloc(Typing.SchemeBinding, 1);
+            nms[0].name = try sp.intern("a");
+            nms[0].type = try Typing.OrExtendType.new(allocator, intType.incRefR(), try Typing.OrExtendType.new(allocator, floatType.incRefR(), try Typing.OrExtendType.new(allocator, charType.incRefR(), try Typing.OrEmptyType.new(allocator))));
+            errdefer {
+                nms[0].deinit(allocator);
+                allocator.free(nms);
+            }
+
+            try schemes.put(try sp.intern("+"), Typing.Scheme{ .names = nms, .type = fType });
+        }
 
         return Env{
             .boolType = boolType,
@@ -51,7 +71,7 @@ const Env = struct {
             .unitType = unitType,
             .names = names,
             .schemes = schemes,
-            .errors = std.ArrayList(Errors.Error).init(sp.allocator),
+            .errors = std.ArrayList(Errors.Error).init(allocator),
             .sp = sp,
         };
     }
