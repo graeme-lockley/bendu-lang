@@ -1,7 +1,8 @@
 const std = @import("std");
 
-const AST = @import("./ast.zig");
-const TokenKind = @import("./token_kind.zig").TokenKind;
+const AST = @import("ast.zig");
+const TokenKind = @import("token_kind.zig").TokenKind;
+const Typing = @import("typing.zig");
 
 pub const ParserErrors = error{ FunctionValueExpectedError, LexicalError, LiteralIntError, LiteralFloatError, SyntaxError, OutOfMemory, NotYetImplemented };
 
@@ -52,6 +53,16 @@ pub const ParserError = struct {
     }
 };
 
+pub const UnificationError = struct {
+    t1: *Typing.Type,
+    t2: *Typing.Type,
+
+    pub fn deinit(self: UnificationError, allocator: std.mem.Allocator) void {
+        self.t1.decRef(allocator);
+        self.t2.decRef(allocator);
+    }
+};
+
 pub const Error = struct {
     allocator: std.mem.Allocator,
     locationRange: LocationRange,
@@ -96,11 +107,21 @@ pub const Error = struct {
                 }
             },
             .UndefinedNameKind => try writer.print("Unknown name: {s}", .{self.detail.UndefinedNameKind.name}),
+            .UnificationKind => {
+                const s1 = try self.detail.UnificationKind.t1.toString(allocator);
+                defer allocator.free(s1);
+                const s2 = try self.detail.UnificationKind.t2.toString(allocator);
+                defer allocator.free(s2);
+
+                try writer.print("Unification error: Unable to unify {s} with {s}", .{ s1, s2 });
+            },
         }
 
         return buffer.toOwnedSlice();
     }
 };
+
+pub const Errors = std.ArrayList(Error);
 
 pub const ErrorKind = enum {
     DuplicateDeclarationKind,
@@ -110,6 +131,7 @@ pub const ErrorKind = enum {
     LiteralIntOverflowKind,
     ParserKind,
     UndefinedNameKind,
+    UnificationKind,
 };
 
 pub const ErrorDetail = union(ErrorKind) {
@@ -120,6 +142,7 @@ pub const ErrorDetail = union(ErrorKind) {
     LiteralIntOverflowKind: LexicalError,
     ParserKind: ParserError,
     UndefinedNameKind: UndefinedNameError,
+    UnificationKind: UnificationError,
 
     pub fn deinit(self: ErrorDetail, allocator: std.mem.Allocator) void {
         switch (self) {
@@ -130,6 +153,7 @@ pub const ErrorDetail = union(ErrorKind) {
             .LiteralIntOverflowKind => self.LiteralIntOverflowKind.deinit(allocator),
             .ParserKind => self.ParserKind.deinit(allocator),
             .UndefinedNameKind => self.UndefinedNameKind.deinit(allocator),
+            .UnificationKind => self.UnificationKind.deinit(allocator),
         }
     }
 };
@@ -172,5 +196,12 @@ pub fn parserError(allocator: std.mem.Allocator, locationRange: LocationRange, l
 pub fn undefinedNameError(allocator: std.mem.Allocator, locationRange: LocationRange, name: []const u8) !Error {
     return try Error.init(allocator, locationRange, ErrorDetail{ .UndefinedNameKind = .{
         .name = try allocator.dupe(u8, name),
+    } });
+}
+
+pub fn unificationError(allocator: std.mem.Allocator, locationRange: LocationRange, t1: *Typing.Type, t2: *Typing.Type) !Error {
+    return try Error.init(allocator, locationRange, ErrorDetail{ .UnificationKind = .{
+        .t1 = t1.incRefR(),
+        .t2 = t2.incRefR(),
     } });
 }

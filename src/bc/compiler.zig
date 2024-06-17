@@ -147,6 +147,10 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
             try state.appendString(ast.kind.literalString.slice());
         },
         .literalVoid => try state.appendOp(Op.push_unit),
+        .notOp => {
+            try compileExpr(ast.kind.notOp.value, state);
+            try state.appendOp(Op.not);
+        },
         else => {
             try std.io.getStdErr().writer().print("Internal Error: Unsupported expression kind\n", .{});
             std.process.exit(1);

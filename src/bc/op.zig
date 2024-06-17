@@ -12,6 +12,8 @@ pub const Op = enum(u8) {
 
     push_global,
 
+    not,
+
     print_int,
     print_ln,
 };

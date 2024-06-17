@@ -116,9 +116,9 @@ The following *definition of done* is used to determine when a feature is comple
 - [ ] (>>): [a] a -> List a -> List a
 - [ ] (>!): [a] a -> List a -> List a
 - [ ] (?): [a, b: a | Unit] b -> a -> a
-- [ ] !: Bool -> Bool
-- [ ] &&: Bool -> Bool -> Bool
-- [ ] ||: Bool -> Bool -> Bool
+- [X] (!): Bool -> Bool
+- [ ] (&&): Bool -> Bool -> Bool
+- [ ] (||): Bool -> Bool -> Bool
 
 # Typing
 

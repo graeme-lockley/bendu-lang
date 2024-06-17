@@ -69,6 +69,25 @@ Boolean literals are typed as follows:
 
 $$\frac{}{\mathtt{{\tt True}: {\rm Bool}}} \ \ \ \frac{}{\mathtt{{\tt False}: {\rm Bool}}}$$
 
+A common operator on the `Bool` type is the `not` operator.  The typing of this operator is as follows:
+
+$$\frac{\mathtt{b: {\rm Bool}}}{\mathtt{{\tt not}\ b: {\rm Bool}}}$$
+
+```bendu-repl
+> !True
+False: Bool
+
+> !False
+True: Bool
+```
+
+Any attempt to use anything other than a `Bool` value will result in a type error:
+
+```bendu-repl
+> !42
+Error: 1:2-3: Unification error: Unable to unify Bool with Int
+```
+
 ## Int
 
 An integer value is a whole number.  It is written as `n` where `n` is any whole number.  Internally an integer value is represented as a 63 bit signed integer.
@@ -80,6 +99,12 @@ An integer value is a whole number.  It is written as `n` where `n` is any whole
 > -123
 -123: Int
 ```
+
+```bendu
+> 10 + 12
+22: Int
+```
+
 
 Int literals are typed as follows:
 

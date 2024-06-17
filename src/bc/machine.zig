@@ -57,6 +57,11 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 try runtime.push_pointer(runtime.stackItem(@intCast(readInt(bc, ip + 1))));
                 ip += 9;
             },
+            .not => {
+                const v = runtime.pop();
+                try runtime.push_bool(if (Pointer.asInt(v) == 0) true else false);
+                ip += 1;
+            },
             .print_int => {
                 const v = runtime.pop();
                 try writer.print("{d}", .{v});
