@@ -113,6 +113,9 @@ fn printValue(v: Pointer.Pointer, typ: *Typing.Type) !void {
                     0...9, 11...31 => try stdout.print("'\\x{d}'", .{c}),
                     else => try stdout.print("'{c}'", .{c}),
                 }
+            } else if (std.mem.eql(u8, name, "Float")) {
+                const f = @as(*Memory.FloatValue, @ptrFromInt(v)).value;
+                try stdout.print("{d}", .{f});
             } else if (std.mem.eql(u8, name, "Int")) {
                 try stdout.print("{d}", .{Pointer.asInt(v)});
             } else if (std.mem.eql(u8, name, "String")) {

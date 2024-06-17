@@ -38,6 +38,11 @@ pub const Runtime = struct {
         }
     }
 
+    pub inline fn push_float(self: *Runtime, value: f64) !void {
+        const pointer: Pointer.Pointer = @intFromPtr(try self.memory.allocateFloat(value));
+        try self.stack.append(pointer);
+    }
+
     pub inline fn push_int(self: *Runtime, value: i63) !void {
         try self.stack.append(Pointer.fromInt(value));
     }

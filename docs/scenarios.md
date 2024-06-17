@@ -69,6 +69,38 @@ Boolean literals are typed as follows:
 
 $$\frac{}{\mathtt{{\tt True}: {\rm Bool}}} \ \ \ \frac{}{\mathtt{{\tt False}: {\rm Bool}}}$$
 
+## Int
+
+An integer value is a whole number.  It is written as `n` where `n` is any whole number.  Internally an integer value is represented as a 63 bit signed integer.
+
+```bendu-repl
+> 42
+42: Int
+
+> -123
+-123: Int
+```
+
+Int literals are typed as follows:
+
+$$\frac{\mathtt{I \in \cal{I}}}{\mathtt{I: {\rm Int}}}$$
+
+## Float
+
+A float value is a decimal number.  It is written as `n.m` where `n` is any whole number and `m` is any whole number.  Internally a float value is represented as a 64 bit floating point number.
+
+```bendu-repl
+> 3.151
+3.151: Float
+
+> 1.43e-5
+0.0000143: Float
+```
+
+Float literals are typed as follows:
+
+$$\frac{\mathtt{F \in \cal{F}}}{\mathtt{F: {\rm Float}}}$$
+
 ## Char
 
 The char value is a single character.  It is written as `'c'` where `c` is any character.  Internally a char value is represented as an 8 bit unsigned byte.

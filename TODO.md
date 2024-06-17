@@ -47,9 +47,9 @@ The following *definition of done* is used to determine when a feature is comple
 - [X] Implement the `Bool` type in the AST interpreter
 - [X] Implement the `Bool` type in the BC interpreter
 - [X] Integrate into main so that the value can be viewed.
+- [ ] Implement not
 - [ ] Implement &&
 - [ ] Implement ||
-- [ ] Implement not
 - [ ] Implement ==
 
 ## Int
@@ -64,11 +64,11 @@ The following *definition of done* is used to determine when a feature is comple
 
 ## Float
 
-- [ ] Add the `Float` type to the language
-- [ ] Infer `Float` literal values
-- [ ] Implement the `Float` type in the AST interpreter
-- [ ] Implement the `Float` type in the BC interpreter
-- [ ] Integrate into main so that the value can be viewed.
+- [X] Add the `Float` type to the language
+- [X] Infer `Float` literal values
+- [X] Implement the `Float` type in the AST interpreter
+- [X] Implement the `Float` type in the BC interpreter
+- [X] Integrate into main so that the value can be viewed.
 - [ ] Implement +, -, *, /, %
 - [ ] Implement ==, !=, <, <=, >, >=
 

@@ -87,6 +87,7 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
         .literalBool => try env.runtime.push_bool(ast.kind.literalBool),
         .literalChar => try env.runtime.push_int(@intCast(ast.kind.literalChar)),
         .literalInt => try env.runtime.push_int(@intCast(ast.kind.literalInt)),
+        .literalFloat => try env.runtime.push_float(ast.kind.literalFloat),
         .literalString => try env.runtime.push_string(ast.kind.literalString),
         .literalVoid => try env.runtime.push_int(0),
         else => {

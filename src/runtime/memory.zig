@@ -62,6 +62,17 @@ pub const Memory = struct {
         }
     }
 
+    pub fn allocateFloat(self: *Memory, v: f64) !*FloatValue {
+        const item = try self.allocate();
+
+        item.ctrl = item.ctrl & 0b00011 | (@intFromEnum(Type.Float) << 2);
+
+        const result: *FloatValue = @ptrCast(item);
+        result.value = v;
+
+        return result;
+    }
+
     pub fn allocateString(self: *Memory, str: *SP.String) !*StringValue {
         const item = try self.allocate();
 
@@ -139,6 +150,11 @@ const Page = struct {
         }
         return null;
     }
+};
+
+pub const FloatValue = struct {
+    ctrl: usize,
+    value: f64,
 };
 
 pub const StringValue = struct {

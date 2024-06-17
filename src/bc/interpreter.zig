@@ -18,10 +18,12 @@ const Op = enum(u8) {
     duplicate,
 
     push_false,
+    push_float,
     push_int,
     push_string,
     push_true,
     push_unit,
+
     push_global,
 
     print_int,
@@ -78,6 +80,10 @@ const CompileState = struct {
         try self.bc.append(v6);
         try self.bc.append(v7);
         try self.bc.append(v8);
+    }
+
+    fn appendFloat(self: *CompileState, v: f64) !void {
+        try self.append(@bitCast(v));
     }
 
     fn appendString(self: *CompileState, s: []const u8) !void {
@@ -156,6 +162,10 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
             try state.appendOp(Op.push_int);
             try state.append(ast.kind.literalInt);
         },
+        .literalFloat => {
+            try state.appendOp(Op.push_float);
+            try state.appendFloat(ast.kind.literalFloat);
+        },
         .literalString => {
             try state.appendOp(Op.push_string);
             try state.appendString(ast.kind.literalString.slice());
@@ -190,6 +200,10 @@ fn execute(bc: []u8, runtime: *Runtime) !void {
             .push_false => {
                 try runtime.push_bool(false);
                 ip += 1;
+            },
+            .push_float => {
+                try runtime.push_float(@bitCast(readInt(bc, ip + 1)));
+                ip += 9;
             },
             .push_int => {
                 try runtime.push_int(@intCast(readInt(bc, ip + 1)));
