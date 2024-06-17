@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const Errors = @import("errors.zig");
-const SP = @import("string_pool.zig");
+const SP = @import("lib/string_pool.zig");
 const Typing = @import("typing.zig");
 
 pub const Operator = enum {

@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const SP = @import("../string_pool.zig");
+const SP = @import("../lib/string_pool.zig");
 
 // The header block has 64 bits of data which is used to store control
 // information and then details about the remainder of the block.

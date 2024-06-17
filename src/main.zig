@@ -5,7 +5,7 @@ const Parser = @import("parser.zig");
 const Memory = @import("./runtime/memory.zig");
 const Pointer = @import("./runtime/pointer.zig");
 const Runtime = @import("./runtime/runtime.zig");
-const SP = @import("string_pool.zig");
+const SP = @import("lib/string_pool.zig");
 const Static = @import("static.zig");
 const Typing = @import("typing.zig");
 

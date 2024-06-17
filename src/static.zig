@@ -2,7 +2,7 @@ const std = @import("std");
 
 const AST = @import("ast.zig");
 const Errors = @import("errors.zig");
-const SP = @import("string_pool.zig");
+const SP = @import("lib/string_pool.zig");
 const Typing = @import("typing.zig");
 
 const Env = struct {

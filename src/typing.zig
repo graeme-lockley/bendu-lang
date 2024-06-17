@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const SP = @import("string_pool.zig");
+const SP = @import("lib/string_pool.zig");
 
 pub const SchemeBinding = struct {
     name: *SP.String,

@@ -4,7 +4,7 @@ const AST = @import("../ast.zig");
 const Op = @import("./op.zig").Op;
 const Pointer = @import("../runtime/pointer.zig");
 const Runtime = @import("../runtime/runtime.zig").Runtime;
-const SP = @import("../string_pool.zig");
+const SP = @import("../lib/string_pool.zig");
 
 pub fn compile(ast: *AST.Expression, allocator: std.mem.Allocator) ![]u8 {
     var compileState = try CompileState.init(allocator);

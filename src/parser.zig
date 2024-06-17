@@ -1,9 +1,9 @@
 const std = @import("std");
 
-const AST = @import("./ast.zig");
-const Errors = @import("./errors.zig");
-const Lexer = @import("./lexer.zig");
-const SP = @import("./string_pool.zig");
+const AST = @import("ast.zig");
+const Errors = @import("errors.zig");
+const Lexer = @import("lexer.zig");
+const SP = @import("lib/string_pool.zig");
 
 pub fn Result(T: type, E: type) type {
     return union(enum) {

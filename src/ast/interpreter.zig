@@ -3,7 +3,7 @@ const std = @import("std");
 const AST = @import("../ast.zig");
 const Pointer = @import("../runtime/pointer.zig");
 const Runtime = @import("../runtime/runtime.zig").Runtime;
-const SP = @import("../string_pool.zig");
+const SP = @import("../lib/string_pool.zig");
 
 pub fn eval(ast: *AST.Expression, runtime: *Runtime) !void {
     var env = Environment.init(runtime);

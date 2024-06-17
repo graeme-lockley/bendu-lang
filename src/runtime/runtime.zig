@@ -2,7 +2,7 @@ const std = @import("std");
 
 const Memory = @import("memory.zig");
 const Pointer = @import("pointer.zig");
-const SP = @import("../string_pool.zig");
+const SP = @import("../lib/string_pool.zig");
 
 pub const Runtime = struct {
     allocator: std.mem.Allocator,

@@ -4,7 +4,7 @@ const AST = @import("../ast.zig");
 const Op = @import("./op.zig").Op;
 const Pointer = @import("../runtime/pointer.zig");
 const Runtime = @import("../runtime/runtime.zig").Runtime;
-const SP = @import("../string_pool.zig");
+const SP = @import("../lib/string_pool.zig");
 
 pub fn execute(bc: []u8, runtime: *Runtime) !void {
     const writer = std.io.getStdOut().writer();
