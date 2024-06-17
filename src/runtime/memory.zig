@@ -44,12 +44,16 @@ pub const Memory = struct {
             var lp: usize = 0;
             while (lp < PAGE_SIZE) {
                 const item = &last.?.data[lp];
-                switch (@as(Type, @enumFromInt(item.ctrl >> 2))) {
-                    Type.String => {
-                        const str: *StringValue = @ptrCast(item);
-                        str.deinit();
-                    },
-                    else => {},
+
+                if (!item.isFree()) {
+                    switch (@as(Type, @enumFromInt(item.ctrl >> 2))) {
+                        Type.String => {
+                            const str: *StringValue = @ptrCast(item);
+                            str.deinit();
+                        },
+                        else => {},
+                    }
+                    item.markFree();
                 }
                 lp += 1;
             }
@@ -96,6 +100,14 @@ const PAGE_SIZE = 1024;
 const PageItem = struct {
     ctrl: usize,
     data: usize,
+
+    pub fn isFree(self: *PageItem) bool {
+        return self.ctrl & 0b11 == @intFromEnum(Colour.Grey);
+    }
+
+    pub fn markFree(self: *PageItem) void {
+        self.ctrl = self.ctrl & 0b11100 | @intFromEnum(Colour.Grey);
+    }
 };
 
 const Page = struct {
