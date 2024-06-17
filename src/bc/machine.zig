@@ -58,8 +58,7 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 ip += 9;
             },
             .not => {
-                const v = runtime.pop();
-                try runtime.push_bool(if (Pointer.asInt(v) == 0) true else false);
+                try runtime.not();
                 ip += 1;
             },
             .print_int => {

@@ -92,8 +92,7 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
         .literalVoid => try env.runtime.push_int(0),
         .notOp => {
             try evalExpression(ast.kind.notOp.value, env);
-            const v = env.runtime.pop();
-            try env.runtime.push_bool(if (Pointer.asInt(v) == 0) true else false);
+            try env.runtime.not();
         },
         else => {
             try std.io.getStdErr().writer().print("Internal Error: Unsupported expression kind\n", .{});

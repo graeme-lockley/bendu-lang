@@ -80,4 +80,15 @@ pub const Runtime = struct {
     pub inline fn stackItem(self: *Runtime, index: usize) Pointer.Pointer {
         return self.stack.items[index];
     }
+
+    // Operators
+
+    pub inline fn not(self: *Runtime) !void {
+        const v = self.pop();
+        if (Pointer.asInt(v) == 0) {
+            try self.stack.append(Pointer.fromInt(1));
+        } else {
+            try self.stack.append(Pointer.fromInt(0));
+        }
+    }
 };
