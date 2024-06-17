@@ -91,14 +91,23 @@ $$\frac{\mathtt{I \in \cal{I}}}{\mathtt{I: {\rm Int}}}$$
 Int has a number of operators defined over it and numbers in general.  The typing of these operators are as follows:
 
 $$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b: t}}{\mathtt{a + b: t}}$$
+
 $$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b: t}}{\mathtt{a - b: t}}$$
+
 $$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b: t}}{\mathtt{a * b: t}}$$
+
 $$\frac{\mathtt{a: {\rm Int}, b: {\rm Int}}}{\mathtt{a\ {**}\ b: {\rm Int}}}$$
+
 $$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b: t}}{\mathtt{a / b: t}}$$
+
 $$\frac{\mathtt{a: {\rm Int}, b: {\rm Int}}}{\mathtt{a\ \%\ b: {\rm Int}}}$$
+
 $$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a: t, b: t}}{\mathtt{a < b: t}}$$
+
 $$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a: t, b: t}}{\mathtt{a <= b: t}}$$
+
 $$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a: t, b: t}}{\mathtt{a > b: t}}$$
+
 $$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a: t, b: t}}{\mathtt{a >= b: t}}$$
 
 It should be noted from the above that operators do not perform automatic coercion.  This means that `1 + 1.0` would be reported as a type error during compilation:
