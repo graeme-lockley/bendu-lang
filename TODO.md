@@ -102,13 +102,23 @@ The following *definition of done* is used to determine when a feature is comple
 - [ ] (+): [a: Int | Float | Char] a -> a -> a
 - [ ] (-): [a: Int | Float | Char] a -> a -> a
 - [ ] (*): [a: Int | Float | Char] a -> a -> a
+- [ ] (**): Int -> Int -> Int
 - [ ] (/): [a: Int | Float | Char] a -> a -> a
+- [ ] (%): Int -> Int -> Int
 - [ ] (==): [a] a -> a -> Bool
 - [ ] (!=): [a] a -> a -> Bool
 - [ ] (<): [a: Int | Float | Char | String] a -> a -> a
 - [ ] (<=): [a: Int | Float | Char | String] a -> a -> a
 - [ ] (>): [a: Int | Float | Char | String] a -> a -> a
 - [ ] (>=): [a: Int | Float | Char | String] a -> a -> a
+- [ ] (<<): [a] List a -> a -> List a
+- [ ] (<!): [a] List a -> a -> List a
+- [ ] (>>): [a] a -> List a -> List a
+- [ ] (>!): [a] a -> List a -> List a
+- [ ] (?): [a, b: a | Unit] b -> a -> a
+- [ ] !: Bool -> Bool
+- [ ] &&: Bool -> Bool -> Bool
+- [ ] ||: Bool -> Bool -> Bool
 
 # Typing
 
