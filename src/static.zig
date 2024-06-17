@@ -14,6 +14,7 @@ const Env = struct {
     stringType: *Typing.Type,
     unitType: *Typing.Type,
 
+    allocator: std.mem.Allocator,
     constraints: Typing.Constraints,
     errors: std.ArrayList(Errors.Error),
     names: std.ArrayList(std.AutoHashMap(*SP.String, Typing.Scheme)),
@@ -63,6 +64,8 @@ const Env = struct {
             try schemes.put(try sp.intern("+"), Typing.Scheme{ .names = nms, .type = fType });
         }
 
+        try schemes.put(try sp.intern("!"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = try Typing.FunctionType.new(allocator, boolType.incRefR(), boolType.incRefR()) });
+
         return Env{
             .boolType = boolType,
             .charType = charType,
@@ -72,6 +75,7 @@ const Env = struct {
             .stringType = stringType,
             .unitType = unitType,
 
+            .allocator = allocator,
             .constraints = Typing.Constraints.init(allocator),
             .errors = std.ArrayList(Errors.Error).init(allocator),
             .names = names,
@@ -178,6 +182,7 @@ pub const AnalysisResult = struct {
         for (self.errors) |*err| {
             err.deinit();
         }
+        allocator.free(self.errors);
         self.type.decRef(allocator);
     }
 };
@@ -333,6 +338,24 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
 
             ast.type = env.boolType.incRefR();
             return env.boolType;
+
+            // const result = try env.pump.newBound(env.allocator);
+            // defer result.decRef(env.allocator);
+
+            // const n = try env.sp.intern("!");
+            // defer n.decRef();
+
+            // const ss = try env.schemes.get(n).?.instantiate(&env.pump, env.allocator);
+            // defer ss.decRef(env.allocator);
+
+            // const t = try expression(ast.kind.notOp.value, env);
+            // const signature = try Typing.FunctionType.new(env.allocator, t, result);
+            // defer signature.decRef(env.allocator);
+
+            // try env.addConstraint(ss, signature, ast.kind.notOp.value.locationRange);
+
+            // ast.type = result.incRefR();
+            // return result;
         },
         .patternDeclaration => {
             _ = try pattern(ast.kind.patternDeclaration.pattern, env);
@@ -370,3 +393,70 @@ fn pattern(ast: *AST.Pattern, env: *Env) !*Typing.Type {
 
     return env.errorType;
 }
+
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+
+const TestAnalysisResult = union(enum) {
+    Ok: AnalysisResult,
+    Err: Errors.Error,
+};
+
+const TestState = struct {
+    allocator: std.mem.Allocator,
+    sp: SP.StringPool,
+
+    pub fn init() TestState {
+        const allocator = gpa.allocator();
+
+        return TestState{
+            .allocator = allocator,
+            .sp = SP.StringPool.init(allocator),
+        };
+    }
+
+    pub fn deinit(self: *TestState) void {
+        self.sp.deinit();
+
+        const err = gpa.deinit();
+        if (err == std.heap.Check.leak) {
+            std.io.getStdErr().writeAll("Failed to deinit allocator\n") catch {};
+            std.process.exit(1);
+        }
+    }
+
+    const Parser = @import("parser.zig");
+
+    pub fn parse(self: *TestState, source: []const u8) !Parser.Result(*AST.Expression, Errors.Error) {
+        return try Parser.parse(&self.sp, "script.bendu", source);
+    }
+
+    pub fn parseAnalyse(self: *TestState, source: []const u8) !TestAnalysisResult {
+        var parseResult = try self.parse(source);
+        defer switch (parseResult) {
+            .Ok => parseResult.Ok.decRef(self.allocator),
+            .Err => {},
+        };
+
+        return switch (parseResult) {
+            .Err => TestAnalysisResult{ .Err = parseResult.Err },
+            .Ok => TestAnalysisResult{ .Ok = try analysis(parseResult.Ok, &self.sp) },
+        };
+    }
+};
+
+// test "Let's go" {
+//     var state = TestState.init();
+//     defer state.deinit();
+
+//     var result = try state.parseAnalyse("!True");
+//     defer switch (result) {
+//         .Ok => {
+//             for (result.Ok.errors) |*err| {
+//                 err.deinit();
+//             }
+//             state.allocator.free(result.Ok.errors);
+//             result.Ok.type.decRef(state.allocator);
+//         },
+//         .Err => result.Err.deinit(),
+//     };
+// }

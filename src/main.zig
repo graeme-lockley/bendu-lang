@@ -146,9 +146,10 @@ fn printValue(v: Pointer.Pointer, typ: *Typing.Type) !void {
 }
 
 test "All tests" {
-    _ = @import("./lexer.zig");
-    _ = @import("./parser.zig");
-    _ = @import("./runtime/memory.zig");
-    _ = @import("./runtime/pointer.zig");
-    _ = @import("./typing.zig");
+    _ = @import("lexer.zig");
+    _ = @import("parser.zig");
+    _ = @import("runtime/memory.zig");
+    _ = @import("runtime/pointer.zig");
+    _ = @import("static.zig");
+    _ = @import("typing.zig");
 }

@@ -28,6 +28,20 @@ pub const Scheme = struct {
             allocator.free(self.names);
         }
     }
+
+    pub fn instantiate(self: Scheme, pump: *Pump, allocator: std.mem.Allocator) !*Type {
+        var s = Subst.init(allocator);
+        defer s.deinit(allocator);
+
+        for (self.names) |name| {
+            const t = try pump.newBound(allocator);
+            defer t.decRef(allocator);
+
+            try s.put(@intFromPtr(name.name), t);
+        }
+
+        return try self.type.apply(&s);
+    }
 };
 
 pub const Type = struct {
@@ -48,6 +62,7 @@ pub const Type = struct {
         }
         if (self.count == 1) {
             switch (self.kind) {
+                .Bound => self.kind.Bound.deinit(),
                 .Function => self.kind.Function.deinit(allocator),
                 .OrEmpty => self.kind.OrEmpty.deinit(),
                 .OrExtend => self.kind.OrExtend.deinit(allocator),
@@ -91,6 +106,7 @@ pub const Type = struct {
 
     pub fn append(self: *Type, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
         switch (self.kind) {
+            .Bound => try self.kind.Bound.append(buffer),
             .Function => try self.kind.Function.append(buffer),
             .OrEmpty => try self.kind.OrEmpty.append(buffer),
             .OrExtend => try self.kind.OrExtend.append(buffer),
@@ -101,6 +117,7 @@ pub const Type = struct {
 
     pub fn apply(self: *Type, s: *Subst) !*Type {
         switch (self.kind) {
+            .Bound => return (s.get(self.kind.Bound.value) orelse self).incRefR(),
             .Function => return try FunctionType.new(
                 s.items.allocator,
                 try self.kind.Function.domain.apply(s),
@@ -117,11 +134,33 @@ pub const Type = struct {
 };
 
 pub const TypeKind = union(enum) {
+    Bound: BoundType,
     Function: FunctionType,
     OrEmpty: OrEmptyType,
     OrExtend: OrExtendType,
     Tag: TagType,
     Variable: VariableType,
+};
+
+pub const BoundType = struct {
+    value: u64,
+
+    pub fn new(allocator: std.mem.Allocator, value: u64) !*Type {
+        const self = try Type.create(allocator, TypeKind{ .Bound = BoundType{
+            .value = value,
+        } });
+
+        return self;
+    }
+
+    pub fn deinit(self: *BoundType) void {
+        _ = self;
+    }
+
+    pub fn append(self: *BoundType, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
+        try buffer.append('\'');
+        try buffer.writer().print("{d}", .{self.value});
+    }
 };
 
 pub const FunctionType = struct {
@@ -320,6 +359,10 @@ pub const Pump = struct {
 
         return result;
     }
+
+    pub fn newBound(self: *Pump, allocator: std.mem.Allocator) !*Type {
+        return try BoundType.new(allocator, self.pump());
+    }
 };
 
 pub const Subst = struct {
@@ -350,7 +393,7 @@ pub const Subst = struct {
         return result;
     }
 
-    pub fn get(self: *Subst, key: u64) !*Type {
+    pub fn get(self: *Subst, key: u64) ?*Type {
         return self.items.get(key);
     }
 
@@ -368,7 +411,7 @@ pub const Subst = struct {
     }
 };
 
-fn unify(t1: *Type, t2: *Type, locationRange: Errors.LocationRange, errors: *Errors.Errors, allocator: std.mem.Allocator) !Subst {
+fn unify(t1: *Type, t2: *Type, locationRange: Errors.LocationRange, errors: *Errors.Errors, allocator: std.mem.Allocator) std.mem.Allocator.Error!Subst {
     // std.debug.print("unify: ", .{});
     // try t1.print(allocator);
     // std.debug.print(" with ", .{});
@@ -376,10 +419,79 @@ fn unify(t1: *Type, t2: *Type, locationRange: Errors.LocationRange, errors: *Err
     // std.debug.print("\n", .{});
 
     if (t1 == t2) return Subst.init(allocator);
-    // if (t1.kind == .Tag and t2.kind == .Tag and t1.kind.Tag.name == t2.kind.Tag.name) return Subst.init(allocator);
+    if (t1.kind == .Bound) {
+        var s = Subst.init(allocator);
+        try s.put(t1.kind.Bound.value, t2.incRefR());
+        return s;
+    }
+    if (t2.kind == .Bound) {
+        var s = Subst.init(allocator);
+        try s.put(t2.kind.Bound.value, t1.incRefR());
+        return s;
+    }
+    if (t1.kind == .Function and t2.kind == .Function) {
+        const t1s = try allocator.alloc(*Type, 2);
+        defer {
+            for (t1s) |t1si| {
+                t1si.decRef(allocator);
+            }
+            allocator.free(t1s);
+        }
+
+        const t2s = try allocator.alloc(*Type, 2);
+        defer {
+            for (t2s) |t2si| {
+                t2si.decRef(allocator);
+            }
+            allocator.free(t2s);
+        }
+
+        t1s[0] = t1.kind.Function.domain.incRefR();
+        t1s[1] = t1.kind.Function.range.incRefR();
+
+        t2s[0] = t2.kind.Function.domain.incRefR();
+        t2s[1] = t2.kind.Function.range.incRefR();
+
+        return unifyMany(t1s, t2s, locationRange, errors, allocator);
+    }
 
     try errors.append(try Errors.unificationError(allocator, locationRange, t1, t2));
     return Subst.init(allocator);
+}
+
+fn unifyMany(t1s: []*Type, t2s: []*Type, locationRange: Errors.LocationRange, errors: *Errors.Errors, allocator: std.mem.Allocator) std.mem.Allocator.Error!Subst {
+    if (t1s.len == 0 and t2s.len == 0) return Subst.init(allocator);
+
+    if (t1s.len != t2s.len) {
+        try errors.append(try Errors.unificationError(allocator, locationRange, t1s[0], t2s[0]));
+        return Subst.init(allocator);
+    }
+
+    var result = Subst.init(allocator);
+    var i: usize = 0;
+    while (i < t1s.len) {
+        var s = try unify(t1s[i], t2s[i], locationRange, errors, allocator);
+        defer s.deinit(allocator);
+
+        var j = i + 1;
+        while (j < t1s.len) {
+            var s1o = t1s[j];
+            defer s1o.decRef(allocator);
+            var s2o = t2s[j];
+            defer s2o.decRef(allocator);
+
+            t1s[j] = try s1o.apply(&s);
+            t2s[j] = try s2o.apply(&s);
+
+            j += 1;
+        }
+
+        try result.compose(&s);
+
+        i += 1;
+    }
+
+    return result;
 }
 
 pub fn solver(constraints: *Constraints, pump: *Pump, errors: *Errors.Errors, allocator: std.mem.Allocator) !Subst {
@@ -399,4 +511,56 @@ pub fn solver(constraints: *Constraints, pump: *Pump, errors: *Errors.Errors, al
     }
 
     return su;
+}
+
+const TestState = struct {
+    allocator: std.mem.Allocator,
+    sp: SP.StringPool,
+
+    pub fn init(allocator: std.mem.Allocator) TestState {
+        return TestState{
+            .allocator = allocator,
+            .sp = SP.StringPool.init(allocator),
+        };
+    }
+
+    pub fn deinit(self: *TestState) void {
+        self.sp.deinit();
+    }
+};
+
+test "Let's go" {
+    // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    // defer {
+    //     const err = gpa.deinit();
+    //     if (err == std.heap.Check.leak) {
+    //         std.io.getStdErr().writeAll("Failed to deinit allocator\n") catch {};
+    //         std.process.exit(1);
+    //     }
+    // }
+
+    // var state = TestState.init(gpa.allocator());
+    // defer state.deinit();
+
+    // var constraints = Constraints.init(state.allocator);
+    // defer constraints.deinit(state.allocator);
+
+    // const boolType = try TagType.new(state.allocator, try state.sp.intern("Bool"));
+    // defer boolType.decRef(state.allocator);
+    // const boundType = try BoundType.new(state.allocator, 1);
+    // defer boundType.decRef(state.allocator);
+
+    // try constraints.add(
+    //     boolType,
+    //     boundType,
+    //     Errors.LocationRange{
+    //         .from = Errors.Location{ .offset = 0, .line = 0, .column = 0 },
+    //         .to = Errors.Location{ .offset = 0, .line = 0, .column = 0 },
+    //     },
+    // );
+    // var pump = Pump.init();
+    // var errors = Errors.Errors.init(state.allocator);
+
+    // const subst = try solver(&constraints, &pump, &errors, state.allocator);
+    // defer subst.deinit(state.allocator);
 }
