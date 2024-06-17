@@ -61,6 +61,7 @@ The following *definition of done* is used to determine when a feature is comple
 - [X] Integrate into main so that the value can be viewed.
 - [ ] Implement +, -, *, /, %, **
 - [ ] Implement ==, !=, <, <=, >, >=
+- [ ] Verify that the 63-bit signed is correct in when reporting literal underflow and overflow
 
 ## Float
 
@@ -95,6 +96,19 @@ The following *definition of done* is used to determine when a feature is comple
 
 - [ ] Report an error when attempt is made to reference or assign to an unknown field
 - [ ] Incorporate mutable fields
+
+# Operators
+
+- [ ] (+): [a: Int | Float | Char] a -> a -> a
+- [ ] (-): [a: Int | Float | Char] a -> a -> a
+- [ ] (*): [a: Int | Float | Char] a -> a -> a
+- [ ] (/): [a: Int | Float | Char] a -> a -> a
+- [ ] (==): [a] a -> a -> Bool
+- [ ] (!=): [a] a -> a -> Bool
+- [ ] (<): [a: Int | Float | Char | String] a -> a -> a
+- [ ] (<=): [a: Int | Float | Char | String] a -> a -> a
+- [ ] (>): [a: Int | Float | Char | String] a -> a -> a
+- [ ] (>=): [a: Int | Float | Char | String] a -> a -> a
 
 # Typing
 
