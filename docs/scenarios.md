@@ -79,9 +79,6 @@ An integer value is a whole number.  It is written as `n` where `n` is any whole
 
 > -123
 -123: Int
-
-> 10 + 12
-22: Int
 ```
 
 Int literals are typed as follows:
