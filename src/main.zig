@@ -141,6 +141,7 @@ fn printValue(v: Pointer.Pointer, typ: *Typing.Type) !void {
         .Variable => {
             try stdout.print("Variable", .{});
         },
+        else => unreachable,
     }
 }
 

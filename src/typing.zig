@@ -2,15 +2,27 @@ const std = @import("std");
 
 const SP = @import("string_pool.zig");
 
+pub const SchemeBinding = struct {
+    name: *SP.String,
+    type: ?*Type,
+
+    pub fn deinit(self: SchemeBinding, allocator: std.mem.Allocator) void {
+        self.name.decRef();
+        if (self.type) |typ| {
+            typ.decRef(allocator);
+        }
+    }
+};
+
 pub const Scheme = struct {
-    names: []const *SP.String,
+    names: []const SchemeBinding,
     type: *Type,
 
     pub fn deinit(self: Scheme, allocator: std.mem.Allocator) void {
-        self.type.decRef(allocator);
         for (self.names) |name| {
-            name.decRef();
+            name.deinit(allocator);
         }
+        self.type.decRef(allocator);
     }
 };
 
@@ -32,9 +44,11 @@ pub const Type = struct {
         }
         if (self.count == 1) {
             switch (self.kind) {
-                TypeKind.Function => self.kind.Function.deinit(allocator),
-                TypeKind.Tag => self.kind.Tag.deinit(),
-                TypeKind.Variable => self.kind.Variable.deinit(),
+                .Function => self.kind.Function.deinit(allocator),
+                .OrEmpty => self.kind.OrEmpty.deinit(),
+                .OrExtend => self.kind.OrExtend.deinit(allocator),
+                .Tag => self.kind.Tag.deinit(),
+                .Variable => self.kind.Variable.deinit(),
             }
             allocator.destroy(self);
         } else {
@@ -66,15 +80,19 @@ pub const Type = struct {
 
     pub fn append(self: *Type, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
         switch (self.kind) {
-            TypeKind.Function => try self.kind.Function.append(buffer),
-            TypeKind.Tag => try self.kind.Tag.append(buffer),
-            TypeKind.Variable => try self.kind.Variable.append(buffer),
+            .Function => try self.kind.Function.append(buffer),
+            .OrEmpty => try self.kind.OrEmpty.append(buffer),
+            .OrExtend => try self.kind.OrExtend.append(buffer),
+            .Tag => try self.kind.Tag.append(buffer),
+            .Variable => try self.kind.Variable.append(buffer),
         }
     }
 };
 
 pub const TypeKind = union(enum) {
     Function: FunctionType,
+    OrEmpty: OrEmptyType,
+    OrExtend: OrExtendType,
     Tag: TagType,
     Variable: VariableType,
 };
@@ -97,6 +115,40 @@ pub const FunctionType = struct {
             try buffer.append(')');
         } else {
             try self.range.append(buffer);
+        }
+    }
+};
+
+pub const OrEmptyType = struct {
+    pub fn deinit(self: *OrEmptyType) void {
+        _ = self;
+    }
+
+    pub fn append(self: *OrEmptyType, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
+        _ = self;
+        _ = buffer;
+
+        unreachable;
+    }
+};
+
+pub const OrExtendType = struct {
+    component: *Type,
+    rest: *Type,
+
+    pub fn deinit(self: *OrExtendType, allocator: std.mem.Allocator) void {
+        self.component.decRef(allocator);
+        self.rest.decRef(allocator);
+    }
+
+    pub fn append(self: *OrExtendType, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
+        try self.component.append(buffer);
+
+        if (self.rest.kind == TypeKind.OrExtend) {
+            try buffer.appendSlice(" | ");
+            try self.rest.append(buffer);
+        } else if (self.rest.kind != TypeKind.OrEmpty) {
+            unreachable;
         }
     }
 };

@@ -33,13 +33,13 @@ const Env = struct {
         const stringType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("String") } });
         const unitType = try Typing.Type.create(sp.allocator, Typing.TypeKind{ .Tag = Typing.TagType{ .name = try sp.intern("Unit") } });
 
-        try schemes.put(try sp.intern("Bool"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = boolType.incRefR() });
-        try schemes.put(try sp.intern("Char"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = charType.incRefR() });
-        try schemes.put(try sp.intern("*Error*"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = errorType.incRefR() });
-        try schemes.put(try sp.intern("Int"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = intType.incRefR() });
-        try schemes.put(try sp.intern("Float"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = floatType.incRefR() });
-        try schemes.put(try sp.intern("String"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = stringType.incRefR() });
-        try schemes.put(try sp.intern("Unit"), Typing.Scheme{ .names = &[_]*SP.String{}, .type = unitType.incRefR() });
+        try schemes.put(try sp.intern("Bool"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = boolType.incRefR() });
+        try schemes.put(try sp.intern("Char"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = charType.incRefR() });
+        try schemes.put(try sp.intern("*Error*"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = errorType.incRefR() });
+        try schemes.put(try sp.intern("Int"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = intType.incRefR() });
+        try schemes.put(try sp.intern("Float"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = floatType.incRefR() });
+        try schemes.put(try sp.intern("String"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = stringType.incRefR() });
+        try schemes.put(try sp.intern("Unit"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = unitType.incRefR() });
 
         return Env{
             .boolType = boolType,
@@ -202,7 +202,7 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             if (env.findNameInScope(ast.kind.idDeclaration.name)) |_| {
                 try env.appendError(try Errors.duplicateDeclarationError(env.sp.allocator, ast.locationRange, ast.kind.idDeclaration.name.slice()));
             } else {
-                try env.newName(ast.kind.idDeclaration.name, Typing.Scheme{ .names = &[_]*SP.String{}, .type = t.incRefR() });
+                try env.newName(ast.kind.idDeclaration.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = t.incRefR() });
             }
 
             return t;
