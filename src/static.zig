@@ -444,19 +444,19 @@ const TestState = struct {
     }
 };
 
-// test "Let's go" {
-//     var state = TestState.init();
-//     defer state.deinit();
+test "Let's go" {
+    var state = TestState.init();
+    defer state.deinit();
 
-//     var result = try state.parseAnalyse("!True");
-//     defer switch (result) {
-//         .Ok => {
-//             for (result.Ok.errors) |*err| {
-//                 err.deinit();
-//             }
-//             state.allocator.free(result.Ok.errors);
-//             result.Ok.type.decRef(state.allocator);
-//         },
-//         .Err => result.Err.deinit(),
-//     };
-// }
+    var result = try state.parseAnalyse("!True");
+    defer switch (result) {
+        .Ok => {
+            for (result.Ok.errors) |*err| {
+                err.deinit();
+            }
+            state.allocator.free(result.Ok.errors);
+            result.Ok.type.decRef(state.allocator);
+        },
+        .Err => result.Err.deinit(),
+    };
+}
