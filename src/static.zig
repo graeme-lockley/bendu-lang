@@ -320,29 +320,23 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             }
         },
         .notOp => {
+            const result = try env.pump.newBound(env.allocator);
+            defer result.decRef(env.allocator);
+
+            const n = try env.sp.intern("!");
+            defer n.decRef();
+
+            const ss = try env.schemes.get(n).?.instantiate(&env.pump, env.allocator);
+            defer ss.decRef(env.allocator);
+
             const t = try expression(ast.kind.notOp.value, env);
-            try env.addConstraint(env.boolType, t, ast.kind.notOp.value.locationRange);
+            const signature = try Typing.FunctionType.new(env.allocator, t.incRefR(), result.incRefR());
+            defer signature.decRef(env.allocator);
 
-            ast.type = env.boolType.incRefR();
-            return env.boolType;
+            try env.addConstraint(ss, signature, ast.kind.notOp.value.locationRange);
 
-            // const result = try env.pump.newBound(env.allocator);
-            // defer result.decRef(env.allocator);
-
-            // const n = try env.sp.intern("!");
-            // defer n.decRef();
-
-            // const ss = try env.schemes.get(n).?.instantiate(&env.pump, env.allocator);
-            // defer ss.decRef(env.allocator);
-
-            // const t = try expression(ast.kind.notOp.value, env);
-            // const signature = try Typing.FunctionType.new(env.allocator, t, result);
-            // defer signature.decRef(env.allocator);
-
-            // try env.addConstraint(ss, signature, ast.kind.notOp.value.locationRange);
-
-            // ast.type = result.incRefR();
-            // return result;
+            ast.type = result.incRefR();
+            return result;
         },
         .patternDeclaration => {
             _ = try pattern(ast.kind.patternDeclaration.pattern, env);
@@ -384,26 +378,29 @@ fn pattern(ast: *AST.Pattern, env: *Env) !*Typing.Type {
 const TestState = struct {
     allocator: std.mem.Allocator,
     sp: SP.StringPool,
+    errors: Errors.Errors,
 
-    fn init(allocator: std.mem.Allocator) TestState {
+    fn init(allocator: std.mem.Allocator) !TestState {
         return TestState{
             .allocator = allocator,
             .sp = SP.StringPool.init(allocator),
+            .errors = try Errors.Errors.init(allocator),
         };
     }
 
     fn deinit(self: *TestState) void {
+        self.errors.deinit();
         self.sp.deinit();
     }
 
     const Parser = @import("parser.zig");
 
-    fn parseAnalyse(self: *TestState, source: []const u8, errors: *Errors.Errors) !?*Typing.Type {
-        const ast = try Parser.parse(&self.sp, "script.bendu", source, errors);
+    fn parseAnalyse(self: *TestState, source: []const u8) !?*Typing.Type {
+        const ast = try Parser.parse(&self.sp, "script.bendu", source, &self.errors);
 
         if (ast) |a| {
             defer a.decRef(self.allocator);
-            return analysis(a, &self.sp, errors);
+            return analysis(a, &self.sp, &self.errors);
         } else {
             return null;
         }
@@ -416,15 +413,13 @@ test "!True" {
 
     const allocator = gpa.allocator();
 
-    var state = TestState.init(allocator);
+    var state = try TestState.init(allocator);
     defer state.deinit();
 
-    var errors = try Errors.Errors.init(state.allocator);
-    defer errors.deinit();
-
-    var result = try state.parseAnalyse("!True", &errors);
+    var result = try state.parseAnalyse("!True");
     defer result.?.decRef(state.allocator);
 
+    try std.testing.expect(!state.errors.hasErrors());
     try std.testing.expect(result != null);
 }
 
@@ -434,15 +429,12 @@ test "!23" {
 
     const allocator = gpa.allocator();
 
-    var state = TestState.init(allocator);
+    var state = try TestState.init(allocator);
     defer state.deinit();
 
-    var errors = try Errors.Errors.init(state.allocator);
-    defer errors.deinit();
-
-    var result = try state.parseAnalyse("!23", &errors);
+    var result = try state.parseAnalyse("!23");
     defer result.?.decRef(state.allocator);
 
-    try std.testing.expect(errors.hasErrors());
+    try std.testing.expect(state.errors.hasErrors());
     try std.testing.expect(result != null);
 }
