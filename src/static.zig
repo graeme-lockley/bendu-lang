@@ -16,7 +16,7 @@ const Env = struct {
 
     allocator: std.mem.Allocator,
     constraints: Typing.Constraints,
-    errors: *std.ArrayList(Errors.Error),
+    errors: *Errors.Errors,
     names: std.ArrayList(std.AutoHashMap(*SP.String, Typing.Scheme)),
     pump: Typing.Pump,
     schemes: std.AutoHashMap(*SP.String, Typing.Scheme),
@@ -381,15 +381,11 @@ fn pattern(ast: *AST.Pattern, env: *Env) !*Typing.Type {
     return env.errorType;
 }
 
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-
 const TestState = struct {
     allocator: std.mem.Allocator,
     sp: SP.StringPool,
 
-    fn init() TestState {
-        const allocator = gpa.allocator();
-
+    fn init(allocator: std.mem.Allocator) TestState {
         return TestState{
             .allocator = allocator,
             .sp = SP.StringPool.init(allocator),
@@ -398,12 +394,6 @@ const TestState = struct {
 
     fn deinit(self: *TestState) void {
         self.sp.deinit();
-
-        const err = gpa.deinit();
-        if (err == std.heap.Check.leak) {
-            std.io.getStdErr().writeAll("Failed to deinit allocator\n") catch {};
-            std.process.exit(1);
-        }
     }
 
     const Parser = @import("parser.zig");
@@ -421,14 +411,38 @@ const TestState = struct {
 };
 
 test "!True" {
-    var state = TestState.init();
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+
+    const allocator = gpa.allocator();
+
+    var state = TestState.init(allocator);
     defer state.deinit();
 
-    var errors = std.ArrayList(Errors.Error).init(state.allocator);
+    var errors = try Errors.Errors.init(state.allocator);
     defer errors.deinit();
 
     var result = try state.parseAnalyse("!True", &errors);
     defer result.?.decRef(state.allocator);
 
+    try std.testing.expect(result != null);
+}
+
+test "!23" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+
+    const allocator = gpa.allocator();
+
+    var state = TestState.init(allocator);
+    defer state.deinit();
+
+    var errors = try Errors.Errors.init(state.allocator);
+    defer errors.deinit();
+
+    var result = try state.parseAnalyse("!23", &errors);
+    defer result.?.decRef(state.allocator);
+
+    try std.testing.expect(errors.hasErrors());
     try std.testing.expect(result != null);
 }

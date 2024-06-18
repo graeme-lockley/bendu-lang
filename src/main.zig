@@ -43,7 +43,7 @@ pub fn main() !void {
         return;
     }
 
-    var errors = std.ArrayList(Errors.Error).init(allocator);
+    var errors = try Errors.Errors.init(allocator);
 
     const parseResult = try Parser.parse(&sp, "script.bendu", script, &errors);
 
@@ -52,7 +52,7 @@ pub fn main() !void {
         const typ = try Static.analysis(ast, &sp, &errors);
         defer typ.decRef(allocator);
 
-        if (errors.items.len == 0) {
+        if (!errors.hasErrors()) {
             const typeString = try typ.toString(allocator);
             defer allocator.free(typeString);
 
@@ -78,8 +78,8 @@ pub fn main() !void {
         }
     }
 
-    if (errors.items.len != 0) {
-        for (errors.items) |*err| {
+    if (errors.hasErrors()) {
+        for (errors.items.items) |*err| {
             const msg = try err.toString(allocator);
             defer allocator.free(msg);
 

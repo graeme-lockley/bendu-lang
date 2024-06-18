@@ -499,7 +499,7 @@ test "Bound Substitution" {
     );
 
     var pump = Pump.init();
-    var errors = Errors.Errors.init(state.allocator);
+    var errors = try Errors.Errors.init(state.allocator);
     defer errors.deinit();
 
     var subst = try solver(&constraints, &pump, &errors, state.allocator);

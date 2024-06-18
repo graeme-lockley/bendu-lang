@@ -121,7 +121,28 @@ pub const Error = struct {
     }
 };
 
-pub const Errors = std.ArrayList(Error);
+pub const Errors = struct {
+    items: std.ArrayList(Error),
+
+    pub fn init(allocator: std.mem.Allocator) !Errors {
+        return Errors{ .items = std.ArrayList(Error).init(allocator) };
+    }
+
+    pub fn deinit(self: Errors) void {
+        for (self.items.items) |*item| {
+            item.deinit();
+        }
+        self.items.deinit();
+    }
+
+    pub fn append(self: *Errors, err: Error) !void {
+        try self.items.append(err);
+    }
+
+    pub fn hasErrors(self: *Errors) bool {
+        return self.items.items.len > 0;
+    }
+};
 
 pub const ErrorKind = enum {
     DuplicateDeclarationKind,
