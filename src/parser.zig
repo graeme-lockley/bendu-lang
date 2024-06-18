@@ -5,13 +5,6 @@ const Errors = @import("errors.zig");
 const Lexer = @import("lexer.zig");
 const SP = @import("lib/string_pool.zig");
 
-pub fn Result(T: type, E: type) type {
-    return union(enum) {
-        Ok: T,
-        Err: E,
-    };
-}
-
 pub fn parse(sp: *SP.StringPool, name: []const u8, buffer: []const u8, errors: *Errors.Errors) !?*AST.Expression {
     var l = Lexer.Lexer.init(sp.allocator);
 
