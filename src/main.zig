@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const AST = @import("ast.zig");
+const Errors = @import("errors.zig");
 const Parser = @import("parser.zig");
 const Memory = @import("./runtime/memory.zig");
 const Pointer = @import("./runtime/pointer.zig");
@@ -42,36 +43,26 @@ pub fn main() !void {
         return;
     }
 
-    var parseResult = try Parser.parse(&sp, "script.bendu", script);
-    defer switch (parseResult) {
-        .Ok => parseResult.Ok.decRef(allocator),
-        .Err => parseResult.Err.deinit(),
-    };
+    var errors = std.ArrayList(Errors.Error).init(allocator);
 
-    switch (parseResult) {
-        .Ok => {
-            const analysisResult = try Static.analysis(parseResult.Ok, &sp);
-            defer analysisResult.deinit(allocator);
+    const parseResult = try Parser.parse(&sp, "script.bendu", script, &errors);
 
-            if (analysisResult.errors.len > 0) {
-                for (analysisResult.errors) |*err| {
-                    const msg = try err.toString(allocator);
-                    defer allocator.free(msg);
+    if (parseResult) |ast| {
+        defer ast.decRef(allocator);
+        const typ = try Static.analysis(ast, &sp, &errors);
+        defer typ.decRef(allocator);
 
-                    try stdout.print("Error: {s}\n", .{msg});
-                }
-                std.process.exit(1);
-            }
-            const typeString = try analysisResult.type.toString(allocator);
+        if (errors.items.len == 0) {
+            const typeString = try typ.toString(allocator);
             defer allocator.free(typeString);
 
             var runtime = Runtime.Runtime.init(&sp);
             defer runtime.deinit();
 
             if (std.mem.eql(u8, action, "--ast")) {
-                try @import("./ast/interpreter.zig").eval(parseResult.Ok, &runtime);
+                try @import("./ast/interpreter.zig").eval(ast, &runtime);
             } else if (std.mem.eql(u8, action, "--bc")) {
-                try @import("./bc/interpreter.zig").eval(parseResult.Ok, &runtime);
+                try @import("./bc/interpreter.zig").eval(ast, &runtime);
                 // try stdout.print("{d}: {s}", .{ v, typeString });
                 // } else if (std.mem.eql(u8, args[1], "--wasm")) {
                 //     try stdout.print("WASM\n", .{});
@@ -82,15 +73,19 @@ pub fn main() !void {
                 try stdout.print("Invalid argument: {s}\n", .{action});
                 std.process.exit(1);
             }
-            try printValue(runtime.peek().?, analysisResult.type);
+            try printValue(runtime.peek().?, typ);
             try stdout.print(": {s}", .{typeString});
-        },
-        .Err => {
-            const msg = try parseResult.Err.toString(allocator);
+        }
+    }
+
+    if (errors.items.len != 0) {
+        for (errors.items) |*err| {
+            const msg = try err.toString(allocator);
             defer allocator.free(msg);
+
             try stdout.print("Error: {s}\n", .{msg});
-            std.process.exit(1);
-        },
+        }
+        std.process.exit(1);
     }
 }
 

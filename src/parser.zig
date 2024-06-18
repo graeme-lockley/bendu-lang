@@ -12,20 +12,22 @@ pub fn Result(T: type, E: type) type {
     };
 }
 
-pub fn parse(sp: *SP.StringPool, name: []const u8, buffer: []const u8) !Result(*AST.Expression, Errors.Error) {
+pub fn parse(sp: *SP.StringPool, name: []const u8, buffer: []const u8, errors: *Errors.Errors) !?*AST.Expression {
     var l = Lexer.Lexer.init(sp.allocator);
 
     l.initBuffer(name, buffer) catch {
-        return Result(*AST.Expression, Errors.Error){ .Err = l.grabErr().? };
+        try errors.append(l.grabErr().?);
+        return null;
     };
 
     var p = Parser.init(sp, l);
 
     const e = p.module() catch {
-        return Result(*AST.Expression, Errors.Error){ .Err = p.grabErr().? };
+        try errors.append(p.grabErr().?);
+        return null;
     };
 
-    return Result(*AST.Expression, Errors.Error){ .Ok = e };
+    return e;
 }
 
 pub const Parser = struct {

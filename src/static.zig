@@ -16,13 +16,13 @@ const Env = struct {
 
     allocator: std.mem.Allocator,
     constraints: Typing.Constraints,
-    errors: std.ArrayList(Errors.Error),
+    errors: *std.ArrayList(Errors.Error),
     names: std.ArrayList(std.AutoHashMap(*SP.String, Typing.Scheme)),
     pump: Typing.Pump,
     schemes: std.AutoHashMap(*SP.String, Typing.Scheme),
     sp: *SP.StringPool,
 
-    pub fn init(sp: *SP.StringPool) !Env {
+    pub fn init(sp: *SP.StringPool, errors: *Errors.Errors) !Env {
         const allocator = sp.allocator;
 
         var names = std.ArrayList(std.AutoHashMap(*SP.String, Typing.Scheme)).init(allocator);
@@ -77,7 +77,7 @@ const Env = struct {
 
             .allocator = allocator,
             .constraints = Typing.Constraints.init(allocator),
-            .errors = std.ArrayList(Errors.Error).init(allocator),
+            .errors = errors,
             .names = names,
             .pump = Typing.Pump.init(),
             .schemes = schemes,
@@ -174,31 +174,18 @@ const Env = struct {
     }
 };
 
-pub const AnalysisResult = struct {
-    errors: []Errors.Error,
-    type: *Typing.Type,
-
-    pub fn deinit(self: AnalysisResult, allocator: std.mem.Allocator) void {
-        for (self.errors) |*err| {
-            err.deinit();
-        }
-        allocator.free(self.errors);
-        self.type.decRef(allocator);
-    }
-};
-
-pub fn analysis(ast: *AST.Expression, sp: *SP.StringPool) !AnalysisResult {
+pub fn analysis(ast: *AST.Expression, sp: *SP.StringPool, errors: *Errors.Errors) !*Typing.Type {
     const allocator = sp.allocator;
 
-    var env = try Env.init(sp);
+    var env = try Env.init(sp, errors);
     defer env.deinit(allocator);
 
     const typ = try expression(ast, &env);
 
-    var subst = try Typing.solver(&env.constraints, &env.pump, &env.errors, allocator);
+    var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, allocator);
     defer subst.deinit(allocator);
 
-    return AnalysisResult{ .errors = try env.errors.toOwnedSlice(), .type = try typ.apply(&subst) };
+    return try typ.apply(&subst);
 }
 
 fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
@@ -396,16 +383,11 @@ fn pattern(ast: *AST.Pattern, env: *Env) !*Typing.Type {
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 
-const TestAnalysisResult = union(enum) {
-    Ok: AnalysisResult,
-    Err: Errors.Error,
-};
-
 const TestState = struct {
     allocator: std.mem.Allocator,
     sp: SP.StringPool,
 
-    pub fn init() TestState {
+    fn init() TestState {
         const allocator = gpa.allocator();
 
         return TestState{
@@ -414,7 +396,7 @@ const TestState = struct {
         };
     }
 
-    pub fn deinit(self: *TestState) void {
+    fn deinit(self: *TestState) void {
         self.sp.deinit();
 
         const err = gpa.deinit();
@@ -426,37 +408,27 @@ const TestState = struct {
 
     const Parser = @import("parser.zig");
 
-    pub fn parse(self: *TestState, source: []const u8) !Parser.Result(*AST.Expression, Errors.Error) {
-        return try Parser.parse(&self.sp, "script.bendu", source);
-    }
+    fn parseAnalyse(self: *TestState, source: []const u8, errors: *Errors.Errors) !?*Typing.Type {
+        const ast = try Parser.parse(&self.sp, "script.bendu", source, errors);
 
-    pub fn parseAnalyse(self: *TestState, source: []const u8) !TestAnalysisResult {
-        var parseResult = try self.parse(source);
-        defer switch (parseResult) {
-            .Ok => parseResult.Ok.decRef(self.allocator),
-            .Err => {},
-        };
-
-        return switch (parseResult) {
-            .Err => TestAnalysisResult{ .Err = parseResult.Err },
-            .Ok => TestAnalysisResult{ .Ok = try analysis(parseResult.Ok, &self.sp) },
-        };
+        if (ast) |a| {
+            defer a.decRef(self.allocator);
+            return analysis(a, &self.sp, errors);
+        } else {
+            return null;
+        }
     }
 };
 
-test "Let's go" {
+test "!True" {
     var state = TestState.init();
     defer state.deinit();
 
-    var result = try state.parseAnalyse("!True");
-    defer switch (result) {
-        .Ok => {
-            for (result.Ok.errors) |*err| {
-                err.deinit();
-            }
-            state.allocator.free(result.Ok.errors);
-            result.Ok.type.decRef(state.allocator);
-        },
-        .Err => result.Err.deinit(),
-    };
+    var errors = std.ArrayList(Errors.Error).init(state.allocator);
+    defer errors.deinit();
+
+    var result = try state.parseAnalyse("!True", &errors);
+    defer result.?.decRef(state.allocator);
+
+    try std.testing.expect(result != null);
 }
