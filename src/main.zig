@@ -152,4 +152,5 @@ test "All tests" {
     _ = @import("runtime/pointer.zig");
     _ = @import("static.zig");
     _ = @import("typing.zig");
+    _ = @import("typing/subst.zig");
 }

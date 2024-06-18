@@ -3,6 +3,9 @@ const std = @import("std");
 const Errors = @import("errors.zig");
 const SP = @import("lib/string_pool.zig");
 
+pub const Pump = @import("typing/pump.zig").Pump;
+pub const Subst = @import("typing/subst.zig").Subst;
+
 pub const SchemeBinding = struct {
     name: *SP.String,
     type: ?*Type,
@@ -344,73 +347,6 @@ pub const Constraints = struct {
     }
 };
 
-pub const Pump = struct {
-    count: u64,
-
-    pub fn init() Pump {
-        return Pump{
-            .count = 0,
-        };
-    }
-
-    pub fn pump(self: *Pump) u64 {
-        const result = self.count;
-        self.count += 1;
-
-        return result;
-    }
-
-    pub fn newBound(self: *Pump, allocator: std.mem.Allocator) !*Type {
-        return try BoundType.new(allocator, self.pump());
-    }
-};
-
-pub const Subst = struct {
-    items: std.AutoHashMap(u64, *Type),
-
-    pub fn init(allocator: std.mem.Allocator) Subst {
-        return Subst{
-            .items = std.AutoHashMap(u64, *Type).init(allocator),
-        };
-    }
-
-    pub fn deinit(self: Subst, allocator: std.mem.Allocator) void {
-        var iterator = self.items.iterator();
-        while (iterator.next()) |item| {
-            item.value_ptr.*.decRef(allocator);
-        }
-    }
-
-    pub fn clone(self: Subst) !Subst {
-        const result = Subst.init(self.items.allocator);
-
-        var iterator = self.items.iterator();
-
-        while (iterator.next()) |item| {
-            try result.items.put(item.key_ptr.?, item.value_ptr.?.incRefR());
-        }
-
-        return result;
-    }
-
-    pub fn get(self: *Subst, key: u64) ?*Type {
-        return self.items.get(key);
-    }
-
-    pub fn put(self: *Subst, key: u64, value: *Type) !void {
-        if (self.items.get(key)) |v| {
-            v.decRef(self.items.allocator);
-        }
-
-        try self.items.put(key, value.incRefR());
-    }
-
-    pub fn compose(self: *Subst, other: *Subst) !void {
-        _ = self;
-        _ = other;
-    }
-};
-
 fn unify(t1: *Type, t2: *Type, locationRange: Errors.LocationRange, errors: *Errors.Errors, allocator: std.mem.Allocator) std.mem.Allocator.Error!Subst {
     // std.debug.print("unify: ", .{});
     // try t1.print(allocator);
@@ -421,12 +357,12 @@ fn unify(t1: *Type, t2: *Type, locationRange: Errors.LocationRange, errors: *Err
     if (t1 == t2) return Subst.init(allocator);
     if (t1.kind == .Bound) {
         var s = Subst.init(allocator);
-        try s.put(t1.kind.Bound.value, t2.incRefR());
+        try s.put(t1.kind.Bound.value, t2);
         return s;
     }
     if (t2.kind == .Bound) {
         var s = Subst.init(allocator);
-        try s.put(t2.kind.Bound.value, t1.incRefR());
+        try s.put(t2.kind.Bound.value, t1);
         return s;
     }
     if (t1.kind == .Function and t2.kind == .Function) {
@@ -529,38 +465,50 @@ const TestState = struct {
     }
 };
 
-test "Let's go" {
-    // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    // defer {
-    //     const err = gpa.deinit();
-    //     if (err == std.heap.Check.leak) {
-    //         std.io.getStdErr().writeAll("Failed to deinit allocator\n") catch {};
-    //         std.process.exit(1);
-    //     }
-    // }
+const expectEqual = std.testing.expectEqual;
+const expectEqualStrings = std.testing.expectEqualStrings;
 
-    // var state = TestState.init(gpa.allocator());
-    // defer state.deinit();
+test "Bound Substitution" {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer {
+        const err = gpa.deinit();
+        if (err == std.heap.Check.leak) {
+            std.io.getStdErr().writeAll("Failed to deinit allocator\n") catch {};
+            std.process.exit(1);
+        }
+    }
 
-    // var constraints = Constraints.init(state.allocator);
-    // defer constraints.deinit(state.allocator);
+    var state = TestState.init(gpa.allocator());
+    defer state.deinit();
 
-    // const boolType = try TagType.new(state.allocator, try state.sp.intern("Bool"));
-    // defer boolType.decRef(state.allocator);
-    // const boundType = try BoundType.new(state.allocator, 1);
-    // defer boundType.decRef(state.allocator);
+    var constraints = Constraints.init(state.allocator);
+    defer constraints.deinit(state.allocator);
 
-    // try constraints.add(
-    //     boolType,
-    //     boundType,
-    //     Errors.LocationRange{
-    //         .from = Errors.Location{ .offset = 0, .line = 0, .column = 0 },
-    //         .to = Errors.Location{ .offset = 0, .line = 0, .column = 0 },
-    //     },
-    // );
-    // var pump = Pump.init();
-    // var errors = Errors.Errors.init(state.allocator);
+    const boolType = try TagType.new(state.allocator, try state.sp.intern("Bool"));
+    defer boolType.decRef(state.allocator);
+    const boundType = try BoundType.new(state.allocator, 1);
+    defer boundType.decRef(state.allocator);
 
-    // const subst = try solver(&constraints, &pump, &errors, state.allocator);
-    // defer subst.deinit(state.allocator);
+    try constraints.add(
+        boolType,
+        boundType,
+        Errors.LocationRange{
+            .from = Errors.Location{ .offset = 0, .line = 0, .column = 0 },
+            .to = Errors.Location{ .offset = 0, .line = 0, .column = 0 },
+        },
+    );
+
+    var pump = Pump.init();
+    var errors = Errors.Errors.init(state.allocator);
+    defer errors.deinit();
+
+    var subst = try solver(&constraints, &pump, &errors, state.allocator);
+    defer subst.deinit(state.allocator);
+
+    var t = try boundType.apply(&subst);
+    defer t.decRef(state.allocator);
+
+    try expectEqual(subst.items.count(), 1);
+    try expectEqual(subst.items.contains(1), true);
+    try expectEqualStrings("Bool", t.kind.Tag.name.slice());
 }
