@@ -47,14 +47,17 @@ const Env = struct {
         try schemes.put(unitType.kind.Tag.name.incRefR(), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = unitType.incRefR() });
 
         {
-            const aType = try Typing.VariableType.new(allocator, try sp.intern("a"));
+            const name = try sp.intern("a");
+            defer name.decRef();
+
+            const aType = try Typing.VariableType.new(allocator, name.incRefR());
             defer aType.decRef(allocator);
 
             const fType = try Typing.FunctionType.new(allocator, aType.incRefR(), try Typing.FunctionType.new(allocator, aType.incRefR(), aType.incRefR()));
             errdefer fType.decRef(allocator);
 
             var nms = try allocator.alloc(Typing.SchemeBinding, 1);
-            nms[0].name = try sp.intern("a");
+            nms[0].name = name.incRefR();
             nms[0].type = try Typing.OrExtendType.new(allocator, intType.incRefR(), try Typing.OrExtendType.new(allocator, floatType.incRefR(), try Typing.OrExtendType.new(allocator, charType.incRefR(), try Typing.OrEmptyType.new(allocator))));
             errdefer {
                 nms[0].deinit(allocator);
@@ -180,12 +183,14 @@ pub fn analysis(ast: *AST.Expression, sp: *SP.StringPool, errors: *Errors.Errors
     var env = try Env.init(sp, errors);
     defer env.deinit(allocator);
 
-    const typ = try expression(ast, &env);
+    _ = try expression(ast, &env);
 
     var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, allocator);
     defer subst.deinit(allocator);
 
-    return try typ.apply(&subst);
+    try applyExpression(ast, &subst, allocator);
+
+    return (ast.type orelse env.errorType).incRefR();
 }
 
 fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
@@ -195,8 +200,30 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             _ = try expression(ast.kind.assignment.rhs, env);
         },
         .binaryOp => {
-            _ = try expression(ast.kind.binaryOp.lhs, env);
-            _ = try expression(ast.kind.binaryOp.rhs, env);
+            const result = try env.pump.newBound(env.allocator);
+            defer result.decRef(env.allocator);
+
+            const n = try env.sp.intern(ast.kind.binaryOp.op.toString());
+            defer n.decRef();
+
+            const lhs = try expression(ast.kind.binaryOp.lhs, env);
+            const rhs = try expression(ast.kind.binaryOp.rhs, env);
+
+            const scheme = env.schemes.get(n);
+            if (scheme) |s| {
+                const ss = try s.instantiate(&env.pump, env.allocator);
+                defer ss.decRef(env.allocator);
+
+                const signature = try Typing.FunctionType.new(env.allocator, lhs.incRefR(), try Typing.FunctionType.new(env.allocator, rhs.incRefR(), result.incRefR()));
+                defer signature.decRef(env.allocator);
+
+                try env.addConstraint(ss, signature, ast.locationRange);
+
+                ast.assignType(result.incRefR(), env.allocator);
+            } else {
+                try env.appendError(try Errors.undefinedOperatorError(env.sp.allocator, ast.locationRange, ast.kind.binaryOp.op.toString()));
+                ast.assignType(env.errorType.incRefR(), env.allocator);
+            }
         },
         .call => {
             _ = try expression(ast.kind.call.callee, env);
@@ -221,7 +248,7 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
                 last = try expression(expr, env);
             }
 
-            return last;
+            ast.assignType(last.incRefR(), env.allocator);
         },
         .idDeclaration => {
             const t = try expression(ast.kind.idDeclaration.value, env);
@@ -232,12 +259,11 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
                 try env.newName(ast.kind.idDeclaration.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = t.incRefR() });
             }
 
-            return t;
+            ast.assignType(t.incRefR(), env.allocator);
         },
         .identifier => {
             if (env.findName(ast.kind.identifier)) |scheme| {
-                ast.type = scheme.type.incRefR();
-                return scheme.type;
+                ast.assignType(scheme.type.incRefR(), env.allocator);
             } else {
                 try env.appendError(try Errors.undefinedNameError(env.sp.allocator, ast.locationRange, ast.kind.identifier.slice()));
             }
@@ -264,18 +290,9 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             _ = try expression(ast.kind.indexValue.expr, env);
             _ = try expression(ast.kind.indexValue.index, env);
         },
-        .literalBool => {
-            ast.type = env.boolType.incRefR();
-            return env.boolType;
-        },
-        .literalChar => {
-            ast.type = env.charType.incRefR();
-            return env.charType;
-        },
-        .literalFloat => {
-            ast.type = env.floatType.incRefR();
-            return env.floatType;
-        },
+        .literalBool => ast.assignType(env.boolType.incRefR(), env.allocator),
+        .literalChar => ast.assignType(env.charType.incRefR(), env.allocator),
+        .literalFloat => ast.assignType(env.floatType.incRefR(), env.allocator),
         .literalFunction => {
             for (ast.kind.literalFunction.params) |param| {
                 if (param.default) |d| {
@@ -284,10 +301,7 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             }
             _ = try expression(ast.kind.literalFunction.body, env);
         },
-        .literalInt => {
-            ast.type = env.intType.incRefR();
-            return env.intType;
-        },
+        .literalInt => ast.assignType(env.intType.incRefR(), env.allocator),
         .literalRecord => {
             for (ast.kind.literalRecord) |field| {
                 switch (field) {
@@ -304,14 +318,8 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
                 }
             }
         },
-        .literalString => {
-            ast.type = env.stringType.incRefR();
-            return env.stringType;
-        },
-        .literalVoid => {
-            ast.type = env.unitType.incRefR();
-            return env.unitType;
-        },
+        .literalString => ast.assignType(env.stringType.incRefR(), env.allocator),
+        .literalVoid => ast.assignType(env.unitType.incRefR(), env.allocator),
         .match => {
             _ = try expression(ast.kind.match.value, env);
             for (ast.kind.match.cases) |case| {
@@ -335,8 +343,7 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
 
             try env.addConstraint(ss, signature, ast.kind.notOp.value.locationRange);
 
-            ast.type = result.incRefR();
-            return result;
+            ast.assignType(result.incRefR(), env.allocator);
         },
         .patternDeclaration => {
             _ = try pattern(ast.kind.patternDeclaration.pattern, env);
@@ -352,7 +359,7 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
         // else => {},
     }
 
-    return env.errorType;
+    return ast.type orelse env.errorType;
 }
 
 fn pattern(ast: *AST.Pattern, env: *Env) !*Typing.Type {
@@ -375,13 +382,138 @@ fn pattern(ast: *AST.Pattern, env: *Env) !*Typing.Type {
     return env.errorType;
 }
 
+fn applyExpression(ast: *AST.Expression, subst: *Typing.Subst, allocator: std.mem.Allocator) !void {
+    if (ast.type) |t| {
+        ast.assignType(try t.apply(subst), allocator);
+    }
+
+    switch (ast.kind) {
+        .assignment => {
+            try applyExpression(ast.kind.assignment.lhs, subst, allocator);
+            try applyExpression(ast.kind.assignment.rhs, subst, allocator);
+        },
+        .binaryOp => {
+            try applyExpression(ast.kind.binaryOp.lhs, subst, allocator);
+            try applyExpression(ast.kind.binaryOp.rhs, subst, allocator);
+        },
+        .call => {
+            try applyExpression(ast.kind.call.callee, subst, allocator);
+            for (ast.kind.call.args) |arg| {
+                try applyExpression(arg, subst, allocator);
+            }
+        },
+        .catche => {
+            try applyExpression(ast.kind.catche.value, subst, allocator);
+            for (ast.kind.catche.cases) |case| {
+                try applyPattern(case.pattern, subst, allocator);
+                try applyExpression(case.body, subst, allocator);
+            }
+        },
+        .dot => {
+            _ = try applyExpression(ast.kind.dot.record, subst, allocator);
+        },
+        .exprs => {
+            for (ast.kind.exprs) |expr| {
+                try applyExpression(expr, subst, allocator);
+            }
+        },
+        .idDeclaration => {
+            try applyExpression(ast.kind.idDeclaration.value, subst, allocator);
+        },
+        .ifte => {
+            for (ast.kind.ifte) |case| {
+                if (case.condition) |condition| {
+                    try applyExpression(condition, subst, allocator);
+                }
+                try applyExpression(case.then, subst, allocator);
+            }
+        },
+        .indexRange => {
+            try applyExpression(ast.kind.indexRange.expr, subst, allocator);
+
+            if (ast.kind.indexRange.start) |start| {
+                try applyExpression(start, subst, allocator);
+            }
+            if (ast.kind.indexRange.end) |end| {
+                try applyExpression(end, subst, allocator);
+            }
+        },
+        .indexValue => {
+            try applyExpression(ast.kind.indexValue.expr, subst, allocator);
+            try applyExpression(ast.kind.indexValue.index, subst, allocator);
+        },
+        .literalFunction => {
+            for (ast.kind.literalFunction.params) |param| {
+                if (param.default) |d| {
+                    try applyExpression(d, subst, allocator);
+                }
+            }
+            try applyExpression(ast.kind.literalFunction.body, subst, allocator);
+        },
+        .literalRecord => {
+            for (ast.kind.literalRecord) |field| {
+                switch (field) {
+                    .value => try applyExpression(field.value.value, subst, allocator),
+                    .record => try applyExpression(field.record, subst, allocator),
+                }
+            }
+        },
+        .literalSequence => {
+            for (ast.kind.literalSequence) |elem| {
+                switch (elem) {
+                    .value => try applyExpression(elem.value, subst, allocator),
+                    .sequence => try applyExpression(elem.sequence, subst, allocator),
+                }
+            }
+        },
+        .match => {
+            try applyExpression(ast.kind.match.value, subst, allocator);
+            for (ast.kind.match.cases) |case| {
+                try applyPattern(case.pattern, subst, allocator);
+                try applyExpression(case.body, subst, allocator);
+            }
+        },
+        .notOp => try applyExpression(ast.kind.notOp.value, subst, allocator),
+        .patternDeclaration => {
+            try applyPattern(ast.kind.patternDeclaration.pattern, subst, allocator);
+            try applyExpression(ast.kind.patternDeclaration.value, subst, allocator);
+        },
+        .raise => {
+            try applyExpression(ast.kind.raise.expr, subst, allocator);
+        },
+        .whilee => {
+            try applyExpression(ast.kind.whilee.condition, subst, allocator);
+            try applyExpression(ast.kind.whilee.body, subst, allocator);
+        },
+        else => {},
+    }
+}
+
+fn applyPattern(ast: *AST.Pattern, subst: *Typing.Subst, allocator: std.mem.Allocator) !void {
+    switch (ast.kind) {
+        .record => {
+            for (ast.kind.record.entries) |field| {
+                if (field.pattern) |p| {
+                    try applyPattern(p, subst, allocator);
+                }
+            }
+        },
+        .sequence => {
+            for (ast.kind.sequence.patterns) |p| {
+                try applyPattern(p, subst, allocator);
+            }
+        },
+        else => {},
+    }
+}
+
 const TestState = @import("lib/test_state.zig").TestState;
 
 test "!True" {
     var state = try TestState.init();
     defer state.deinit();
 
-    var result = try state.parseAnalyse("!True");
+    const result = try state.parseAnalyse("!True");
     defer result.?.decRef(state.allocator);
 
     try std.testing.expect(!state.errors.hasErrors());
@@ -392,7 +524,7 @@ test "!23" {
     var state = try TestState.init();
     defer state.deinit();
 
-    var result = try state.parseAnalyse("!23");
+    const result = try state.parseAnalyse("!23");
     defer result.?.decRef(state.allocator);
 
     try std.testing.expect(state.errors.hasErrors());

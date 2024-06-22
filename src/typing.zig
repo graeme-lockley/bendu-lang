@@ -78,11 +78,11 @@ pub const Type = struct {
         }
     }
 
-    pub fn incRef(this: *Type) void {
-        if (this.count == std.math.maxInt(u32)) {
-            this.count = 0;
-        } else if (this.count > 0) {
-            this.count += 1;
+    pub fn incRef(self: *Type) void {
+        if (self.count == std.math.maxInt(u32)) {
+            self.count = 0;
+        } else if (self.count > 0) {
+            self.count += 1;
         }
     }
 
@@ -90,6 +90,18 @@ pub const Type = struct {
         this.incRef();
 
         return this;
+    }
+
+    pub inline fn isChar(self: *Type) bool {
+        return self.kind == TypeKind.Tag and std.mem.eql(u8, self.kind.Tag.name.slice(), "Char");
+    }
+
+    pub inline fn isFloat(self: *Type) bool {
+        return self.kind == TypeKind.Tag and std.mem.eql(u8, self.kind.Tag.name.slice(), "Float");
+    }
+
+    pub inline fn isInt(self: *Type) bool {
+        return self.kind == TypeKind.Tag and std.mem.eql(u8, self.kind.Tag.name.slice(), "Int");
     }
 
     pub fn toString(self: *Type, allocator: std.mem.Allocator) std.mem.Allocator.Error![]u8 {
@@ -121,16 +133,37 @@ pub const Type = struct {
     pub fn apply(self: *Type, s: *Subst) !*Type {
         switch (self.kind) {
             .Bound => return (s.get(self.kind.Bound.value) orelse self).incRefR(),
-            .Function => return try FunctionType.new(
-                s.items.allocator,
-                try self.kind.Function.domain.apply(s),
-                try self.kind.Function.range.apply(s),
-            ),
-            .OrExtend => return try OrExtendType.new(
-                s.items.allocator,
-                try self.kind.OrExtend.component.apply(s),
-                try self.kind.OrExtend.rest.apply(s),
-            ),
+            .Function => {
+                const allocator = s.items.allocator;
+
+                const domain = try self.kind.Function.domain.apply(s);
+                errdefer domain.decRef(allocator);
+
+                const range = try self.kind.Function.range.apply(s);
+                errdefer range.decRef(allocator);
+
+                return try FunctionType.new(
+                    allocator,
+                    domain,
+                    range,
+                );
+            },
+            .OrExtend => {
+                const allocator = s.items.allocator;
+
+                const component = try self.kind.OrExtend.component.apply(s);
+                errdefer component.decRef(allocator);
+
+                const rest = try self.kind.OrExtend.rest.apply(s);
+                errdefer rest.decRef(allocator);
+
+                return try OrExtendType.new(
+                    allocator,
+                    component,
+                    rest,
+                );
+            },
+            .Variable => return (s.get(@intFromPtr(self.kind.Variable.name)) orelse self).incRefR(),
             else => return self.incRefR(),
         }
     }

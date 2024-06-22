@@ -57,6 +57,20 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 try runtime.push_pointer(runtime.stackItem(@intCast(readInt(bc, ip + 1))));
                 ip += 9;
             },
+
+            .add => {
+                try runtime.add();
+                ip += 1;
+            },
+            .add_float => {
+                try runtime.add_float();
+                ip += 1;
+            },
+            .add_int => {
+                try runtime.add_int();
+                ip += 1;
+            },
+
             .not => {
                 try runtime.not();
                 ip += 1;

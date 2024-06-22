@@ -36,6 +36,18 @@ const Environment = struct {
 
 fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
     switch (ast.kind) {
+        .binaryOp => {
+            try evalExpression(ast.kind.binaryOp.lhs, env);
+            try evalExpression(ast.kind.binaryOp.rhs, env);
+
+            switch (ast.kind.binaryOp.op) {
+                .Plus => if (ast.type.?.isInt()) try env.runtime.add_int() else if (ast.type.?.isFloat()) try env.runtime.add_float() else try env.runtime.add(),
+                else => {
+                    try std.io.getStdErr().writer().print("Internal Error: Unsupported binary operator: \"{s}\"\n", .{ast.kind.binaryOp.op.toString()});
+                    std.process.exit(1);
+                },
+            }
+        },
         .call => {
             if (ast.kind.call.callee.kind != .identifier) {
                 try std.io.getStdErr().writer().print("Internal Error: Expected identifier\n", .{});

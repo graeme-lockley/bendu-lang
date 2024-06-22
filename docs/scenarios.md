@@ -132,7 +132,14 @@ $$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a: t
 
 $$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a: t, b: t}}{\mathtt{a >= b: t}}$$
 
-It should be noted from the above that operators do not perform automatic coercion.  This means that `1 + 1.0` would be reported as a type error during compilation:
+It should be noted from the above that operators do not perform automatic coercion.  This means that `1 + 1.0` would be reported as a type error during compilation.
+
+Let's see the above operators in action:
+
+```bendu-repl
+> 1 + 1
+2: Int
+```
 
 ## Float
 

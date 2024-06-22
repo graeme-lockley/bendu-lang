@@ -83,6 +83,23 @@ pub const Runtime = struct {
 
     // Operators
 
+    pub inline fn add(self: *Runtime) !void {
+        try self.add_int();
+    }
+
+    pub inline fn add_float(self: *Runtime) !void {
+        _ = self;
+
+        unreachable;
+    }
+
+    pub inline fn add_int(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_int(@intCast(Pointer.asInt(a) + Pointer.asInt(b)));
+    }
+
     pub inline fn not(self: *Runtime) !void {
         const v = self.pop();
         if (Pointer.asInt(v) == 0) {

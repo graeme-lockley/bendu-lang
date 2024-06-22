@@ -7,13 +7,13 @@ pub const Pump = struct {
 
     pub fn init() Pump {
         return Pump{
-            .count = 0,
+            .count = 1,
         };
     }
 
     pub fn pump(self: *Pump) u64 {
         const result = self.count;
-        self.count += 1;
+        self.count += 2;
 
         return result;
     }

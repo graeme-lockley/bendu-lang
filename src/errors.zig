@@ -35,6 +35,16 @@ pub const LexicalError = struct {
     }
 };
 
+pub const ParserError = struct {
+    lexeme: []const u8,
+    expected: []const TokenKind,
+
+    pub fn deinit(self: ParserError, allocator: std.mem.Allocator) void {
+        allocator.free(self.lexeme);
+        allocator.free(self.expected);
+    }
+};
+
 pub const UndefinedNameError = struct {
     name: []const u8,
 
@@ -43,13 +53,11 @@ pub const UndefinedNameError = struct {
     }
 };
 
-pub const ParserError = struct {
-    lexeme: []const u8,
-    expected: []const TokenKind,
+pub const UndefinedOperatorError = struct {
+    name: []const u8,
 
-    pub fn deinit(self: ParserError, allocator: std.mem.Allocator) void {
-        allocator.free(self.lexeme);
-        allocator.free(self.expected);
+    pub fn deinit(self: UndefinedOperatorError, allocator: std.mem.Allocator) void {
+        allocator.free(self.name);
     }
 };
 
@@ -107,6 +115,7 @@ pub const Error = struct {
                 }
             },
             .UndefinedNameKind => try writer.print("Unknown name: {s}", .{self.detail.UndefinedNameKind.name}),
+            .UndefinedOperatorKind => try writer.print("Unknown operator: {s}", .{self.detail.UndefinedOperatorKind.name}),
             .UnificationKind => {
                 const s1 = try self.detail.UnificationKind.t1.toString(allocator);
                 defer allocator.free(s1);
@@ -152,6 +161,7 @@ pub const ErrorKind = enum {
     LiteralIntOverflowKind,
     ParserKind,
     UndefinedNameKind,
+    UndefinedOperatorKind,
     UnificationKind,
 };
 
@@ -163,6 +173,7 @@ pub const ErrorDetail = union(ErrorKind) {
     LiteralIntOverflowKind: LexicalError,
     ParserKind: ParserError,
     UndefinedNameKind: UndefinedNameError,
+    UndefinedOperatorKind: UndefinedOperatorError,
     UnificationKind: UnificationError,
 
     pub fn deinit(self: ErrorDetail, allocator: std.mem.Allocator) void {
@@ -174,6 +185,7 @@ pub const ErrorDetail = union(ErrorKind) {
             .LiteralIntOverflowKind => self.LiteralIntOverflowKind.deinit(allocator),
             .ParserKind => self.ParserKind.deinit(allocator),
             .UndefinedNameKind => self.UndefinedNameKind.deinit(allocator),
+            .UndefinedOperatorKind => self.UndefinedOperatorKind.deinit(allocator),
             .UnificationKind => self.UnificationKind.deinit(allocator),
         }
     }
@@ -216,6 +228,12 @@ pub fn parserError(allocator: std.mem.Allocator, locationRange: LocationRange, l
 
 pub fn undefinedNameError(allocator: std.mem.Allocator, locationRange: LocationRange, name: []const u8) !Error {
     return try Error.init(allocator, locationRange, ErrorDetail{ .UndefinedNameKind = .{
+        .name = try allocator.dupe(u8, name),
+    } });
+}
+
+pub fn undefinedOperatorError(allocator: std.mem.Allocator, locationRange: LocationRange, name: []const u8) !Error {
+    return try Error.init(allocator, locationRange, ErrorDetail{ .UndefinedOperatorKind = .{
         .name = try allocator.dupe(u8, name),
     } });
 }

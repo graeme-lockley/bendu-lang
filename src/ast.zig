@@ -72,6 +72,14 @@ pub const Expression = struct {
         return expr;
     }
 
+    pub inline fn assignType(self: *Expression, typ: *Typing.Type, allocator: std.mem.Allocator) void {
+        if (self.type != null) {
+            self.type.?.decRef(allocator);
+        }
+
+        self.type = typ;
+    }
+
     pub fn decRef(self: *Expression, allocator: std.mem.Allocator) void {
         destroyExpr(allocator, self);
     }

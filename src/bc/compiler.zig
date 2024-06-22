@@ -17,12 +17,14 @@ pub fn compile(ast: *AST.Expression, allocator: std.mem.Allocator) ![]u8 {
 }
 
 const CompileState = struct {
+    allocator: std.mem.Allocator,
     bc: std.ArrayList(u8),
     bindings: std.AutoHashMap(*SP.String, usize),
     nextGlobalBinding: usize,
 
     fn init(allocator: std.mem.Allocator) !CompileState {
         return CompileState{
+            .allocator = allocator,
             .bc = std.ArrayList(u8).init(allocator),
             .bindings = std.AutoHashMap(*SP.String, usize).init(allocator),
             .nextGlobalBinding = 0,
@@ -72,6 +74,31 @@ const CompileState = struct {
 
 fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
     switch (ast.kind) {
+        .binaryOp => {
+            try compileExpr(ast.kind.binaryOp.lhs, state);
+            try compileExpr(ast.kind.binaryOp.rhs, state);
+
+            switch (ast.kind.binaryOp.op) {
+                .Plus => {
+                    if (ast.type.?.isInt()) {
+                        try state.appendOp(Op.add_int);
+                    } else if (ast.type.?.isFloat()) {
+                        try state.appendOp(Op.add_float);
+                    } else {
+                        const t = try ast.type.?.toString(state.allocator);
+                        defer state.allocator.free(t);
+
+                        try std.io.getStdErr().writer().print("Internal Error: Unsupported type {s} for binary operator +\n", .{t});
+                        unreachable;
+                        // try state.appendOp(Op.add);
+                    }
+                },
+                else => {
+                    try std.io.getStdErr().writer().print("Internal Error: Unsupported binary operator\n", .{});
+                    std.process.exit(1);
+                },
+            }
+        },
         .call => {
             if (ast.kind.call.callee.kind != .identifier) {
                 try std.io.getStdErr().writer().print("Internal Error: Expected identifier\n", .{});
