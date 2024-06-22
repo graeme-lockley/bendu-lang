@@ -449,39 +449,16 @@ pub fn solver(constraints: *Constraints, pump: *Pump, errors: *Errors.Errors, al
     return su;
 }
 
-const TestState = struct {
-    allocator: std.mem.Allocator,
-    sp: SP.StringPool,
-
-    pub fn init(allocator: std.mem.Allocator) TestState {
-        return TestState{
-            .allocator = allocator,
-            .sp = SP.StringPool.init(allocator),
-        };
-    }
-
-    pub fn deinit(self: *TestState) void {
-        self.sp.deinit();
-    }
-};
+const TestState = @import("lib/test_state.zig").TestState;
 
 const expectEqual = std.testing.expectEqual;
 const expectEqualStrings = std.testing.expectEqualStrings;
 
 test "Bound Substitution" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer {
-        const err = gpa.deinit();
-        if (err == std.heap.Check.leak) {
-            std.io.getStdErr().writeAll("Failed to deinit allocator\n") catch {};
-            std.process.exit(1);
-        }
-    }
-
-    var state = TestState.init(gpa.allocator());
+    var state = try TestState.init();
     defer state.deinit();
 
-    var constraints = Constraints.init(state.allocator);
+    var constraints = Constraints.init(state.setup().allocator);
     defer constraints.deinit(state.allocator);
 
     const boolType = try TagType.new(state.allocator, try state.sp.intern("Bool"));

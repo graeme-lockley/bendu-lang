@@ -375,45 +375,10 @@ fn pattern(ast: *AST.Pattern, env: *Env) !*Typing.Type {
     return env.errorType;
 }
 
-const TestState = struct {
-    allocator: std.mem.Allocator,
-    sp: SP.StringPool,
-    errors: Errors.Errors,
-
-    fn init(allocator: std.mem.Allocator) !TestState {
-        return TestState{
-            .allocator = allocator,
-            .sp = SP.StringPool.init(allocator),
-            .errors = try Errors.Errors.init(allocator),
-        };
-    }
-
-    fn deinit(self: *TestState) void {
-        self.errors.deinit();
-        self.sp.deinit();
-    }
-
-    const Parser = @import("parser.zig");
-
-    fn parseAnalyse(self: *TestState, source: []const u8) !?*Typing.Type {
-        const ast = try Parser.parse(&self.sp, "script.bendu", source, &self.errors);
-
-        if (ast) |a| {
-            defer a.decRef(self.allocator);
-            return analysis(a, &self.sp, &self.errors);
-        } else {
-            return null;
-        }
-    }
-};
+const TestState = @import("lib/test_state.zig").TestState;
 
 test "!True" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-
-    const allocator = gpa.allocator();
-
-    var state = try TestState.init(allocator);
+    var state = try TestState.init();
     defer state.deinit();
 
     var result = try state.parseAnalyse("!True");
@@ -424,12 +389,7 @@ test "!True" {
 }
 
 test "!23" {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-
-    const allocator = gpa.allocator();
-
-    var state = try TestState.init(allocator);
+    var state = try TestState.init();
     defer state.deinit();
 
     var result = try state.parseAnalyse("!23");

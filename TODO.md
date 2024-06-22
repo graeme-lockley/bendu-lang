@@ -47,7 +47,7 @@ The following *definition of done* is used to determine when a feature is comple
 - [X] Implement the `Bool` type in the AST interpreter
 - [X] Implement the `Bool` type in the BC interpreter
 - [X] Integrate into main so that the value can be viewed.
-- [ ] Implement not
+- [X] Implement not
 - [ ] Implement &&
 - [ ] Implement ||
 - [ ] Implement ==
@@ -127,3 +127,4 @@ The following *definition of done* is used to determine when a feature is comple
 # Builtins
 
 - [ ] int: [a: Bool | Int | Float | Char | String] a -> Int
+
