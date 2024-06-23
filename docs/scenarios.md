@@ -105,7 +105,6 @@ An integer value is a whole number.  It is written as `n` where `n` is any whole
 22: Int
 ```
 
-
 Int literals are typed as follows:
 
 $$\frac{\mathtt{I \in \cal{I}}}{\mathtt{I: {\rm Int}}}$$
@@ -139,6 +138,13 @@ Let's see the above operators in action:
 ```bendu-repl
 > 40 + 2
 42: Int
+```
+
+Now let's try and break the type system.
+
+```bendu-repl
+> () + ()
+Error: 1:1-7: Unification error: Unable to unify Unit with Char | Float | Int | String
 ```
 
 ## Float

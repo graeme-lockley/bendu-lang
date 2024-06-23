@@ -3,6 +3,8 @@ const std = @import("std");
 const Errors = @import("errors.zig");
 const SP = @import("lib/string_pool.zig");
 
+pub const Constraint = @import("typing/constraints.zig").Constraint;
+pub const Constraints = @import("typing/constraints.zig").Constraints;
 pub const Pump = @import("typing/pump.zig").Pump;
 pub const Subst = @import("typing/subst.zig").Subst;
 
@@ -327,67 +329,6 @@ pub const VariableType = struct {
     }
 };
 
-pub const Constraint = struct {
-    t1: *Type,
-    t2: *Type,
-    locationRange: Errors.LocationRange,
-
-    pub fn init(t1: *Type, t2: *Type, locationRange: Errors.LocationRange) Constraint {
-        return Constraint{
-            .t1 = t1.incRefR(),
-            .t2 = t2.incRefR(),
-            .locationRange = locationRange,
-        };
-    }
-
-    pub fn deinit(self: Constraint, allocator: std.mem.Allocator) void {
-        self.t1.decRef(allocator);
-        self.t2.decRef(allocator);
-    }
-};
-
-pub const Constraints = struct {
-    items: std.ArrayList(Constraint),
-
-    pub fn init(allocator: std.mem.Allocator) Constraints {
-        return Constraints{
-            .items = std.ArrayList(Constraint).init(allocator),
-        };
-    }
-
-    pub fn deinit(self: *Constraints, allocator: std.mem.Allocator) void {
-        for (self.items.items) |item| {
-            item.deinit(allocator);
-        }
-        self.items.deinit();
-    }
-
-    pub fn add(self: *Constraints, t1: *Type, t2: *Type, locationRange: Errors.LocationRange) !void {
-        const constraint = Constraint.init(t1, t2, locationRange);
-        try self.items.append(constraint);
-    }
-
-    pub inline fn len(self: Constraints) usize {
-        return self.items.items.len;
-    }
-
-    pub inline fn take(self: *Constraints) Constraint {
-        return self.items.swapRemove(0);
-    }
-
-    pub inline fn apply(self: *Constraints, s: *Subst) !void {
-        for (self.items.items) |*item| {
-            var t1 = item.t1;
-            defer t1.decRef(s.items.allocator);
-            var t2 = item.t2;
-            defer t2.decRef(s.items.allocator);
-
-            item.t1 = try t1.apply(s);
-            item.t2 = try t2.apply(s);
-        }
-    }
-};
-
 fn unify(t1: *Type, t2: *Type, locationRange: Errors.LocationRange, errors: *Errors.Errors, allocator: std.mem.Allocator) std.mem.Allocator.Error!Subst {
     // std.debug.print("unify: ", .{});
     // try t1.print(allocator);
@@ -487,16 +428,38 @@ pub fn solver(constraints: *Constraints, pump: *Pump, errors: *Errors.Errors, al
         try su.compose(&s);
     }
 
+    for (constraints.dependencies.items) |dependent| {
+        if (!isDependent(dependent.t1, dependent.t2)) {
+            try errors.append(try Errors.unificationError(allocator, dependent.locationRange, dependent.t1, dependent.t2));
+        }
+    }
+
     return su;
 }
 
-const TestState = @import("lib/test_state.zig").TestState;
+fn isDependent(t1: *Type, t2: *Type) bool {
+    if (t1.kind == .Bound) return true;
+    if (t2.kind == .Bound) return true;
 
-const expectEqual = std.testing.expectEqual;
-const expectEqualStrings = std.testing.expectEqualStrings;
+    if (t1.kind == .Variable and t2.kind == .Variable) {
+        return t1.kind.Variable.name == t2.kind.Variable.name;
+    }
+
+    if (t1.kind == .Tag and t2.kind == .Tag) {
+        return t1.kind.Tag.name == t2.kind.Tag.name;
+    }
+    if (t1.kind == .Function and t2.kind == .Function) {
+        return isDependent(t1.kind.Function.domain, t2.kind.Function.domain) and isDependent(t1.kind.Function.range, t2.kind.Function.range);
+    }
+
+    if (t2.kind == .OrExtend) {
+        return isDependent(t1, t2.kind.OrExtend.component) or isDependent(t1, t2.kind.OrExtend.rest);
+    }
+    return false;
+}
 
 test "Bound Substitution" {
-    var state = try TestState.init();
+    var state = try @import("lib/test_state.zig").TestState.init();
     defer state.deinit();
 
     var constraints = Constraints.init(state.setup().allocator);
@@ -526,7 +489,7 @@ test "Bound Substitution" {
     var t = try boundType.apply(&subst);
     defer t.decRef(state.allocator);
 
-    try expectEqual(subst.items.count(), 1);
-    try expectEqual(subst.items.contains(1), true);
-    try expectEqualStrings("Bool", t.kind.Tag.name.slice());
+    try std.testing.expectEqual(subst.items.count(), 1);
+    try std.testing.expectEqual(subst.items.contains(1), true);
+    try std.testing.expectEqualStrings("Bool", t.kind.Tag.name.slice());
 }
