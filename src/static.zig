@@ -211,6 +211,47 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
 
                     ast.assignType(env.boolType.incRefR(), env.allocator);
                 },
+                .LessThan, .LessEqual, .GreaterThan, .GreaterEqual => {
+                    const result = try env.pump.newBound(env.allocator);
+                    defer result.decRef(env.allocator);
+
+                    const lhs = try expression(ast.kind.binaryOp.lhs, env);
+                    const rhs = try expression(ast.kind.binaryOp.rhs, env);
+
+                    try env.addConstraint(lhs, result, ast.kind.binaryOp.lhs.locationRange);
+                    try env.addConstraint(rhs, result, ast.kind.binaryOp.rhs.locationRange);
+
+                    const dependentType = try Typing.OrExtendType.new(
+                        env.allocator,
+                        env.boolType.incRefR(),
+                        try Typing.OrExtendType.new(
+                            env.allocator,
+                            env.charType.incRefR(),
+                            try Typing.OrExtendType.new(
+                                env.allocator,
+                                env.floatType.incRefR(),
+                                try Typing.OrExtendType.new(
+                                    env.allocator,
+                                    env.intType.incRefR(),
+                                    try Typing.OrExtendType.new(
+                                        env.allocator,
+                                        env.stringType.incRefR(),
+                                        try Typing.OrExtendType.new(
+                                            env.allocator,
+                                            env.unitType.incRefR(),
+                                            try Typing.OrEmptyType.new(env.allocator),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    );
+                    defer dependentType.decRef(env.allocator);
+
+                    try env.addDependent(result, dependentType, ast.locationRange);
+
+                    ast.assignType(env.boolType.incRefR(), env.allocator);
+                },
                 .Modulo => {
                     const lhs = try expression(ast.kind.binaryOp.lhs, env);
                     if (!lhs.isInt()) {

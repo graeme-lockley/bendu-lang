@@ -125,10 +125,10 @@ complete:
 - [x] (%): Int -> Int -> Int
 - [x] (==): [a] a -> a -> Bool
 - [x] (!=): [a] a -> a -> Bool
-- [ ] (<): [a: Int | Float | Char | String] a -> a -> a
-- [ ] (<=): [a: Int | Float | Char | String] a -> a -> a
-- [ ] (>): [a: Int | Float | Char | String] a -> a -> a
-- [ ] (>=): [a: Int | Float | Char | String] a -> a -> a
+- [x] (<): [a: Bool | Char | Float | Int | String] a -> a -> a
+- [ ] (<=): [a: Bool | Char | Float | Int | String] a -> a -> a
+- [ ] (>): [a: Bool | Char | Float | Int | String] a -> a -> a
+- [ ] (>=): [a: Bool | Char | Float | Int | String] a -> a -> a
 - [ ] (<<): [a] List a -> a -> List a
 - [ ] (<!): [a] List a -> a -> List a
 - [ ] (>>): [a] a -> List a -> List a

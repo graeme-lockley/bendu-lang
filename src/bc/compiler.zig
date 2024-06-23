@@ -109,6 +109,25 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                         try state.appendOp(Op.equals);
                     }
                 },
+                .LessThan => {
+                    if (ast.kind.binaryOp.lhs.type.?.isBool()) {
+                        try state.appendOp(Op.lessthan_bool);
+                    } else if (ast.kind.binaryOp.lhs.type.?.isChar()) {
+                        try state.appendOp(Op.lessthan_char);
+                    } else if (ast.kind.binaryOp.lhs.type.?.isFloat()) {
+                        try state.appendOp(Op.lessthan_float);
+                    } else if (ast.kind.binaryOp.lhs.type.?.isInt()) {
+                        try state.appendOp(Op.lessthan_int);
+                    } else if (ast.kind.binaryOp.lhs.type.?.isString()) {
+                        try state.appendOp(Op.lessthan_string);
+                    } else if (ast.kind.binaryOp.lhs.type.?.isUnit()) {
+                        try state.appendOp(Op.discard);
+                        try state.appendOp(Op.discard);
+                        try state.appendOp(Op.push_false);
+                    } else {
+                        try state.appendOp(Op.lessthan);
+                    }
+                },
                 .Minus => {
                     if (ast.type.?.isInt()) {
                         try state.appendOp(Op.minus_int);

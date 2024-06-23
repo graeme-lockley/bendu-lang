@@ -239,6 +239,63 @@ pub const Runtime = struct {
         try self.push_bool(valueA == valueB);
     }
 
+    pub fn lessthan(self: *Runtime) !void {
+        const tos = self.peek().?;
+
+        if (Pointer.isPointer(tos)) {
+            const value = Pointer.as(*Memory.PageItem, tos);
+
+            if (value.isFloat()) {
+                try self.lessthan_float();
+            } else {
+                try self.lessthan_string();
+            }
+        } else {
+            try self.lessthan_int();
+        }
+    }
+
+    pub inline fn lessthan_bool(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_bool(!Pointer.asBool(a) and Pointer.asBool(b));
+    }
+
+    pub inline fn lessthan_char(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_bool(Pointer.asChar(a) < Pointer.asChar(b));
+    }
+
+    pub inline fn lessthan_float(self: *Runtime) !void {
+        const b = self.pop();
+        const valueB = Pointer.as(*Memory.FloatValue, b).value;
+
+        const a = self.pop();
+        const valueA = Pointer.as(*Memory.FloatValue, a).value;
+
+        try self.push_bool(valueA < valueB);
+    }
+
+    pub inline fn lessthan_int(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_bool(Pointer.asInt(a) < Pointer.asInt(b));
+    }
+
+    pub inline fn lessthan_string(self: *Runtime) !void {
+        const b = self.pop();
+        const valueB = Pointer.as(*Memory.StringValue, b).value;
+
+        const a = self.pop();
+        const valueA = Pointer.as(*Memory.StringValue, a).value;
+
+        try self.push_bool(std.mem.lessThan(u8, valueA.slice(), valueB.slice()));
+    }
+
     pub fn minus(self: *Runtime) !void {
         const tos = self.peek().?;
 

@@ -53,6 +53,9 @@ True: Bool
 
 > () != ()
 False: Bool
+
+> () < ()
+False: Bool
 ```
 
 ## Bool
@@ -113,6 +116,18 @@ True: Bool
 True: Bool
 
 > False != False
+False: Bool
+
+> True < True
+False: Bool
+
+> False < True
+True: Bool
+
+> True < False
+False: Bool
+
+> False < False
 False: Bool
 ```
 
@@ -214,6 +229,15 @@ False: Bool
 
 > 23 != (20 + 2)
 True: Bool
+
+> 1 < 1
+False: Bool
+
+> 1 < 2
+True: Bool
+
+> 2 < 1
+False: Bool
 ```
 
 Now let's try and break the type system.
@@ -280,6 +304,15 @@ False: Bool
 
 > 23.2 != (20.1 + 3.0)
 True: Bool
+
+> 1.0 < 2.0
+True: Bool
+
+> 1.0 < 1.0
+False: Bool
+
+> 2.0 < 1.0
+False: Bool
 ```
 
 ## Char
@@ -353,6 +386,15 @@ False: Bool
 
 > 'a' != 'b'
 True: Bool
+
+> 'a' < 'a'
+False: Bool
+
+> 'a' < 'b'
+True: Bool
+
+> 'b' < 'a'
+False: Bool
 ```
 
 ## String
@@ -398,6 +440,15 @@ False: Bool
 
 > "hello" != "Hello"
 True: Bool
+
+> "aa" < "aa"
+False: Bool
+
+> "aa" < "ab"
+True: Bool
+
+> "ab" < "aa"
+False: Bool
 ```
 
 # Error Reporting

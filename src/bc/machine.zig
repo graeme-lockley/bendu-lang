@@ -121,6 +121,30 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 try runtime.equals_string();
                 ip += 1;
             },
+            .lessthan => {
+                try runtime.lessthan();
+                ip += 1;
+            },
+            .lessthan_bool => {
+                try runtime.lessthan_bool();
+                ip += 1;
+            },
+            .lessthan_char => {
+                try runtime.lessthan_char();
+                ip += 1;
+            },
+            .lessthan_float => {
+                try runtime.lessthan_float();
+                ip += 1;
+            },
+            .lessthan_int => {
+                try runtime.lessthan_int();
+                ip += 1;
+            },
+            .lessthan_string => {
+                try runtime.lessthan_string();
+                ip += 1;
+            },
             .minus_char => {
                 try runtime.minus_char();
                 ip += 1;
