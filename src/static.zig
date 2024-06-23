@@ -67,8 +67,6 @@ const Env = struct {
             try schemes.put(try sp.intern("+"), Typing.Scheme{ .names = nms, .type = fType });
         }
 
-        try schemes.put(try sp.intern("!"), Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = try Typing.FunctionType.new(allocator, boolType.incRefR(), boolType.incRefR()) });
-
         return Env{
             .boolType = boolType,
             .charType = charType,
@@ -328,22 +326,11 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             }
         },
         .notOp => {
-            const result = try env.pump.newBound(env.allocator);
-            defer result.decRef(env.allocator);
-
-            const n = try env.sp.intern("!");
-            defer n.decRef();
-
-            const ss = try env.schemes.get(n).?.instantiate(&env.pump, env.allocator);
-            defer ss.decRef(env.allocator);
-
             const t = try expression(ast.kind.notOp.value, env);
-            const signature = try Typing.FunctionType.new(env.allocator, t.incRefR(), result.incRefR());
-            defer signature.decRef(env.allocator);
-
-            try env.addConstraint(ss, signature, ast.kind.notOp.value.locationRange);
-
-            ast.assignType(result.incRefR(), env.allocator);
+            if (!t.isBool()) {
+                try env.addConstraint(env.boolType, t, ast.kind.notOp.value.locationRange);
+            }
+            ast.assignType(env.boolType.incRefR(), env.allocator);
         },
         .patternDeclaration => {
             _ = try pattern(ast.kind.patternDeclaration.pattern, env);

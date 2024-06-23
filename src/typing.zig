@@ -92,6 +92,10 @@ pub const Type = struct {
         return this;
     }
 
+    pub inline fn isBool(self: *Type) bool {
+        return self.kind == TypeKind.Tag and std.mem.eql(u8, self.kind.Tag.name.slice(), "Bool");
+    }
+
     pub inline fn isChar(self: *Type) bool {
         return self.kind == TypeKind.Tag and std.mem.eql(u8, self.kind.Tag.name.slice(), "Char");
     }
