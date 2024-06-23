@@ -117,7 +117,7 @@ $$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b: t}}{\math
 
 $$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b: t}}{\mathtt{a * b: t}}$$
 
-$$\frac{\mathtt{a: {\rm Int}, b: {\rm Int}}}{\mathtt{a\ {**}\ b: {\rm Int}}}$$
+$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b: t}}{\mathtt{a ** b: t}}$$
 
 $$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b: t}}{\mathtt{a / b: t}}$$
 
@@ -144,6 +144,9 @@ Let's see the above operators in action:
 
 > 6 * 7
 42: Int
+
+> 2 ** 8
+256: Int
 ```
 
 Now let's try and break the type system.
@@ -190,6 +193,9 @@ The standard operators are defined over the `Float` type.
 
 > 2.1 * 2.0
 4.2: Float
+
+> 2.1 ** 2.0
+4.41: Float
 ```
 
 ## Char
@@ -243,6 +249,9 @@ A number of operators are defined over the `Char` type.
 
 > 'b' * 'a'
 '"': Char
+
+> 'b' ** '\x2'
+'\x132': Char
 ```
 
 ## String

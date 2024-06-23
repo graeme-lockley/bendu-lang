@@ -186,6 +186,42 @@ pub const Runtime = struct {
         try self.push_int(@intCast(Pointer.asInt(a) - Pointer.asInt(b)));
     }
 
+    pub fn power(self: *Runtime) !void {
+        const tos = self.peek().?;
+
+        if (Pointer.isPointer(tos)) {
+            try self.power_float();
+        } else {
+            try self.power_int();
+        }
+    }
+
+    pub inline fn power_float(self: *Runtime) !void {
+        const b = self.pop();
+        const valueB = Pointer.as(*Memory.FloatValue, b).value;
+
+        const a = self.pop();
+        const valueA = Pointer.as(*Memory.FloatValue, a).value;
+
+        try self.push_float(std.math.pow(f64, valueA, valueB));
+    }
+
+    pub inline fn power_char(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        const v: i64 = std.math.pow(i64, Pointer.asInt(a), Pointer.asInt(b));
+
+        try self.push_int(@mod(@as(i63, @intCast(v)), 256));
+    }
+
+    pub inline fn power_int(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_int(@intCast(std.math.pow(i64, Pointer.asInt(a), Pointer.asInt(b))));
+    }
+
     pub fn times(self: *Runtime) !void {
         const tos = self.peek().?;
 

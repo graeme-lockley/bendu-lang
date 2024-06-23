@@ -103,6 +103,17 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                         try state.appendOp(Op.add);
                     }
                 },
+                .Power => {
+                    if (ast.type.?.isInt()) {
+                        try state.appendOp(Op.power_int);
+                    } else if (ast.type.?.isChar()) {
+                        try state.appendOp(Op.power_char);
+                    } else if (ast.type.?.isFloat()) {
+                        try state.appendOp(Op.power_float);
+                    } else {
+                        try state.appendOp(Op.power);
+                    }
+                },
                 .Times => {
                     if (ast.type.?.isInt()) {
                         try state.appendOp(Op.times_int);

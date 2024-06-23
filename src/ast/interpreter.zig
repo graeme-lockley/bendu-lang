@@ -41,8 +41,9 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
             try evalExpression(ast.kind.binaryOp.rhs, env);
 
             switch (ast.kind.binaryOp.op) {
-                .Plus => if (ast.type.?.isInt()) try env.runtime.add_int() else if (ast.type.?.isChar()) try env.runtime.add_char() else if (ast.type.?.isFloat()) try env.runtime.add_float() else if (ast.type.?.isString()) try env.runtime.add_string() else unreachable,
                 .Minus => if (ast.type.?.isInt()) try env.runtime.minus_int() else if (ast.type.?.isChar()) try env.runtime.minus_char() else if (ast.type.?.isFloat()) try env.runtime.minus_float() else unreachable,
+                .Plus => if (ast.type.?.isInt()) try env.runtime.add_int() else if (ast.type.?.isChar()) try env.runtime.add_char() else if (ast.type.?.isFloat()) try env.runtime.add_float() else if (ast.type.?.isString()) try env.runtime.add_string() else unreachable,
+                .Power => if (ast.type.?.isInt()) try env.runtime.power_int() else if (ast.type.?.isChar()) try env.runtime.power_char() else if (ast.type.?.isFloat()) try env.runtime.power_float() else unreachable,
                 .Times => if (ast.type.?.isInt()) try env.runtime.times_int() else if (ast.type.?.isChar()) try env.runtime.times_char() else if (ast.type.?.isFloat()) try env.runtime.times_float() else unreachable,
                 else => {
                     try std.io.getStdErr().writer().print("Internal Error: Unsupported binary operator: \"{s}\"\n", .{ast.kind.binaryOp.op.toString()});

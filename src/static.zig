@@ -199,7 +199,7 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
 
                     ast.assignType(result.incRefR(), env.allocator);
                 },
-                .Minus, .Times => {
+                .Minus, .Power, .Times => {
                     const result = try env.pump.newBound(env.allocator);
                     defer result.decRef(env.allocator);
 
