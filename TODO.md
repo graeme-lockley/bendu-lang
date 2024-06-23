@@ -63,6 +63,8 @@ The following *definition of done* is used to determine when a feature is comple
 - [ ] Implement ==, !=, <, <=, >, >=
 - [ ] Verify that the 63-bit signed is correct in when reporting literal underflow and overflow
 - [ ] Verify that the 63-bit signed is correct in when encountering underflow and overflow during +, -, *, /, **, % operations
+- [ ] Handle divide by zero
+- [ ] Handle modulo zero
 
 ## Float
 
@@ -73,6 +75,8 @@ The following *definition of done* is used to determine when a feature is comple
 - [X] Integrate into main so that the value can be viewed.
 - [ ] Implement +, -, *, **, /, %
 - [ ] Implement ==, !=, <, <=, >, >=
+- [ ] Handle divide by zero
+- [ ] Handle modulo zero
 
 ## Char
 
@@ -83,6 +87,8 @@ The following *definition of done* is used to determine when a feature is comple
 - [X] Integrate into main so that the value can be viewed.
 - [X] Implement +, -, *, **, /, %
 - [ ] Implement ==, !=, <, <=, >, >=
+- [ ] Handle divide by zero
+- [ ] Handle modulo zero
 
 ## String
 
