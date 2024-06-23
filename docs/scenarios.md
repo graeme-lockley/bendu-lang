@@ -50,6 +50,9 @@ $$\frac{}{\mathtt{(): {\rm Unit}}}$$
 ```bendu-repl
 > () == ()
 True: Bool
+
+> () != ()
+False: Bool
 ```
 
 ## Bool
@@ -99,6 +102,18 @@ False: Bool
 
 > False == False
 True: Bool
+
+> True != True
+False: Bool
+
+> False != True
+True: Bool
+
+> True != False
+True: Bool
+
+> False != False
+False: Bool
 ```
 
 Any attempt to use anything other than a `Bool` value will result in a type
@@ -193,6 +208,12 @@ True: Bool
 
 > 23 == (20 + 2)
 False: Bool
+
+> 23 != (20 + 3)
+False: Bool
+
+> 23 != (20 + 2)
+True: Bool
 ```
 
 Now let's try and break the type system.
@@ -253,6 +274,12 @@ True: Bool
 
 > 23.2 == (20.1 + 3.0)
 False: Bool
+
+> 23.1 != (20.1 + 3.0)
+False: Bool
+
+> 23.2 != (20.1 + 3.0)
+True: Bool
 ```
 
 ## Char
@@ -320,6 +347,12 @@ True: Bool
 
 > 'a' == 'b'
 False: Bool
+
+> 'a' != 'a'
+False: Bool
+
+> 'a' != 'b'
+True: Bool
 ```
 
 ## String
@@ -359,6 +392,12 @@ True: Bool
 
 > "hello" == "Hello"
 False: Bool
+
+> "hello" != "hel" + "lo"
+False: Bool
+
+> "hello" != "Hello"
+True: Bool
 ```
 
 # Error Reporting

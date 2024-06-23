@@ -121,7 +121,6 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 try runtime.equals_string();
                 ip += 1;
             },
-
             .minus_char => {
                 try runtime.minus_char();
                 ip += 1;
@@ -136,6 +135,30 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
             },
             .modulo_int => {
                 try runtime.modulo_int();
+                ip += 1;
+            },
+            .notequals => {
+                try runtime.notequals();
+                ip += 1;
+            },
+            .notequals_bool => {
+                try runtime.notequals_bool();
+                ip += 1;
+            },
+            .notequals_char => {
+                try runtime.notequals_char();
+                ip += 1;
+            },
+            .notequals_float => {
+                try runtime.notequals_float();
+                ip += 1;
+            },
+            .notequals_int => {
+                try runtime.notequals_int();
+                ip += 1;
+            },
+            .notequals_string => {
+                try runtime.notequals_string();
                 ip += 1;
             },
             .power => {

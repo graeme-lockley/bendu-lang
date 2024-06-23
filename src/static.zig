@@ -199,7 +199,7 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
 
                     ast.assignType(result.incRefR(), env.allocator);
                 },
-                .Equal => {
+                .Equal, .NotEqual => {
                     const common = try env.pump.newBound(env.allocator);
                     defer common.decRef(env.allocator);
 

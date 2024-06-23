@@ -121,6 +121,25 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                     }
                 },
                 .Modulo => try state.appendOp(Op.modulo_int),
+                .NotEqual => {
+                    if (ast.kind.binaryOp.lhs.type.?.isBool()) {
+                        try state.appendOp(Op.notequals_bool);
+                    } else if (ast.kind.binaryOp.lhs.type.?.isChar()) {
+                        try state.appendOp(Op.notequals_char);
+                    } else if (ast.kind.binaryOp.lhs.type.?.isFloat()) {
+                        try state.appendOp(Op.notequals_float);
+                    } else if (ast.kind.binaryOp.lhs.type.?.isInt()) {
+                        try state.appendOp(Op.notequals_int);
+                    } else if (ast.kind.binaryOp.lhs.type.?.isString()) {
+                        try state.appendOp(Op.notequals_string);
+                    } else if (ast.kind.binaryOp.lhs.type.?.isUnit()) {
+                        try state.appendOp(Op.discard);
+                        try state.appendOp(Op.discard);
+                        try state.appendOp(Op.push_false);
+                    } else {
+                        try state.appendOp(Op.notequals);
+                    }
+                },
                 .Plus => {
                     if (ast.type.?.isInt()) {
                         try state.appendOp(Op.add_int);

@@ -61,6 +61,23 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
                 },
                 .Minus => if (ast.type.?.isInt()) try env.runtime.minus_int() else if (ast.type.?.isChar()) try env.runtime.minus_char() else if (ast.type.?.isFloat()) try env.runtime.minus_float() else try env.runtime.minus(),
                 .Modulo => try env.runtime.modulo_int(),
+                .NotEqual => if (ast.kind.binaryOp.lhs.type.?.isBool()) {
+                    try env.runtime.notequals_bool();
+                } else if (ast.kind.binaryOp.lhs.type.?.isChar()) {
+                    try env.runtime.notequals_char();
+                } else if (ast.kind.binaryOp.lhs.type.?.isFloat()) {
+                    try env.runtime.notequals_float();
+                } else if (ast.kind.binaryOp.lhs.type.?.isInt()) {
+                    try env.runtime.notequals_int();
+                } else if (ast.kind.binaryOp.lhs.type.?.isString()) {
+                    try env.runtime.notequals_string();
+                } else if (ast.kind.binaryOp.lhs.type.?.isUnit()) {
+                    env.runtime.discard();
+                    env.runtime.discard();
+                    try env.runtime.push_bool(false);
+                } else {
+                    try env.runtime.notequals();
+                },
                 .Plus => if (ast.type.?.isInt()) try env.runtime.add_int() else if (ast.type.?.isChar()) try env.runtime.add_char() else if (ast.type.?.isFloat()) try env.runtime.add_float() else if (ast.type.?.isString()) try env.runtime.add_string() else try env.runtime.add(),
                 .Power => if (ast.type.?.isInt()) try env.runtime.power_int() else if (ast.type.?.isChar()) try env.runtime.power_char() else if (ast.type.?.isFloat()) try env.runtime.power_float() else try env.runtime.power(),
                 .Times => if (ast.type.?.isInt()) try env.runtime.times_int() else if (ast.type.?.isChar()) try env.runtime.times_char() else if (ast.type.?.isFloat()) try env.runtime.times_float() else try env.runtime.times(),

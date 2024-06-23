@@ -45,6 +45,8 @@ complete:
 - [x] Implement the `Unit` type in the AST interpreter
 - [x] Implement the `Unit` type in the BC interpreter
 - [x] Integrate into main so that the value can be viewed.
+- [x] Implement ==
+- [x] Implement !=
 
 ## Bool
 
@@ -57,7 +59,7 @@ complete:
 - [ ] Implement &&
 - [ ] Implement ||
 - [x] Implement ==
-- [ ] Implement !=
+- [x] Implement !=
 
 ## Int
 
@@ -105,7 +107,7 @@ complete:
 - [x] Implement the `String` type in the BC interpreter
 - [x] Integrate into main so that the value can be viewed.
 - [x] Implement +
-- [ ] Implement ==, !=
+- [ ] Implement ==, !=, <, <=, >, >=
 
 ## Record
 
@@ -122,7 +124,7 @@ complete:
 - [x] (/): [a: Int | Float | Char] a -> a -> a
 - [x] (%): Int -> Int -> Int
 - [x] (==): [a] a -> a -> Bool
-- [ ] (!=): [a] a -> a -> Bool
+- [x] (!=): [a] a -> a -> Bool
 - [ ] (<): [a: Int | Float | Char | String] a -> a -> a
 - [ ] (<=): [a: Int | Float | Char | String] a -> a -> a
 - [ ] (>): [a: Int | Float | Char | String] a -> a -> a
