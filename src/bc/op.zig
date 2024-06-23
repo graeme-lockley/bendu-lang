@@ -25,6 +25,7 @@ pub const Op = enum(u8) {
     minus_char,
     minus_float,
     minus_int,
+    modulo_int,
     power,
     power_char,
     power_float,

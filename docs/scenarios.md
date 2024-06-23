@@ -150,6 +150,9 @@ Let's see the above operators in action:
 
 > 84 / 2
 42: Int
+
+> 84 % 5
+4: Int
 ```
 
 Now let's try and break the type system.

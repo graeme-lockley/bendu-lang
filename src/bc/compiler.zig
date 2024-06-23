@@ -101,6 +101,7 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                         try state.appendOp(Op.add);
                     }
                 },
+                .Modulo => try state.appendOp(Op.modulo_int),
                 .Plus => {
                     if (ast.type.?.isInt()) {
                         try state.appendOp(Op.add_int);

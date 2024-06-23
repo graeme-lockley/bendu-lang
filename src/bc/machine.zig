@@ -109,6 +109,10 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 try runtime.minus_int();
                 ip += 1;
             },
+            .modulo_int => {
+                try runtime.modulo_int();
+                ip += 1;
+            },
             .power => {
                 try runtime.power();
                 ip += 1;

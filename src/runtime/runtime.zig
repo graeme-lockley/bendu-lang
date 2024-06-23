@@ -221,6 +221,13 @@ pub const Runtime = struct {
         try self.push_int(@intCast(Pointer.asInt(a) - Pointer.asInt(b)));
     }
 
+    pub inline fn modulo_int(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_int(@as(i63, @intCast(@mod(Pointer.asInt(a), Pointer.asInt(b)))));
+    }
+
     pub fn power(self: *Runtime) !void {
         const tos = self.peek().?;
 

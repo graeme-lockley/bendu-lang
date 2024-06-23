@@ -59,7 +59,7 @@ The following *definition of done* is used to determine when a feature is comple
 - [X] Implement the `Int` type in the AST interpreter
 - [X] Implement the `Int` type in the BC interpreter
 - [X] Integrate into main so that the value can be viewed.
-- [ ] Implement +, -, *, /, %, **
+- [X] Implement +, -, *, /, %, **
 - [ ] Implement ==, !=, <, <=, >, >=
 - [ ] Verify that the 63-bit signed is correct in when reporting literal underflow and overflow
 - [ ] Verify that the 63-bit signed is correct in when encountering underflow and overflow during +, -, *, /, **, % operations
@@ -73,10 +73,9 @@ The following *definition of done* is used to determine when a feature is comple
 - [X] Implement the `Float` type in the AST interpreter
 - [X] Implement the `Float` type in the BC interpreter
 - [X] Integrate into main so that the value can be viewed.
-- [ ] Implement +, -, *, **, /, %
+- [X] Implement +, -, *, **, /
 - [ ] Implement ==, !=, <, <=, >, >=
 - [ ] Handle divide by zero
-- [ ] Handle modulo zero
 
 ## Char
 
@@ -85,10 +84,9 @@ The following *definition of done* is used to determine when a feature is comple
 - [X] Implement the `Char` type in the AST interpreter
 - [X] Implement the `Char` type in the BC interpreter
 - [X] Integrate into main so that the value can be viewed.
-- [X] Implement +, -, *, **, /, %
+- [X] Implement +, -, *, **, /
 - [ ] Implement ==, !=, <, <=, >, >=
 - [ ] Handle divide by zero
-- [ ] Handle modulo zero
 
 ## String
 
@@ -112,7 +110,7 @@ The following *definition of done* is used to determine when a feature is comple
 - [X] (*): [a: Int | Float | Char] a -> a -> a
 - [X] (**): [a: Int | Float | Char] a -> a -> a
 - [X] (/): [a: Int | Float | Char] a -> a -> a
-- [ ] (%): Int -> Int -> Int
+- [X] (%): Int -> Int -> Int
 - [ ] (==): [a] a -> a -> Bool
 - [ ] (!=): [a] a -> a -> Bool
 - [ ] (<): [a: Int | Float | Char | String] a -> a -> a
