@@ -93,6 +93,22 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 try runtime.minus_int();
                 ip += 1;
             },
+            .times => {
+                try runtime.times();
+                ip += 1;
+            },
+            .times_char => {
+                try runtime.times_char();
+                ip += 1;
+            },
+            .times_float => {
+                try runtime.times_float();
+                ip += 1;
+            },
+            .times_int => {
+                try runtime.times_int();
+                ip += 1;
+            },
 
             .not => {
                 try runtime.not();

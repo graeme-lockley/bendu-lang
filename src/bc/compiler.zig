@@ -103,6 +103,17 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                         try state.appendOp(Op.add);
                     }
                 },
+                .Times => {
+                    if (ast.type.?.isInt()) {
+                        try state.appendOp(Op.times_int);
+                    } else if (ast.type.?.isChar()) {
+                        try state.appendOp(Op.times_char);
+                    } else if (ast.type.?.isFloat()) {
+                        try state.appendOp(Op.times_float);
+                    } else {
+                        try state.appendOp(Op.times);
+                    }
+                },
                 else => {
                     try std.io.getStdErr().writer().print("Internal Error: Unsupported binary operator\n", .{});
                     std.process.exit(1);
