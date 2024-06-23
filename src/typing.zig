@@ -114,6 +114,10 @@ pub const Type = struct {
         return self.kind == TypeKind.Tag and std.mem.eql(u8, self.kind.Tag.name.slice(), "String");
     }
 
+    pub inline fn isUnit(self: *Type) bool {
+        return self.kind == TypeKind.Tag and std.mem.eql(u8, self.kind.Tag.name.slice(), "Unit");
+    }
+
     pub fn toString(self: *Type, allocator: std.mem.Allocator) std.mem.Allocator.Error![]u8 {
         var buffer = std.ArrayList(u8).init(allocator);
 

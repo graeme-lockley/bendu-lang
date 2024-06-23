@@ -47,6 +47,11 @@ The unit literal is typed as follows:
 
 $$\frac{}{\mathtt{(): {\rm Unit}}}$$
 
+```bendu-repl
+> () == ()
+True: Bool
+```
+
 ## Bool
 
 The `Bool` type is a boolean value with two values `True` and `False`. This type
@@ -81,6 +86,18 @@ $$\frac{\mathtt{b: {\rm Bool}}}{\mathtt{{\tt not}\ b: {\rm Bool}}}$$
 False: Bool
 
 > !False
+True: Bool
+
+> True == True
+True: Bool
+
+> False == True
+False: Bool
+
+> True == False
+False: Bool
+
+> False == False
 True: Bool
 ```
 

@@ -52,6 +52,10 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
                     try env.runtime.equals_int();
                 } else if (ast.kind.binaryOp.lhs.type.?.isString()) {
                     try env.runtime.equals_string();
+                } else if (ast.kind.binaryOp.lhs.type.?.isUnit()) {
+                    env.runtime.discard();
+                    env.runtime.discard();
+                    try env.runtime.push_bool(true);
                 } else {
                     try env.runtime.equals();
                 },

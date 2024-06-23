@@ -101,6 +101,10 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                         try state.appendOp(Op.equals_int);
                     } else if (ast.kind.binaryOp.lhs.type.?.isString()) {
                         try state.appendOp(Op.equals_string);
+                    } else if (ast.kind.binaryOp.lhs.type.?.isUnit()) {
+                        try state.appendOp(Op.discard);
+                        try state.appendOp(Op.discard);
+                        try state.appendOp(Op.push_true);
                     } else {
                         try state.appendOp(Op.equals);
                     }
