@@ -80,7 +80,7 @@ The following *definition of done* is used to determine when a feature is comple
 - [X] Implement the `Char` type in the AST interpreter
 - [X] Implement the `Char` type in the BC interpreter
 - [X] Integrate into main so that the value can be viewed.
-- [X] Implement +
+- [X] Implement +, -
 - [ ] Implement ==, !=, <, <=, >, >=
 
 ## String
@@ -101,7 +101,7 @@ The following *definition of done* is used to determine when a feature is comple
 # Operators
 
 - [X] (+): [a: Char | Float | Int | String] a -> a -> a
-- [ ] (-): [a: Int | Float | Char] a -> a -> a
+- [X] (-): [a: Int | Float | Char] a -> a -> a
 - [ ] (*): [a: Int | Float | Char] a -> a -> a
 - [ ] (**): Int -> Int -> Int
 - [ ] (/): [a: Int | Float | Char] a -> a -> a
