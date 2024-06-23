@@ -147,6 +147,9 @@ Let's see the above operators in action:
 
 > 2 ** 8
 256: Int
+
+> 84 / 2
+42: Int
 ```
 
 Now let's try and break the type system.
@@ -196,6 +199,9 @@ The standard operators are defined over the `Float` type.
 
 > 2.1 ** 2.0
 4.41: Float
+
+> 8.4 / 2.0
+4.2: Float
 ```
 
 ## Char
@@ -252,6 +258,9 @@ A number of operators are defined over the `Char` type.
 
 > 'b' ** '\x2'
 '\x132': Char
+
+> ('b' + 'b') / 'a'
+'\x2': Char
 ```
 
 ## String

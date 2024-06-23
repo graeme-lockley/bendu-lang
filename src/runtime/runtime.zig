@@ -146,6 +146,41 @@ pub const Runtime = struct {
             }
         }
     }
+    pub fn divide(self: *Runtime) !void {
+        const tos = self.peek().?;
+
+        if (Pointer.isPointer(tos)) {
+            try self.divide_float();
+        } else {
+            try self.divide_int();
+        }
+    }
+
+    pub inline fn divide_float(self: *Runtime) !void {
+        const b = self.pop();
+        const valueB = Pointer.as(*Memory.FloatValue, b).value;
+
+        const a = self.pop();
+        const valueA = Pointer.as(*Memory.FloatValue, a).value;
+
+        try self.push_float(valueA / valueB);
+    }
+
+    pub inline fn divide_char(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        const v: i64 = @divTrunc(Pointer.asInt(a), Pointer.asInt(b));
+
+        try self.push_int(@mod(@as(i63, @intCast(v)), 256));
+    }
+
+    pub inline fn divide_int(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_int(@intCast(@divTrunc(Pointer.asInt(a), Pointer.asInt(b))));
+    }
 
     pub fn minus(self: *Runtime) !void {
         const tos = self.peek().?;

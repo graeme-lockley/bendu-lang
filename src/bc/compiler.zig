@@ -79,6 +79,17 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
             try compileExpr(ast.kind.binaryOp.rhs, state);
 
             switch (ast.kind.binaryOp.op) {
+                .Divide => {
+                    if (ast.type.?.isInt()) {
+                        try state.appendOp(Op.divide_int);
+                    } else if (ast.type.?.isChar()) {
+                        try state.appendOp(Op.divide_char);
+                    } else if (ast.type.?.isFloat()) {
+                        try state.appendOp(Op.divide_float);
+                    } else {
+                        try state.appendOp(Op.divide);
+                    }
+                },
                 .Minus => {
                     if (ast.type.?.isInt()) {
                         try state.appendOp(Op.minus_int);
