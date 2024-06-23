@@ -102,7 +102,7 @@ The following *definition of done* is used to determine when a feature is comple
 
 - [X] (+): [a: Char | Float | Int | String] a -> a -> a
 - [X] (-): [a: Int | Float | Char] a -> a -> a
-- [ ] (*): [a: Int | Float | Char] a -> a -> a
+- [X] (*): [a: Int | Float | Char] a -> a -> a
 - [ ] (**): Int -> Int -> Int
 - [ ] (/): [a: Int | Float | Char] a -> a -> a
 - [ ] (%): Int -> Int -> Int
