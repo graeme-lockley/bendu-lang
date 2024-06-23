@@ -181,37 +181,45 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             _ = try expression(ast.kind.assignment.rhs, env);
         },
         .binaryOp => {
-            const result = try env.pump.newBound(env.allocator);
-            defer result.decRef(env.allocator);
+            switch (ast.kind.binaryOp.op) {
+                .Plus => {
+                    const result = try env.pump.newBound(env.allocator);
+                    defer result.decRef(env.allocator);
 
-            const lhs = try expression(ast.kind.binaryOp.lhs, env);
-            const rhs = try expression(ast.kind.binaryOp.rhs, env);
+                    const lhs = try expression(ast.kind.binaryOp.lhs, env);
+                    const rhs = try expression(ast.kind.binaryOp.rhs, env);
 
-            try env.addConstraint(lhs, result, ast.kind.binaryOp.lhs.locationRange);
-            try env.addConstraint(rhs, result, ast.kind.binaryOp.rhs.locationRange);
+                    try env.addConstraint(lhs, result, ast.kind.binaryOp.lhs.locationRange);
+                    try env.addConstraint(rhs, result, ast.kind.binaryOp.rhs.locationRange);
 
-            const dependentType = try Typing.OrExtendType.new(
-                env.allocator,
-                env.charType.incRefR(),
-                try Typing.OrExtendType.new(
-                    env.allocator,
-                    env.floatType.incRefR(),
-                    try Typing.OrExtendType.new(
-                        env.allocator,
-                        env.intType.incRefR(),
-                        try Typing.OrExtendType.new(
-                            env.allocator,
-                            env.stringType.incRefR(),
-                            try Typing.OrEmptyType.new(env.allocator),
-                        ),
-                    ),
-                ),
-            );
-            defer dependentType.decRef(env.allocator);
+                    const dependentType = try Typing.OrExtendType.new(env.allocator, env.charType.incRefR(), try Typing.OrExtendType.new(env.allocator, env.floatType.incRefR(), try Typing.OrExtendType.new(env.allocator, env.intType.incRefR(), try Typing.OrExtendType.new(env.allocator, env.stringType.incRefR(), try Typing.OrEmptyType.new(env.allocator)))));
+                    defer dependentType.decRef(env.allocator);
 
-            try env.addDependent(result, dependentType, ast.locationRange);
+                    try env.addDependent(result, dependentType, ast.locationRange);
 
-            ast.assignType(result.incRefR(), env.allocator);
+                    ast.assignType(result.incRefR(), env.allocator);
+                },
+                .Minus => {
+                    const result = try env.pump.newBound(env.allocator);
+                    defer result.decRef(env.allocator);
+
+                    const lhs = try expression(ast.kind.binaryOp.lhs, env);
+                    const rhs = try expression(ast.kind.binaryOp.rhs, env);
+
+                    try env.addConstraint(lhs, result, ast.kind.binaryOp.lhs.locationRange);
+                    try env.addConstraint(rhs, result, ast.kind.binaryOp.rhs.locationRange);
+
+                    const dependentType = try Typing.OrExtendType.new(env.allocator, env.charType.incRefR(), try Typing.OrExtendType.new(env.allocator, env.floatType.incRefR(), try Typing.OrExtendType.new(env.allocator, env.intType.incRefR(), try Typing.OrEmptyType.new(env.allocator))));
+                    defer dependentType.decRef(env.allocator);
+
+                    try env.addDependent(result, dependentType, ast.locationRange);
+
+                    ast.assignType(result.incRefR(), env.allocator);
+                },
+                else => {
+                    try env.appendError(try Errors.undefinedOperatorError(env.sp.allocator, ast.locationRange, ast.kind.binaryOp.op.toString()));
+                },
+            }
         },
         .call => {
             _ = try expression(ast.kind.call.callee, env);

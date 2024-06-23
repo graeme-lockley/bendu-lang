@@ -77,6 +77,22 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 try runtime.add_string();
                 ip += 1;
             },
+            .minus => {
+                try runtime.minus();
+                ip += 1;
+            },
+            .minus_char => {
+                try runtime.minus_char();
+                ip += 1;
+            },
+            .minus_float => {
+                try runtime.minus_float();
+                ip += 1;
+            },
+            .minus_int => {
+                try runtime.minus_int();
+                ip += 1;
+            },
 
             .not => {
                 try runtime.not();

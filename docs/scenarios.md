@@ -138,6 +138,9 @@ Let's see the above operators in action:
 ```bendu-repl
 > 40 + 2
 42: Int
+
+> 49 - 7
+42: Int
 ```
 
 Now let's try and break the type system.
@@ -145,6 +148,11 @@ Now let's try and break the type system.
 ```bendu-repl
 > () + ()
 Error: 1:1-7: Unification error: Unable to unify Unit with Char | Float | Int | String
+```
+
+```bendu-repl
+> "hello world" - "world"
+Error: 1:1-23: Unification error: Unable to unify String with Char | Float | Int
 ```
 
 ## Float
@@ -167,6 +175,9 @@ The standard operators are defined over the `Float` type.
 
 ```bendu-repl
 > 2.9 + 1.3
+4.2: Float
+
+> 4.95 - 0.75
 4.2: Float
 ```
 
@@ -212,6 +223,12 @@ A number of operators are defined over the `Char` type.
 
 > '\x255' + '\x1'
 '\x0': Char
+
+> 'b' - 'a'
+'\x1': Char
+
+> '\x1' - '\x2'
+'\x255': Char
 ```
 
 ## String

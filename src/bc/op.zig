@@ -17,6 +17,10 @@ pub const Op = enum(u8) {
     add_int,
     add_float,
     add_string,
+    minus,
+    minus_char,
+    minus_int,
+    minus_float,
     not,
 
     print_int,

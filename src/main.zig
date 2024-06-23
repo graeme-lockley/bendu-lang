@@ -105,7 +105,7 @@ fn printValue(v: Pointer.Pointer, typ: *Typing.Type) !void {
                     10 => try stdout.print("'\\n'", .{}),
                     39 => try stdout.print("'\\''", .{}),
                     92 => try stdout.print("'\\\\'", .{}),
-                    0...9, 11...31 => try stdout.print("'\\x{d}'", .{c}),
+                    0...9, 11...31, 128...255 => try stdout.print("'\\x{d}'", .{c}),
                     else => try stdout.print("'{c}'", .{c}),
                 }
             } else if (std.mem.eql(u8, name, "Float")) {

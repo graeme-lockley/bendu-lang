@@ -147,6 +147,45 @@ pub const Runtime = struct {
         }
     }
 
+    pub fn minus(self: *Runtime) !void {
+        const tos = self.peek().?;
+
+        if (Pointer.isPointer(tos)) {
+            try self.minus_float();
+        } else {
+            try self.minus_int();
+        }
+    }
+
+    pub inline fn minus_char(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        var v: i64 = Pointer.asInt(a) - Pointer.asInt(b);
+        while (v < 0) {
+            v += 256;
+        }
+
+        try self.push_int(@mod(@as(i63, @intCast(v)), 256));
+    }
+
+    pub inline fn minus_float(self: *Runtime) !void {
+        const b = self.pop();
+        const valueB = Pointer.as(*Memory.FloatValue, b).value;
+
+        const a = self.pop();
+        const valueA = Pointer.as(*Memory.FloatValue, a).value;
+
+        try self.push_float(valueA - valueB);
+    }
+
+    pub inline fn minus_int(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_int(@intCast(Pointer.asInt(a) - Pointer.asInt(b)));
+    }
+
     pub inline fn not(self: *Runtime) !void {
         const v = self.pop();
         if (Pointer.asInt(v) == 0) {
@@ -208,4 +247,20 @@ test "add_string" {
     const result = runtime.pop();
     const value = Pointer.as(*Memory.StringValue, result).value;
     try std.testing.expectEqualStrings("helloworld", value.slice());
+}
+
+test "minus_char" {
+    var sp = SP.StringPool.init(std.testing.allocator);
+    defer sp.deinit();
+
+    var runtime = Runtime.init(&sp);
+    defer runtime.deinit();
+
+    try runtime.push_int(0);
+    try runtime.push_int(1);
+
+    try runtime.minus_char();
+
+    const result = runtime.pop();
+    try std.testing.expectEqual(255, Pointer.asChar(result));
 }
