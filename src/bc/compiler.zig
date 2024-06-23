@@ -82,15 +82,14 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                 .Plus => {
                     if (ast.type.?.isInt()) {
                         try state.appendOp(Op.add_int);
+                    } else if (ast.type.?.isChar()) {
+                        try state.appendOp(Op.add_char);
                     } else if (ast.type.?.isFloat()) {
                         try state.appendOp(Op.add_float);
+                    } else if (ast.type.?.isString()) {
+                        try state.appendOp(Op.add_string);
                     } else {
-                        const t = try ast.type.?.toString(state.allocator);
-                        defer state.allocator.free(t);
-
-                        try std.io.getStdErr().writer().print("Internal Error: Unsupported type {s} for binary operator +\n", .{t});
-                        unreachable;
-                        // try state.appendOp(Op.add);
+                        try state.appendOp(Op.add);
                     }
                 },
                 else => {

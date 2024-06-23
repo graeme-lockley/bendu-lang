@@ -40,9 +40,8 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
             .push_string => {
                 const len: usize = @intCast(readInt(bc, ip + 1));
                 const s = try runtime.sp.intern(bc[ip + 9 .. ip + 9 + len]);
-                defer s.decRef();
 
-                try runtime.push_pointer(@intFromPtr(try runtime.memory.allocateString(s)));
+                try runtime.push_string_owned(s);
                 ip += 9 + len;
             },
             .push_true => {
@@ -62,12 +61,20 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 try runtime.add();
                 ip += 1;
             },
+            .add_char => {
+                try runtime.add_char();
+                ip += 1;
+            },
             .add_float => {
                 try runtime.add_float();
                 ip += 1;
             },
             .add_int => {
                 try runtime.add_int();
+                ip += 1;
+            },
+            .add_string => {
+                try runtime.add_string();
                 ip += 1;
             },
 

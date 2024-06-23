@@ -112,7 +112,7 @@ $$\frac{\mathtt{I \in \cal{I}}}{\mathtt{I: {\rm Int}}}$$
 
 Int has a number of operators defined over it and numbers in general.  The typing of these operators are as follows:
 
-$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b: t}}{\mathtt{a + b: t}}$$
+$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a: t, b: t}}{\mathtt{a + b: t}}$$
 
 $$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b: t}}{\mathtt{a - b: t}}$$
 
@@ -137,8 +137,8 @@ It should be noted from the above that operators do not perform automatic coerci
 Let's see the above operators in action:
 
 ```bendu-repl
-> 1 + 1
-2: Int
+> 40 + 2
+42: Int
 ```
 
 ## Float
@@ -156,6 +156,13 @@ A float value is a decimal number.  It is written as `n.m` where `n` is any whol
 Float literals are typed as follows:
 
 $$\frac{\mathtt{F \in \cal{F}}}{\mathtt{F: {\rm Float}}}$$
+
+The standard operators are defined over the `Float` type.
+
+```bendu-repl
+> 2.9 + 1.3
+4.2: Float
+```
 
 ## Char
 
@@ -191,6 +198,16 @@ Char literals are typed as follows:
 
 $$\frac{\mathtt{C \in \cal{C}}}{\mathtt{C: {\rm Char}}}$$
 
+A number of operators are defined over the `Char` type.
+
+```bendu-repl
+> 'a' + '\x1'
+'b': Char
+
+> '\x255' + '\x1'
+'\x0': Char
+```
+
 ## String
 
 A string value is an immutable sequence of characters.  It is written as `"s"` where `s` is any sequence of characters.  Internally a string value is represented as a sequence of 8 bit unsigned bytes.
@@ -213,6 +230,13 @@ Like character, there are 4 special characters that can be used in a string lite
 String literals are typed as follows:
 
 $$\frac{\mathtt{S \in \cal{S}}}{\mathtt{S: {\rm String}}}$$
+
+A number of operators are defined over the `String` type.
+
+```bendu-repl
+> "Hello" + " " + "World"
+"Hello World": String
+```
 
 # Error Reporting
 

@@ -18,6 +18,12 @@ pub inline fn asInt(value: Pointer) i64 {
     return @intCast(@as(i63, @bitCast(@as(u63, @intCast(value >> 1)))));
 }
 
+pub inline fn asChar(value: Pointer) u8 {
+    const v: i64 = @mod(asInt(value), 256);
+
+    return @intCast(v);
+}
+
 pub inline fn fromInt(value: i63) Pointer {
     return (@as(Pointer, @intCast(@as(u63, @bitCast(value)))) << 1) | 1;
 }

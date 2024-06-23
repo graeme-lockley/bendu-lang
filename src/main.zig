@@ -100,7 +100,7 @@ fn printValue(v: Pointer.Pointer, typ: *Typing.Type) !void {
             if (std.mem.eql(u8, name, "Bool")) {
                 try stdout.print("{s}", .{if (Pointer.asInt(v) == 0) "False" else "True"});
             } else if (std.mem.eql(u8, name, "Char")) {
-                const c: u8 = @intCast(Pointer.asInt(v));
+                const c: u8 = Pointer.asChar(v);
                 switch (c) {
                     10 => try stdout.print("'\\n'", .{}),
                     39 => try stdout.print("'\\''", .{}),
@@ -145,6 +145,7 @@ test "All tests" {
     _ = @import("parser.zig");
     _ = @import("runtime/memory.zig");
     _ = @import("runtime/pointer.zig");
+    _ = @import("runtime/runtime.zig");
     _ = @import("static.zig");
     _ = @import("typing.zig");
     _ = @import("typing/subst.zig");

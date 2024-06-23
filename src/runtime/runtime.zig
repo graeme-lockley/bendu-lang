@@ -56,6 +56,11 @@ pub const Runtime = struct {
         try self.stack.append(pointer);
     }
 
+    pub inline fn push_string_owned(self: *Runtime, value: *SP.String) !void {
+        const pointer: Pointer.Pointer = @intFromPtr(try self.memory.allocateStringOwned(value));
+        try self.stack.append(pointer);
+    }
+
     pub inline fn push_unit(self: *Runtime) !void {
         try self.stack.append(Pointer.fromInt(0));
     }
@@ -83,14 +88,37 @@ pub const Runtime = struct {
 
     // Operators
 
-    pub inline fn add(self: *Runtime) !void {
-        try self.add_int();
+    pub fn add(self: *Runtime) !void {
+        const tos = self.peek().?;
+
+        if (Pointer.isPointer(tos)) {
+            const value = Pointer.as(*Memory.PageItem, tos);
+
+            if (value.isFloat()) {
+                try self.add_float();
+            } else {
+                try self.add_string();
+            }
+        } else {
+            try self.add_int();
+        }
+    }
+
+    pub inline fn add_char(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_int(@mod(@as(i63, @intCast(Pointer.asInt(a) + Pointer.asInt(b))), 256));
     }
 
     pub inline fn add_float(self: *Runtime) !void {
-        _ = self;
+        const b = self.pop();
+        const valueB = Pointer.as(*Memory.FloatValue, b).value;
 
-        unreachable;
+        const a = self.pop();
+        const valueA = Pointer.as(*Memory.FloatValue, a).value;
+
+        try self.push_float(valueA + valueB);
     }
 
     pub inline fn add_int(self: *Runtime) !void {
@@ -98,6 +126,25 @@ pub const Runtime = struct {
         const a = self.pop();
 
         try self.push_int(@intCast(Pointer.asInt(a) + Pointer.asInt(b)));
+    }
+
+    pub inline fn add_string(self: *Runtime) !void {
+        const b = self.pop();
+        const valueB = Pointer.as(*Memory.StringValue, b).value;
+
+        if (valueB.len() != 0) {
+            const a = self.pop();
+            const valueA = Pointer.as(*Memory.StringValue, a).value;
+
+            if (valueA.len() == 0) {
+                try self.push_string(valueB);
+            } else {
+                const slices = [_][]const u8{ valueA.slice(), valueB.slice() };
+                const result = try std.mem.concat(self.allocator, u8, &slices);
+
+                try self.push_string_owned(try self.sp.internOwned(result));
+            }
+        }
     }
 
     pub inline fn not(self: *Runtime) !void {
@@ -109,3 +156,56 @@ pub const Runtime = struct {
         }
     }
 };
+
+test "push float and pop float" {
+    var sp = SP.StringPool.init(std.testing.allocator);
+    var runtime = Runtime.init(&sp);
+    defer runtime.deinit();
+
+    try runtime.push_float(1.0);
+    try runtime.push_float(2.0);
+
+    const v1 = runtime.pop();
+    const v1actual = Pointer.as(*Memory.FloatValue, v1).value;
+    try std.testing.expectEqual(2.0, v1actual);
+
+    const v2 = runtime.pop();
+    const v2actual = Pointer.as(*Memory.FloatValue, v2).value;
+    try std.testing.expectEqual(1.0, v2actual);
+}
+
+test "add_float" {
+    var sp = SP.StringPool.init(std.testing.allocator);
+    var runtime = Runtime.init(&sp);
+    defer runtime.deinit();
+
+    try runtime.push_float(1.0);
+    try runtime.push_float(2.0);
+
+    try runtime.add_float();
+
+    const result = runtime.pop();
+    const value = Pointer.as(*Memory.FloatValue, result).value;
+
+    try std.testing.expectEqual(3.0, value);
+}
+
+test "add_string" {
+    var sp = SP.StringPool.init(std.testing.allocator);
+    defer sp.deinit();
+
+    var runtime = Runtime.init(&sp);
+    defer runtime.deinit();
+
+    const s1 = try sp.intern("hello");
+    defer s1.decRef();
+
+    try runtime.push_string(s1);
+    try runtime.push_string_owned(try sp.intern("world"));
+
+    try runtime.add_string();
+
+    const result = runtime.pop();
+    const value = Pointer.as(*Memory.StringValue, result).value;
+    try std.testing.expectEqualStrings("helloworld", value.slice());
+}
