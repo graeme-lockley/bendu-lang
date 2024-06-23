@@ -182,6 +182,63 @@ pub const Runtime = struct {
         try self.push_int(@intCast(@divTrunc(Pointer.asInt(a), Pointer.asInt(b))));
     }
 
+    pub fn equals(self: *Runtime) !void {
+        const tos = self.peek().?;
+
+        if (Pointer.isPointer(tos)) {
+            const value = Pointer.as(*Memory.PageItem, tos);
+
+            if (value.isFloat()) {
+                try self.equals_float();
+            } else {
+                try self.equals_string();
+            }
+        } else {
+            try self.equals_int();
+        }
+    }
+
+    pub inline fn equals_bool(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_bool(Pointer.asBool(a) == Pointer.asBool(b));
+    }
+
+    pub inline fn equals_char(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_bool(Pointer.asChar(a) == Pointer.asChar(b));
+    }
+
+    pub inline fn equals_float(self: *Runtime) !void {
+        const b = self.pop();
+        const valueB = Pointer.as(*Memory.FloatValue, b).value;
+
+        const a = self.pop();
+        const valueA = Pointer.as(*Memory.FloatValue, a).value;
+
+        try self.push_bool(valueA == valueB);
+    }
+
+    pub inline fn equals_int(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_bool(Pointer.asInt(a) == Pointer.asInt(b));
+    }
+
+    pub inline fn equals_string(self: *Runtime) !void {
+        const b = self.pop();
+        const valueB = Pointer.as(*Memory.StringValue, b).value;
+
+        const a = self.pop();
+        const valueA = Pointer.as(*Memory.StringValue, a).value;
+
+        try self.push_bool(valueA == valueB);
+    }
+
     pub fn minus(self: *Runtime) !void {
         const tos = self.peek().?;
 

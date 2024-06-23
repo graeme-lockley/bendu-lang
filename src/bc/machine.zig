@@ -97,6 +97,31 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 try runtime.minus();
                 ip += 1;
             },
+            .equals => {
+                try runtime.equals();
+                ip += 1;
+            },
+            .equals_bool => {
+                try runtime.equals_bool();
+                ip += 1;
+            },
+            .equals_char => {
+                try runtime.equals_char();
+                ip += 1;
+            },
+            .equals_float => {
+                try runtime.equals_float();
+                ip += 1;
+            },
+            .equals_int => {
+                try runtime.equals_int();
+                ip += 1;
+            },
+            .equals_string => {
+                try runtime.equals_string();
+                ip += 1;
+            },
+
             .minus_char => {
                 try runtime.minus_char();
                 ip += 1;

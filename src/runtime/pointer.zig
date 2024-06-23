@@ -2,26 +2,30 @@ const std = @import("std");
 
 pub const Pointer = u64;
 
-pub inline fn isPointer(value: Pointer) bool {
-    return value & 1 == 0;
-}
-
 pub inline fn isInt(value: Pointer) bool {
     return value & 1 == 1;
+}
+
+pub inline fn isPointer(value: Pointer) bool {
+    return value & 1 == 0;
 }
 
 pub inline fn as(t: type, value: Pointer) t {
     return @as(t, @ptrFromInt(@as(usize, value)));
 }
 
-pub inline fn asInt(value: Pointer) i64 {
-    return @intCast(@as(i63, @bitCast(@as(u63, @intCast(value >> 1)))));
+pub inline fn asBool(value: Pointer) bool {
+    return asInt(value) == 1;
 }
 
 pub inline fn asChar(value: Pointer) u8 {
     const v: i64 = @mod(asInt(value), 256);
 
     return @intCast(v);
+}
+
+pub inline fn asInt(value: Pointer) i64 {
+    return @intCast(@as(i63, @bitCast(@as(u63, @intCast(value >> 1)))));
 }
 
 pub inline fn fromInt(value: i63) Pointer {

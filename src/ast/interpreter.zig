@@ -42,6 +42,19 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
 
             switch (ast.kind.binaryOp.op) {
                 .Divide => if (ast.type.?.isInt()) try env.runtime.divide_int() else if (ast.type.?.isChar()) try env.runtime.divide_char() else if (ast.type.?.isFloat()) try env.runtime.divide_float() else try env.runtime.divide(),
+                .Equal => if (ast.kind.binaryOp.lhs.type.?.isBool()) {
+                    try env.runtime.equals_bool();
+                } else if (ast.kind.binaryOp.lhs.type.?.isChar()) {
+                    try env.runtime.equals_char();
+                } else if (ast.kind.binaryOp.lhs.type.?.isFloat()) {
+                    try env.runtime.equals_float();
+                } else if (ast.kind.binaryOp.lhs.type.?.isInt()) {
+                    try env.runtime.equals_int();
+                } else if (ast.kind.binaryOp.lhs.type.?.isString()) {
+                    try env.runtime.equals_string();
+                } else {
+                    try env.runtime.equals();
+                },
                 .Minus => if (ast.type.?.isInt()) try env.runtime.minus_int() else if (ast.type.?.isChar()) try env.runtime.minus_char() else if (ast.type.?.isFloat()) try env.runtime.minus_float() else try env.runtime.minus(),
                 .Modulo => try env.runtime.modulo_int(),
                 .Plus => if (ast.type.?.isInt()) try env.runtime.add_int() else if (ast.type.?.isChar()) try env.runtime.add_char() else if (ast.type.?.isFloat()) try env.runtime.add_float() else if (ast.type.?.isString()) try env.runtime.add_string() else try env.runtime.add(),

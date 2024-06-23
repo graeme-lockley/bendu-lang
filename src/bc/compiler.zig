@@ -90,6 +90,21 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                         try state.appendOp(Op.divide);
                     }
                 },
+                .Equal => {
+                    if (ast.kind.binaryOp.lhs.type.?.isBool()) {
+                        try state.appendOp(Op.equals_bool);
+                    } else if (ast.kind.binaryOp.lhs.type.?.isChar()) {
+                        try state.appendOp(Op.equals_char);
+                    } else if (ast.kind.binaryOp.lhs.type.?.isFloat()) {
+                        try state.appendOp(Op.equals_float);
+                    } else if (ast.kind.binaryOp.lhs.type.?.isInt()) {
+                        try state.appendOp(Op.equals_int);
+                    } else if (ast.kind.binaryOp.lhs.type.?.isString()) {
+                        try state.appendOp(Op.equals_string);
+                    } else {
+                        try state.appendOp(Op.equals);
+                    }
+                },
                 .Minus => {
                     if (ast.type.?.isInt()) {
                         try state.appendOp(Op.minus_int);

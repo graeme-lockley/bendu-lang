@@ -1,6 +1,12 @@
-The following is the implementation TODO list.  It is a list of the things that need to be implemented in the Bendu language.  The list is not exhaustive and will be updated as the implementation progresses.  The intent of this list is to create a roadmap that is based on individual language features rather than the typical compiler pipeline.  This is to ensure that there is gradual progress from lexical analysis to code generation one language feature at a time.
+The following is the implementation TODO list. It is a list of the things that
+need to be implemented in the Bendu language. The list is not exhaustive and
+will be updated as the implementation progresses. The intent of this list is to
+create a roadmap that is based on individual language features rather than the
+typical compiler pipeline. This is to ensure that there is gradual progress from
+lexical analysis to code generation one language feature at a time.
 
-The following *definition of done* is used to determine when a feature is complete:
+The following _definition of done_ is used to determine when a feature is
+complete:
 
 - The feature is implemented in the language
 - The feature is documented in the language documentation
@@ -10,8 +16,8 @@ The following *definition of done* is used to determine when a feature is comple
 
 # Scaffolding
 
-- [X] Have lexical errors propagate through to main
-- [X] Have syntax errors propagate through to main
+- [x] Have lexical errors propagate through to main
+- [x] Have syntax errors propagate through to main
 
 # Language
 
@@ -20,7 +26,7 @@ The following *definition of done* is used to determine when a feature is comple
 - [ ] Implement mutable package variables
 - [ ] Implement mutable local variables
 - [ ] Implement mutable parameters variables
-   
+
 ## if
 
 - [ ] Implement the `if` expression in the AST interpreter
@@ -35,83 +41,87 @@ The following *definition of done* is used to determine when a feature is comple
 
 ## Unit
 
-- [X] Implement the `Unit` type
-- [X] Implement the `Unit` type in the AST interpreter
-- [X] Implement the `Unit` type in the BC interpreter
-- [X] Integrate into main so that the value can be viewed.
+- [x] Implement the `Unit` type
+- [x] Implement the `Unit` type in the AST interpreter
+- [x] Implement the `Unit` type in the BC interpreter
+- [x] Integrate into main so that the value can be viewed.
 
 ## Bool
 
-- [X] Add the `Bool` type to the language
-- [X] Infer `Bool` literal values
-- [X] Implement the `Bool` type in the AST interpreter
-- [X] Implement the `Bool` type in the BC interpreter
-- [X] Integrate into main so that the value can be viewed.
-- [X] Implement not
+- [x] Add the `Bool` type to the language
+- [x] Infer `Bool` literal values
+- [x] Implement the `Bool` type in the AST interpreter
+- [x] Implement the `Bool` type in the BC interpreter
+- [x] Integrate into main so that the value can be viewed.
+- [x] Implement not
 - [ ] Implement &&
 - [ ] Implement ||
-- [ ] Implement ==
+- [x] Implement ==
+- [ ] Implement !=
 
 ## Int
 
-- [X] Add the `Int` type to the language
-- [X] Infer `Int` literal values
-- [X] Implement the `Int` type in the AST interpreter
-- [X] Implement the `Int` type in the BC interpreter
-- [X] Integrate into main so that the value can be viewed.
-- [X] Implement +, -, *, /, %, **
+- [x] Add the `Int` type to the language
+- [x] Infer `Int` literal values
+- [x] Implement the `Int` type in the AST interpreter
+- [x] Implement the `Int` type in the BC interpreter
+- [x] Integrate into main so that the value can be viewed.
+- [x] Implement +, -, *, /, %, **
 - [ ] Implement ==, !=, <, <=, >, >=
-- [ ] Verify that the 63-bit signed is correct in when reporting literal underflow and overflow
-- [ ] Verify that the 63-bit signed is correct in when encountering underflow and overflow during +, -, *, /, **, % operations
+- [ ] Verify that the 63-bit signed is correct in when reporting literal
+      underflow and overflow
+- [ ] Verify that the 63-bit signed is correct in when encountering underflow
+      and overflow during +, -, *, /, **, % operations
 - [ ] Handle divide by zero
 - [ ] Handle modulo zero
 
 ## Float
 
-- [X] Add the `Float` type to the language
-- [X] Infer `Float` literal values
-- [X] Implement the `Float` type in the AST interpreter
-- [X] Implement the `Float` type in the BC interpreter
-- [X] Integrate into main so that the value can be viewed.
-- [X] Implement +, -, *, **, /
+- [x] Add the `Float` type to the language
+- [x] Infer `Float` literal values
+- [x] Implement the `Float` type in the AST interpreter
+- [x] Implement the `Float` type in the BC interpreter
+- [x] Integrate into main so that the value can be viewed.
+- [x] Implement +, -, *, **, /
 - [ ] Implement ==, !=, <, <=, >, >=
 - [ ] Handle divide by zero
 
 ## Char
 
-- [X] Add the `Char` type to the language
-- [X] Infer `Char` literal values
-- [X] Implement the `Char` type in the AST interpreter
-- [X] Implement the `Char` type in the BC interpreter
-- [X] Integrate into main so that the value can be viewed.
-- [X] Implement +, -, *, **, /
+- [x] Add the `Char` type to the language
+- [x] Infer `Char` literal values
+- [x] Implement the `Char` type in the AST interpreter
+- [x] Implement the `Char` type in the BC interpreter
+- [x] Integrate into main so that the value can be viewed.
+- [x] Implement +, -, *, **, /
 - [ ] Implement ==, !=, <, <=, >, >=
 - [ ] Handle divide by zero
 
 ## String
 
-- [X] Add the `String` type to the language
-- [X] Infer `String` literal values
-- [X] Implement the `String` type in the AST interpreter
-- [X] Implement the `String` type in the BC interpreter
-- [X] Integrate into main so that the value can be viewed.
-- [X] Implement +
+- [x] Add the `String` type to the language
+- [x] Infer `String` literal values
+- [x] Implement the `String` type in the AST interpreter
+- [x] Implement the `String` type in the BC interpreter
+- [x] Integrate into main so that the value can be viewed.
+- [x] Implement +
 - [ ] Implement ==, !=
 
 ## Record
 
-- [ ] Report an error when attempt is made to reference or assign to an unknown field
+- [ ] Report an error when attempt is made to reference or assign to an unknown
+      field
 - [ ] Incorporate mutable fields
 
 # Operators
 
-- [X] (+): [a: Char | Float | Int | String] a -> a -> a
-- [X] (-): [a: Int | Float | Char] a -> a -> a
-- [X] (*): [a: Int | Float | Char] a -> a -> a
-- [X] (**): [a: Int | Float | Char] a -> a -> a
-- [X] (/): [a: Int | Float | Char] a -> a -> a
-- [X] (%): Int -> Int -> Int
-- [ ] (==): [a] a -> a -> Bool
+- [x] (+): [a: Char | Float | Int | String] a -> a -> a
+- [x] (-): [a: Int | Float | Char] a -> a -> a
+- [x] (*): [a: Int | Float | Char] a -> a -> a
+- [x] (**): [a: Int | Float | Char] a -> a -> a
+- [x] (/): [a: Int | Float | Char] a -> a -> a
+- [x] (%): Int -> Int -> Int
+- [x] (==): [a] a -> a -> Bool
 - [ ] (!=): [a] a -> a -> Bool
 - [ ] (<): [a: Int | Float | Char | String] a -> a -> a
 - [ ] (<=): [a: Int | Float | Char | String] a -> a -> a
@@ -122,7 +132,7 @@ The following *definition of done* is used to determine when a feature is comple
 - [ ] (>>): [a] a -> List a -> List a
 - [ ] (>!): [a] a -> List a -> List a
 - [ ] (?): [a, b: a | Unit] b -> a -> a
-- [X] (!): Bool -> Bool
+- [x] (!): Bool -> Bool
 - [ ] (&&): Bool -> Bool -> Bool
 - [ ] (||): Bool -> Bool -> Bool
 
@@ -133,4 +143,3 @@ The following *definition of done* is used to determine when a feature is comple
 # Builtins
 
 - [ ] int: [a: Bool | Int | Float | Char | String] a -> Int
-

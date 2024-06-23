@@ -199,6 +199,18 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
 
                     ast.assignType(result.incRefR(), env.allocator);
                 },
+                .Equal => {
+                    const common = try env.pump.newBound(env.allocator);
+                    defer common.decRef(env.allocator);
+
+                    const lhs = try expression(ast.kind.binaryOp.lhs, env);
+                    const rhs = try expression(ast.kind.binaryOp.rhs, env);
+
+                    try env.addConstraint(lhs, common, ast.kind.binaryOp.lhs.locationRange);
+                    try env.addConstraint(rhs, common, ast.kind.binaryOp.rhs.locationRange);
+
+                    ast.assignType(env.boolType.incRefR(), env.allocator);
+                },
                 .Modulo => {
                     const lhs = try expression(ast.kind.binaryOp.lhs, env);
                     if (!lhs.isInt()) {

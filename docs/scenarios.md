@@ -35,8 +35,8 @@ builtin data types. These are:
 
 ## Unit
 
-The `Unit` type is a type with a single value, `()`. It is used to represent the
-absence of a value.
+The `Un it` type is a type with a single value, `()`. It is used to represent
+the absence of a value.
 
 ```bendu-repl
 > ()
@@ -49,7 +49,8 @@ $$\frac{}{\mathtt{(): {\rm Unit}}}$$
 
 ## Bool
 
-The `Bool` type is a boolean value with two values `True` and `False`.  This type is built into the language however it could be defined in the prelude as:
+The `Bool` type is a boolean value with two values `True` and `False`. This type
+is built into the language however it could be defined in the prelude as:
 
 ```bendu
 type Bool = True | False
@@ -67,9 +68,11 @@ False: Bool
 
 Boolean literals are typed as follows:
 
-$$\frac{}{\mathtt{{\tt True}: {\rm Bool}}} \ \ \ \frac{}{\mathtt{{\tt False}: {\rm Bool}}}$$
+$$\frac{}{\mathtt{{\tt True}: {\rm Bool}}} \ \ \ \frac{}{\mathtt{{\tt False}:
+{\rm Bool}}}$$
 
-A common operator on the `Bool` type is the `not` operator.  The typing of this operator is as follows:
+A common operator on the `Bool` type is the `not` operator. The typing of this
+operator is as follows:
 
 $$\frac{\mathtt{b: {\rm Bool}}}{\mathtt{{\tt not}\ b: {\rm Bool}}}$$
 
@@ -81,7 +84,8 @@ False: Bool
 True: Bool
 ```
 
-Any attempt to use anything other than a `Bool` value will result in a type error:
+Any attempt to use anything other than a `Bool` value will result in a type
+error:
 
 ```bendu-repl
 > !42
@@ -90,7 +94,8 @@ Error: 1:2-3: Unification error: Unable to unify Bool with Int
 
 ## Int
 
-An integer value is a whole number.  It is written as `n` where `n` is any whole number.  Internally an integer value is represented as a 63 bit signed integer.
+An integer value is a whole number. It is written as `n` where `n` is any whole
+number. Internally an integer value is represented as a 63 bit signed integer.
 
 ```bendu-repl
 > 42
@@ -109,29 +114,41 @@ Int literals are typed as follows:
 
 $$\frac{\mathtt{I \in \cal{I}}}{\mathtt{I: {\rm Int}}}$$
 
-Int has a number of operators defined over it and numbers in general.  The typing of these operators are as follows:
+Int has a number of operators defined over it and numbers in general. The typing
+of these operators are as follows:
 
-$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a: t, b: t}}{\mathtt{a + b: t}}$$
+$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a:
+t, b: t}}{\mathtt{a + b: t}}$$
 
-$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b: t}}{\mathtt{a - b: t}}$$
+$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b:
+t}}{\mathtt{a - b: t}}$$
 
-$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b: t}}{\mathtt{a * b: t}}$$
+$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b:
+t}}{\mathtt{a * b: t}}$$
 
-$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b: t}}{\mathtt{a ** b: t}}$$
+$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b:
+t}}{\mathtt{a ** b: t}}$$
 
-$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b: t}}{\mathtt{a / b: t}}$$
+$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}\}, a: t, b:
+t}}{\mathtt{a / b: t}}$$
 
 $$\frac{\mathtt{a: {\rm Int}, b: {\rm Int}}}{\mathtt{a\ \%\ b: {\rm Int}}}$$
 
-$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a: t, b: t}}{\mathtt{a < b: t}}$$
+$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a:
+t, b: t}}{\mathtt{a < b: t}}$$
 
-$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a: t, b: t}}{\mathtt{a <= b: t}}$$
+$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a:
+t, b: t}}{\mathtt{a <= b: t}}$$
 
-$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a: t, b: t}}{\mathtt{a > b: t}}$$
+$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a:
+t, b: t}}{\mathtt{a > b: t}}$$
 
-$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a: t, b: t}}{\mathtt{a >= b: t}}$$
+$$\frac{\mathtt{t \in \{{\rm Int}, {\rm Float}, {\rm Char}, {\rm String}\}, a:
+t, b: t}}{\mathtt{a >= b: t}}$$
 
-It should be noted from the above that operators do not perform automatic coercion.  This means that `1 + 1.0` would be reported as a type error during compilation.
+It should be noted from the above that operators do not perform automatic
+coercion. This means that `1 + 1.0` would be reported as a type error during
+compilation.
 
 Let's see the above operators in action:
 
@@ -153,6 +170,12 @@ Let's see the above operators in action:
 
 > 84 % 5
 4: Int
+
+> 23 == (20 + 3)
+True: Bool
+
+> 23 == (20 + 2)
+False: Bool
 ```
 
 Now let's try and break the type system.
@@ -174,7 +197,9 @@ Error: 1:1-23: Unification error: Unable to unify String with Char | Float | Int
 
 ## Float
 
-A float value is a decimal number.  It is written as `n.m` where `n` is any whole number and `m` is any whole number.  Internally a float value is represented as a 64 bit floating point number.
+A float value is a decimal number. It is written as `n.m` where `n` is any whole
+number and `m` is any whole number. Internally a float value is represented as a
+64 bit floating point number.
 
 ```bendu-repl
 > 3.151
@@ -205,11 +230,18 @@ The standard operators are defined over the `Float` type.
 
 > 8.4 / 2.0
 4.2: Float
+
+> 23.1 == (20.1 + 3.0)
+True: Bool
+
+> 23.2 == (20.1 + 3.0)
+False: Bool
 ```
 
 ## Char
 
-The char value is a single character.  It is written as `'c'` where `c` is any character.  Internally a char value is represented as an 8 bit unsigned byte.
+The char value is a single character. It is written as `'c'` where `c` is any
+character. Internally a char value is represented as an 8 bit unsigned byte.
 
 ```bendu-repl
 > 'a'
@@ -235,7 +267,8 @@ There are 4 special forms that can be used as a char literal.
 13
 ```
 
-The last special character is the escape character and used when special characters are needed in char literals.
+The last special character is the escape character and used when special
+characters are needed in char literals.
 
 Char literals are typed as follows:
 
@@ -264,18 +297,27 @@ A number of operators are defined over the `Char` type.
 
 > ('b' + 'b') / 'a'
 '\x2': Char
+
+> 'a' == 'a'
+True: Bool
+
+> 'a' == 'b'
+False: Bool
 ```
 
 ## String
 
-A string value is an immutable sequence of characters.  It is written as `"s"` where `s` is any sequence of characters.  Internally a string value is represented as a sequence of 8 bit unsigned bytes.
+A string value is an immutable sequence of characters. It is written as `"s"`
+where `s` is any sequence of characters. Internally a string value is
+represented as a sequence of 8 bit unsigned bytes.
 
 ```bendu-repl
 > "Hello World"
 "Hello World": String
 ```
 
-Like character, there are 4 special characters that can be used in a string literal.
+Like character, there are 4 special characters that can be used in a string
+literal.
 
 ```bendu-repl
 > "Hello\n \\ \"World\""
@@ -294,6 +336,12 @@ A number of operators are defined over the `String` type.
 ```bendu-repl
 > "Hello" + " " + "World"
 "Hello World": String
+
+> "hello" == "hel" + "lo"
+True: Bool
+
+> "hello" == "Hello"
+False: Bool
 ```
 
 # Error Reporting
@@ -353,5 +401,4 @@ Error: 1:1: Unknown name: x
 
 # Scratch Pad
 
-$$\frac{\mathtt{t \to t'}}{\mathtt{t_1 t_2 \to t_1' t_2}}  (E-APP-1)$$
-
+$$\frac{\mathtt{t \to t'}}{\mathtt{t_1 t_2 \to t_1' t_2}} (E-APP-1)$$
