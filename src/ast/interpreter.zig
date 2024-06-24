@@ -59,6 +59,23 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
                 } else {
                     try env.runtime.equals();
                 },
+                .LessEqual => if (ast.kind.binaryOp.lhs.type.?.isBool()) {
+                    try env.runtime.lessequals_bool();
+                } else if (ast.kind.binaryOp.lhs.type.?.isChar()) {
+                    try env.runtime.lessequals_char();
+                } else if (ast.kind.binaryOp.lhs.type.?.isFloat()) {
+                    try env.runtime.lessequals_float();
+                } else if (ast.kind.binaryOp.lhs.type.?.isInt()) {
+                    try env.runtime.lessequals_int();
+                } else if (ast.kind.binaryOp.lhs.type.?.isString()) {
+                    try env.runtime.lessequals_string();
+                } else if (ast.kind.binaryOp.lhs.type.?.isUnit()) {
+                    env.runtime.discard();
+                    env.runtime.discard();
+                    try env.runtime.push_bool(true);
+                } else {
+                    try env.runtime.lessequals();
+                },
                 .LessThan => if (ast.kind.binaryOp.lhs.type.?.isBool()) {
                     try env.runtime.lessthan_bool();
                 } else if (ast.kind.binaryOp.lhs.type.?.isChar()) {

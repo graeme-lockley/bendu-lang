@@ -56,6 +56,9 @@ False: Bool
 
 > () < ()
 False: Bool
+
+> () <= ()
+True: Bool
 ```
 
 ## Bool
@@ -129,6 +132,18 @@ False: Bool
 
 > False < False
 False: Bool
+
+> True <= True
+True: Bool
+
+> False <= True
+True: Bool
+
+> True <= False
+False: Bool
+
+> False <= False
+True: Bool
 ```
 
 Any attempt to use anything other than a `Bool` value will result in a type
@@ -238,6 +253,15 @@ True: Bool
 
 > 2 < 1
 False: Bool
+
+> 1 <= 1
+True: Bool
+
+> 1 <= 2
+True: Bool
+
+> 2 <= 1
+False: Bool
 ```
 
 Now let's try and break the type system.
@@ -312,6 +336,15 @@ True: Bool
 False: Bool
 
 > 2.0 < 1.0
+False: Bool
+
+> 1.0 <= 2.0
+True: Bool
+
+> 1.0 <= 1.0
+True: Bool
+
+> 2.0 <= 1.0
 False: Bool
 ```
 
@@ -395,6 +428,15 @@ True: Bool
 
 > 'b' < 'a'
 False: Bool
+
+> 'a' <= 'a'
+True: Bool
+
+> 'a' <= 'b'
+True: Bool
+
+> 'b' <= 'a'
+False: Bool
 ```
 
 ## String
@@ -448,6 +490,15 @@ False: Bool
 True: Bool
 
 > "ab" < "aa"
+False: Bool
+
+> "aa" <= "aa"
+True: Bool
+
+> "aa" <= "ab"
+True: Bool
+
+> "ab" <= "aa"
 False: Bool
 ```
 

@@ -126,7 +126,7 @@ complete:
 - [x] (==): [a] a -> a -> Bool
 - [x] (!=): [a] a -> a -> Bool
 - [x] (<): [a: Bool | Char | Float | Int | String] a -> a -> a
-- [ ] (<=): [a: Bool | Char | Float | Int | String] a -> a -> a
+- [x] (<=): [a: Bool | Char | Float | Int | String] a -> a -> a
 - [ ] (>): [a: Bool | Char | Float | Int | String] a -> a -> a
 - [ ] (>=): [a: Bool | Char | Float | Int | String] a -> a -> a
 - [ ] (<<): [a] List a -> a -> List a
