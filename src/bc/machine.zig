@@ -121,6 +121,54 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 try runtime.equals_string();
                 ip += 1;
             },
+            .greaterequals => {
+                try runtime.greaterequals();
+                ip += 1;
+            },
+            .greaterequals_bool => {
+                try runtime.greaterequals_bool();
+                ip += 1;
+            },
+            .greaterequals_char => {
+                try runtime.greaterequals_char();
+                ip += 1;
+            },
+            .greaterequals_float => {
+                try runtime.greaterequals_float();
+                ip += 1;
+            },
+            .greaterequals_int => {
+                try runtime.greaterequals_int();
+                ip += 1;
+            },
+            .greaterequals_string => {
+                try runtime.greaterequals_string();
+                ip += 1;
+            },
+            .greaterthan => {
+                try runtime.greaterthan();
+                ip += 1;
+            },
+            .greaterthan_bool => {
+                try runtime.greaterthan_bool();
+                ip += 1;
+            },
+            .greaterthan_char => {
+                try runtime.greaterthan_char();
+                ip += 1;
+            },
+            .greaterthan_float => {
+                try runtime.greaterthan_float();
+                ip += 1;
+            },
+            .greaterthan_int => {
+                try runtime.greaterthan_int();
+                ip += 1;
+            },
+            .greaterthan_string => {
+                try runtime.greaterthan_string();
+                ip += 1;
+            },
             .lessequals => {
                 try runtime.lessequals();
                 ip += 1;

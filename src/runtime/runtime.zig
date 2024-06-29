@@ -239,6 +239,120 @@ pub const Runtime = struct {
         try self.push_bool(valueA == valueB);
     }
 
+    pub fn greaterequals(self: *Runtime) !void {
+        const tos = self.peek().?;
+
+        if (Pointer.isPointer(tos)) {
+            const value = Pointer.as(*Memory.PageItem, tos);
+
+            if (value.isFloat()) {
+                try self.greaterequals_float();
+            } else {
+                try self.greaterequals_string();
+            }
+        } else {
+            try self.greaterequals_int();
+        }
+    }
+
+    pub inline fn greaterequals_bool(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_bool(!Pointer.asBool(b) or Pointer.asBool(a));
+    }
+
+    pub inline fn greaterequals_char(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_bool(Pointer.asChar(a) >= Pointer.asChar(b));
+    }
+
+    pub inline fn greaterequals_float(self: *Runtime) !void {
+        const b = self.pop();
+        const valueB = Pointer.as(*Memory.FloatValue, b).value;
+
+        const a = self.pop();
+        const valueA = Pointer.as(*Memory.FloatValue, a).value;
+
+        try self.push_bool(valueA >= valueB);
+    }
+
+    pub inline fn greaterequals_int(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_bool(Pointer.asInt(a) >= Pointer.asInt(b));
+    }
+
+    pub inline fn greaterequals_string(self: *Runtime) !void {
+        const b = self.pop();
+        const valueB = Pointer.as(*Memory.StringValue, b).value;
+
+        const a = self.pop();
+        const valueA = Pointer.as(*Memory.StringValue, a).value;
+
+        try self.push_bool(valueA == valueB or std.mem.lessThan(u8, valueB.slice(), valueA.slice()));
+    }
+
+    pub fn greaterthan(self: *Runtime) !void {
+        const tos = self.peek().?;
+
+        if (Pointer.isPointer(tos)) {
+            const value = Pointer.as(*Memory.PageItem, tos);
+
+            if (value.isFloat()) {
+                try self.greaterthan_float();
+            } else {
+                try self.greaterthan_string();
+            }
+        } else {
+            try self.greaterthan_int();
+        }
+    }
+
+    pub inline fn greaterthan_bool(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_bool(!Pointer.asBool(b) and Pointer.asBool(a));
+    }
+
+    pub inline fn greaterthan_char(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_bool(Pointer.asChar(a) > Pointer.asChar(b));
+    }
+
+    pub inline fn greaterthan_float(self: *Runtime) !void {
+        const b = self.pop();
+        const valueB = Pointer.as(*Memory.FloatValue, b).value;
+
+        const a = self.pop();
+        const valueA = Pointer.as(*Memory.FloatValue, a).value;
+
+        try self.push_bool(valueA > valueB);
+    }
+
+    pub inline fn greaterthan_int(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+
+        try self.push_bool(Pointer.asInt(a) > Pointer.asInt(b));
+    }
+
+    pub inline fn greaterthan_string(self: *Runtime) !void {
+        const b = self.pop();
+        const valueB = Pointer.as(*Memory.StringValue, b).value;
+
+        const a = self.pop();
+        const valueA = Pointer.as(*Memory.StringValue, a).value;
+
+        try self.push_bool(std.mem.lessThan(u8, valueB.slice(), valueA.slice()));
+    }
+
     pub fn lessequals(self: *Runtime) !void {
         const tos = self.peek().?;
 

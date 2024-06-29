@@ -45,8 +45,7 @@ complete:
 - [x] Implement the `Unit` type in the AST interpreter
 - [x] Implement the `Unit` type in the BC interpreter
 - [x] Integrate into main so that the value can be viewed.
-- [x] Implement ==
-- [x] Implement !=
+- [x] Implement ==, !=, <, <=, >, >=
 
 ## Bool
 
@@ -69,7 +68,7 @@ complete:
 - [x] Implement the `Int` type in the BC interpreter
 - [x] Integrate into main so that the value can be viewed.
 - [x] Implement +, -, *, /, %, **
-- [ ] Implement ==, !=, <, <=, >, >=
+- [x] Implement ==, !=, <, <=, >, >=
 - [ ] Verify that the 63-bit signed is correct in when reporting literal
       underflow and overflow
 - [ ] Verify that the 63-bit signed is correct in when encountering underflow
@@ -85,7 +84,7 @@ complete:
 - [x] Implement the `Float` type in the BC interpreter
 - [x] Integrate into main so that the value can be viewed.
 - [x] Implement +, -, *, **, /
-- [ ] Implement ==, !=, <, <=, >, >=
+- [x] Implement ==, !=, <, <=, >, >=
 - [ ] Handle divide by zero
 
 ## Char
@@ -96,7 +95,7 @@ complete:
 - [x] Implement the `Char` type in the BC interpreter
 - [x] Integrate into main so that the value can be viewed.
 - [x] Implement +, -, *, **, /
-- [ ] Implement ==, !=, <, <=, >, >=
+- [x] Implement ==, !=, <, <=, >, >=
 - [ ] Handle divide by zero
 
 ## String
@@ -107,7 +106,7 @@ complete:
 - [x] Implement the `String` type in the BC interpreter
 - [x] Integrate into main so that the value can be viewed.
 - [x] Implement +
-- [ ] Implement ==, !=, <, <=, >, >=
+- [x] Implement ==, !=, <, <=, >, >=
 
 ## Record
 
@@ -127,8 +126,8 @@ complete:
 - [x] (!=): [a] a -> a -> Bool
 - [x] (<): [a: Bool | Char | Float | Int | String] a -> a -> a
 - [x] (<=): [a: Bool | Char | Float | Int | String] a -> a -> a
-- [ ] (>): [a: Bool | Char | Float | Int | String] a -> a -> a
-- [ ] (>=): [a: Bool | Char | Float | Int | String] a -> a -> a
+- [x] (>): [a: Bool | Char | Float | Int | String] a -> a -> a
+- [x] (>=): [a: Bool | Char | Float | Int | String] a -> a -> a
 - [ ] (<<): [a] List a -> a -> List a
 - [ ] (<!): [a] List a -> a -> List a
 - [ ] (>>): [a] a -> List a -> List a

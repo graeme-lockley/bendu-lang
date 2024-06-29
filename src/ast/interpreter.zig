@@ -59,6 +59,40 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
                 } else {
                     try env.runtime.equals();
                 },
+                .GreaterEqual => if (ast.kind.binaryOp.lhs.type.?.isBool()) {
+                    try env.runtime.greaterequals_bool();
+                } else if (ast.kind.binaryOp.lhs.type.?.isChar()) {
+                    try env.runtime.greaterequals_char();
+                } else if (ast.kind.binaryOp.lhs.type.?.isFloat()) {
+                    try env.runtime.greaterequals_float();
+                } else if (ast.kind.binaryOp.lhs.type.?.isInt()) {
+                    try env.runtime.greaterequals_int();
+                } else if (ast.kind.binaryOp.lhs.type.?.isString()) {
+                    try env.runtime.greaterequals_string();
+                } else if (ast.kind.binaryOp.lhs.type.?.isUnit()) {
+                    env.runtime.discard();
+                    env.runtime.discard();
+                    try env.runtime.push_bool(true);
+                } else {
+                    try env.runtime.greaterequals();
+                },
+                .GreaterThan => if (ast.kind.binaryOp.lhs.type.?.isBool()) {
+                    try env.runtime.greaterthan_bool();
+                } else if (ast.kind.binaryOp.lhs.type.?.isChar()) {
+                    try env.runtime.greaterthan_char();
+                } else if (ast.kind.binaryOp.lhs.type.?.isFloat()) {
+                    try env.runtime.greaterthan_float();
+                } else if (ast.kind.binaryOp.lhs.type.?.isInt()) {
+                    try env.runtime.greaterthan_int();
+                } else if (ast.kind.binaryOp.lhs.type.?.isString()) {
+                    try env.runtime.greaterthan_string();
+                } else if (ast.kind.binaryOp.lhs.type.?.isUnit()) {
+                    env.runtime.discard();
+                    env.runtime.discard();
+                    try env.runtime.push_bool(false);
+                } else {
+                    try env.runtime.greaterthan();
+                },
                 .LessEqual => if (ast.kind.binaryOp.lhs.type.?.isBool()) {
                     try env.runtime.lessequals_bool();
                 } else if (ast.kind.binaryOp.lhs.type.?.isChar()) {
