@@ -57,6 +57,23 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 ip += 9;
             },
 
+            .jmp_tos_false => {
+                const v = Pointer.asBool(runtime.peek().?);
+                if (!v) {
+                    ip = @intCast(readInt(bc, ip + 1));
+                } else {
+                    ip += 9;
+                }
+            },
+            .jmp_tos_true => {
+                const v = Pointer.asBool(runtime.peek().?);
+                if (v) {
+                    ip = @intCast(readInt(bc, ip + 1));
+                } else {
+                    ip += 9;
+                }
+            },
+
             .add => {
                 try runtime.add();
                 ip += 1;

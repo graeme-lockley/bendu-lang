@@ -44,6 +44,26 @@ const CompileState = struct {
         try self.appendInt(@bitCast(v));
     }
 
+    fn appendIntAt(self: *CompileState, v: i64, offset: usize) !void {
+        const v1: u8 = @intCast(v & 0xff);
+        const v2: u8 = @intCast((@as(u64, @bitCast(v & 0xff00))) >> 8);
+        const v3: u8 = @intCast((@as(u64, @bitCast(v & 0xff0000))) >> 16);
+        const v4: u8 = @intCast((@as(u64, @bitCast(v & 0xff000000))) >> 24);
+        const v5: u8 = @intCast((@as(u64, @bitCast(v & 0xff00000000))) >> 32);
+        const v6: u8 = @intCast((@as(u64, @bitCast(v & 0xff0000000000))) >> 40);
+        const v7: u8 = @intCast((@as(u64, @bitCast(v & 0xff000000000000))) >> 48);
+        const v8: u8 = @intCast((@as(u64, @bitCast(v))) >> 56);
+
+        self.bc.items[offset] = v1;
+        self.bc.items[offset + 1] = v2;
+        self.bc.items[offset + 2] = v3;
+        self.bc.items[offset + 3] = v4;
+        self.bc.items[offset + 4] = v5;
+        self.bc.items[offset + 5] = v6;
+        self.bc.items[offset + 6] = v7;
+        self.bc.items[offset + 7] = v8;
+    }
+
     fn appendInt(self: *CompileState, v: i64) !void {
         const v1: u8 = @intCast(v & 0xff);
         const v2: u8 = @intCast((@as(u64, @bitCast(v & 0xff00))) >> 8);
@@ -74,7 +94,24 @@ const CompileState = struct {
 
 fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
     switch (ast.kind) {
-        .binaryOp => {
+        .binaryOp => if (ast.kind.binaryOp.op == .And or ast.kind.binaryOp.op == .Or) {
+            try compileExpr(ast.kind.binaryOp.lhs, state);
+            if (ast.kind.binaryOp.op == .And) {
+                try state.appendOp(Op.jmp_tos_false);
+                const offset = state.bc.items.len;
+                try state.appendInt(0);
+                try state.appendOp(Op.discard);
+                try compileExpr(ast.kind.binaryOp.rhs, state);
+                try state.appendIntAt(@intCast(state.bc.items.len), offset);
+            } else {
+                try state.appendOp(Op.jmp_tos_true);
+                const offset = state.bc.items.len;
+                try state.appendInt(0);
+                try state.appendOp(Op.discard);
+                try compileExpr(ast.kind.binaryOp.rhs, state);
+                try state.appendIntAt(@intCast(state.bc.items.len), offset);
+            }
+        } else {
             try compileExpr(ast.kind.binaryOp.lhs, state);
             try compileExpr(ast.kind.binaryOp.rhs, state);
 

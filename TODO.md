@@ -55,8 +55,8 @@ complete:
 - [x] Implement the `Bool` type in the BC interpreter
 - [x] Integrate into main so that the value can be viewed.
 - [x] Implement not
-- [ ] Implement &&
-- [ ] Implement ||
+- [x] Implement &&
+- [x] Implement ||
 - [x] Implement ==
 - [x] Implement !=
 

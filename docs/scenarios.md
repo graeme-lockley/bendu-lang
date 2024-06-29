@@ -35,7 +35,7 @@ builtin data types. These are:
 
 ## Unit
 
-The `Un it` type is a type with a single value, `()`. It is used to represent
+The `Unit` type is a type with a single value, `()`. It is used to represent
 the absence of a value.
 
 ```bendu-repl
@@ -173,6 +173,28 @@ False: Bool
 True: Bool
 
 > False >= False
+True: Bool
+```
+
+The operators `&&` and `||` both support short-circuiting.
+
+```bendu-repl
+> True && True
+True: Bool
+
+> True && False
+False: Bool
+
+> False && (1 / 0 == 1)
+False: Bool
+
+> False || True
+True: Bool
+
+> False || False
+False: Bool
+
+> True || (1 / 0 == 1)
 True: Bool
 ```
 

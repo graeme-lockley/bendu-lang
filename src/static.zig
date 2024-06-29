@@ -182,6 +182,19 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
         },
         .binaryOp => {
             switch (ast.kind.binaryOp.op) {
+                .And, .Or => {
+                    const lhs = try expression(ast.kind.binaryOp.lhs, env);
+                    const rhs = try expression(ast.kind.binaryOp.rhs, env);
+
+                    if (!lhs.isBool()) {
+                        try env.addConstraint(env.boolType, lhs, ast.kind.binaryOp.lhs.locationRange);
+                    }
+                    if (!rhs.isBool()) {
+                        try env.addConstraint(env.boolType, rhs, ast.kind.binaryOp.rhs.locationRange);
+                    }
+                    ast.assignType(env.boolType.incRefR(), env.allocator);
+                },
+
                 .Divide, .Minus, .Power, .Times => {
                     const result = try env.pump.newBound(env.allocator);
                     defer result.decRef(env.allocator);

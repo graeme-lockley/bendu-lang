@@ -75,6 +75,10 @@ pub fn main() !void {
             }
             try printValue(runtime.peek().?, typ);
             try stdout.print(": {s}", .{typeString});
+
+            // if (runtime.stack.items.len > 1) {
+            //     try stdout.print(" (stack has {d} items)", .{runtime.stack.items.len});
+            // }
         }
     }
 
