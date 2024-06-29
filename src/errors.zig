@@ -15,6 +15,17 @@ pub const Location = struct {
 pub const LocationRange = struct {
     from: Location,
     to: Location,
+
+    pub fn write(self: LocationRange, wr: anytype) !void {
+        try wr.print("{d}:", .{self.from.line});
+        if (self.from.line != self.to.line) {
+            try wr.print("{d}-{d}:{d}", .{ self.from.column, self.to.line, self.to.column - 1 });
+        } else if (self.from.column != self.to.column - 1) {
+            try wr.print("{d}-{d}", .{ self.from.column, self.to.column - 1 });
+        } else {
+            try wr.print("{d}", .{self.from.column});
+        }
+    }
 };
 
 pub const DuplicateDeclarationError = struct {
@@ -90,14 +101,8 @@ pub const Error = struct {
 
         const writer = buffer.writer();
 
-        try writer.print("{d}:", .{self.locationRange.from.line});
-        if (self.locationRange.from.line != self.locationRange.to.line) {
-            try writer.print("{d}-{d}:{d}: ", .{ self.locationRange.from.column, self.locationRange.to.line, self.locationRange.to.column - 1 });
-        } else if (self.locationRange.from.column != self.locationRange.to.column - 1) {
-            try writer.print("{d}-{d}: ", .{ self.locationRange.from.column, self.locationRange.to.column - 1 });
-        } else {
-            try writer.print("{d}: ", .{self.locationRange.from.column});
-        }
+        try self.locationRange.write(writer);
+        try writer.print(": ", .{});
 
         switch (self.detail) {
             .DuplicateDeclarationKind => try writer.print("Duplicate declaration: {s}", .{self.detail.DuplicateDeclarationKind.name}),

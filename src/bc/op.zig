@@ -12,6 +12,8 @@ pub const Op = enum(u8) {
 
     push_global,
 
+    jmp,
+    jmp_false,
     jmp_tos_false,
     jmp_tos_true,
 

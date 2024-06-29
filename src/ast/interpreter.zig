@@ -216,6 +216,28 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
             try std.io.getStdErr().writer().print("Internal Error: Undefined variable {s}\n", .{ast.kind.identifier.slice()});
             std.process.exit(1);
         },
+        .ifte => {
+            for (ast.kind.ifte) |ifte| {
+                if (ifte.condition) |condition| {
+                    try evalExpression(condition, env);
+
+                    if (Pointer.asBool(env.runtime.peek().?)) {
+                        env.runtime.discard();
+                        try evalExpression(ifte.then, env);
+                        return;
+                    }
+                    env.runtime.discard();
+                } else {
+                    try evalExpression(ifte.then, env);
+                    return;
+                }
+            }
+
+            try std.io.getStdErr().writer().print("Runtime Error: no if branch executed: ", .{});
+            try ast.locationRange.write(std.io.getStdErr().writer());
+            try std.io.getStdErr().writer().print("\n", .{});
+            std.process.exit(1);
+        },
         .literalBool => try env.runtime.push_bool(ast.kind.literalBool),
         .literalChar => try env.runtime.push_int(@intCast(ast.kind.literalChar)),
         .literalInt => try env.runtime.push_int(@intCast(ast.kind.literalInt)),

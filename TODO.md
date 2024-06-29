@@ -29,8 +29,9 @@ complete:
 
 ## if
 
-- [ ] Implement the `if` expression in the AST interpreter
-- [ ] Implement the `if` expression in the BC interpreter
+- [x] Implement the `if` expression in the AST interpreter
+- [x] Implement the `if` expression in the BC interpreter
+- [x] Enforce syntactically that there MUST be at least one branch without a guard
 
 ## while
 

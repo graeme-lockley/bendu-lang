@@ -197,7 +197,7 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
 
                 .Divide, .Minus, .Power, .Times => {
                     const result = try env.pump.newBound(env.allocator);
-                    defer result.decRef(env.allocator);
+                    ast.assignType(result, env.allocator);
 
                     const lhs = try expression(ast.kind.binaryOp.lhs, env);
                     const rhs = try expression(ast.kind.binaryOp.rhs, env);
@@ -209,8 +209,6 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
                     defer dependentType.decRef(env.allocator);
 
                     try env.addDependent(result, dependentType, ast.locationRange);
-
-                    ast.assignType(result.incRefR(), env.allocator);
                 },
                 .Equal, .NotEqual => {
                     const common = try env.pump.newBound(env.allocator);
@@ -343,11 +341,18 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             }
         },
         .ifte => {
+            const result = try env.pump.newBound(env.allocator);
+            ast.assignType(result, env.allocator);
+
             for (ast.kind.ifte) |case| {
                 if (case.condition) |condition| {
-                    _ = try expression(condition, env);
+                    const conditionType = try expression(condition, env);
+                    if (!conditionType.isBool()) {
+                        try env.addConstraint(env.boolType, conditionType, condition.locationRange);
+                    }
                 }
-                _ = try expression(case.then, env);
+                const thenType = try expression(case.then, env);
+                try env.addConstraint(result, thenType, case.then.locationRange);
             }
         },
         .indexRange => {

@@ -351,6 +351,40 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                 std.process.exit(1);
             }
         },
+        .ifte => {
+            var restPatches = std.ArrayList(usize).init(state.allocator);
+            defer restPatches.deinit();
+            var nextPatch: ?usize = null;
+
+            for (ast.kind.ifte) |ifte| {
+                if (nextPatch) |p| {
+                    try state.appendIntAt(@intCast(state.bc.items.len), p);
+                    nextPatch = null;
+                }
+                if (ifte.condition) |condition| {
+                    try compileExpr(condition, state);
+                    try state.appendOp(Op.jmp_false);
+                    nextPatch = state.bc.items.len;
+                    try state.appendInt(0);
+                    try compileExpr(ifte.then, state);
+                    try state.appendOp(Op.jmp);
+                    try restPatches.append(state.bc.items.len);
+                    try state.appendInt(0);
+                } else {
+                    try compileExpr(ifte.then, state);
+
+                    for (restPatches.items) |p| {
+                        try state.appendIntAt(@intCast(state.bc.items.len), p);
+                    }
+                    return;
+                }
+            }
+
+            try std.io.getStdErr().writer().print("Internal Error: ", .{});
+            try ast.locationRange.write(std.io.getStdErr().writer());
+            try std.io.getStdErr().writer().print(": if requires one branch without a guard\n", .{});
+            std.process.exit(1);
+        },
         .literalBool => try state.appendOp(if (ast.kind.literalBool) Op.push_true else Op.push_false),
         .literalChar => {
             try state.appendOp(Op.push_int);
