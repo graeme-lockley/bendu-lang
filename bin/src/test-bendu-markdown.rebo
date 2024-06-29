@@ -45,10 +45,9 @@ let process(path, test, silent = false) {
    }
 
    let evalBendu(script) {
-      let result1 = rebo.os.exec(["./zig-out/bin/bendu-lang", "--ast", script])
-      let result2 = rebo.os.exec(["./zig-out/bin/bendu-lang", "--bc", script])
+      let result = rebo.os.exec(["./zig-out/bin/bendu-lang", "--test", script])
 
-      ; [Str.trim(result1.stdout) + Str.trim(result1.stderr), Str.trim(result2.stdout) + Str.trim(result2.stderr)]
+      Str.trim(result.stdout) + Str.trim(result.stderr)
    }
 
    let executeBendu(suite, path, startLine, endLine, code) {
@@ -80,7 +79,7 @@ let process(path, test, silent = false) {
             
             if len(expected) > 0 -> {
                if typeof(result) == "Function" -> suite.eq(formatCmdSegment(cmdSegment), str(result), expected, cmd)
-                | suite.eq(formatCmdSegment(cmdSegment), result, [expected, expected], cmd)
+                | suite.eq(formatCmdSegment(cmdSegment), result, expected, cmd)
             }
          } | {
             println("Error: ", path, ": ", startLine + lp, ": ", code[lp], " needed to start with '>'")

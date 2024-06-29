@@ -69,6 +69,26 @@ pub fn main() !void {
                 // } else if (std.mem.eql(u8, args[1], "--llvm")) {
                 //     try stdout.print("executing LLVM\n", .{});
                 //     try @import("./native/interpreter.zig").eval(program, allocator);
+            } else if (std.mem.eql(u8, action, "--test")) {
+                try @import("./ast/interpreter.zig").eval(ast, &runtime);
+                var runtime2 = Runtime.Runtime.init(&sp);
+                defer runtime2.deinit();
+                try @import("./bc/interpreter.zig").eval(ast, &runtime2);
+
+                var buffer1 = std.ArrayList(u8).init(allocator);
+                defer buffer1.deinit();
+                var buffer2 = std.ArrayList(u8).init(allocator);
+                defer buffer2.deinit();
+
+                try valueToString(runtime.peek().?, typ, &buffer1);
+                try valueToString(runtime2.peek().?, typ, &buffer2);
+
+                if (std.mem.eql(u8, buffer1.items, buffer2.items)) {
+                    try stdout.print("{s}: {s}", .{ buffer1.items, typeString });
+                } else {
+                    try stdout.print("{s}\n{s}\n", .{ buffer1.items, buffer2.items });
+                }
+                return;
             } else {
                 try stdout.print("Invalid argument: {s}\n", .{action});
                 std.process.exit(1);
@@ -94,52 +114,60 @@ pub fn main() !void {
 }
 
 fn printValue(v: Pointer.Pointer, typ: *Typing.Type) !void {
+    var dbuffer: [1024]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&dbuffer);
+    const allocator = fba.allocator();
+    var buffer = std.ArrayList(u8).init(allocator);
+
+    defer buffer.deinit();
+
+    try valueToString(v, typ, &buffer);
+    try stdout.print("{s}", .{buffer.items});
+}
+
+fn valueToString(v: Pointer.Pointer, typ: *Typing.Type, buffer: *std.ArrayList(u8)) !void {
     switch (typ.kind) {
-        .Function => {
-            try stdout.print("Function", .{});
-        },
+        .Function => try buffer.appendSlice("Function"),
         .Tag => {
             const name = typ.kind.Tag.name.slice();
 
             if (std.mem.eql(u8, name, "Bool")) {
-                try stdout.print("{s}", .{if (Pointer.asInt(v) == 0) "False" else "True"});
+                try buffer.appendSlice(if (Pointer.asInt(v) == 0) "False" else "True");
             } else if (std.mem.eql(u8, name, "Char")) {
                 const c: u8 = Pointer.asChar(v);
                 switch (c) {
-                    10 => try stdout.print("'\\n'", .{}),
-                    39 => try stdout.print("'\\''", .{}),
-                    92 => try stdout.print("'\\\\'", .{}),
-                    0...9, 11...31, 128...255 => try stdout.print("'\\x{d}'", .{c}),
-                    else => try stdout.print("'{c}'", .{c}),
+                    10 => try buffer.appendSlice("'\\n'"),
+                    39 => try buffer.appendSlice("'\\''"),
+                    92 => try buffer.appendSlice("'\\\\'"),
+                    0...9, 11...31, 128...255 => try std.fmt.format(buffer.writer(), "'\\x{d}'", .{c}),
+                    else => try std.fmt.format(buffer.writer(), "'{c}'", .{c}),
                 }
             } else if (std.mem.eql(u8, name, "Float")) {
                 const f = @as(*Memory.FloatValue, @ptrFromInt(v)).value;
-                try stdout.print("{d}", .{f});
+                try std.fmt.format(buffer.writer(), "{d}", .{f});
             } else if (std.mem.eql(u8, name, "Int")) {
-                try stdout.print("{d}", .{Pointer.asInt(v)});
+                try std.fmt.format(buffer.writer(), "{d}", .{Pointer.asInt(v)});
             } else if (std.mem.eql(u8, name, "String")) {
                 const str = @as(*Memory.StringValue, @ptrFromInt(v)).value.slice();
 
-                try stdout.print("\"", .{});
+                try buffer.appendSlice("\"");
                 for (str) |c| {
                     switch (c) {
-                        10 => try stdout.print("\\n", .{}),
-                        34 => try stdout.print("\\\"", .{}),
-                        92 => try stdout.print("\\\\", .{}),
-                        0...9, 11...31 => try stdout.print("\\x{d};", .{c}),
-                        else => try stdout.print("{c}", .{c}),
+                        10 => try buffer.appendSlice("\\n"),
+                        34 => try buffer.appendSlice("\\\""),
+                        92 => try buffer.appendSlice("\\\\"),
+                        0...9, 11...31 => try std.fmt.format(buffer.writer(), "\\x{d};", .{c}),
+                        else => try buffer.append(c),
                     }
                 }
-                try stdout.print("\"", .{});
+                try buffer.appendSlice("\"");
             } else if (std.mem.eql(u8, name, "Unit")) {
-                try stdout.print("()", .{});
+                try buffer.appendSlice("()");
             } else {
-                try stdout.print("Tag", .{});
+                try buffer.appendSlice("Tag");
             }
         },
-        .Variable => {
-            try stdout.print("Variable", .{});
-        },
+        .Variable => try buffer.appendSlice("Variable"),
         else => unreachable,
     }
 }
