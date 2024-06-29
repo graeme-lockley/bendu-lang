@@ -14,6 +14,21 @@ complete:
 - Both the AST interpreter and BC interpreter are updated to support the feature
 - No memory leaks for both positive and negative tests
 
+# Big Picture
+
+The following is the list of big features that need to be implemented.
+
+- [X] Basic types
+- [ ] Functions
+- [ ] Mutable variables
+- [ ] Tuples
+- [ ] Arrays
+- [ ] Records
+- [ ] Packages
+- [ ] Type aliases
+- [ ] Patterns
+- [ ] Signals
+
 # Scaffolding
 
 - [x] Have lexical errors propagate through to main
