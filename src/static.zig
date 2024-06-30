@@ -157,7 +157,7 @@ const Env = struct {
         try self.constraints.addDependency(a, b, locationRange);
     }
 
-    pub fn reset(self: *Env) void {
+    pub fn resetConstraints(self: *Env) void {
         self.constraints.reset(self.allocator);
     }
 };
@@ -185,7 +185,7 @@ pub fn package(ast: *AST.Package, sp: *SP.StringPool, errors: *Errors.Errors) !*
     defer env.deinit(allocator);
 
     for (ast.exprs) |expr| {
-        env.reset();
+        env.resetConstraints();
 
         _ = try expression(expr, &env);
 
