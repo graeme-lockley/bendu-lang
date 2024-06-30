@@ -5,11 +5,15 @@ const Pointer = @import("../runtime/pointer.zig");
 const Runtime = @import("../runtime/runtime.zig").Runtime;
 const SP = @import("../lib/string_pool.zig");
 
-pub fn eval(ast: *AST.Expression, runtime: *Runtime) !void {
+pub fn eval(ast: *AST.Package, runtime: *Runtime) !void {
     var env = Environment.init(runtime);
     defer env.deinit();
 
-    try evalExpression(ast, &env);
+    try env.runtime.push_unit();
+    for (ast.exprs) |expr| {
+        env.runtime.discard();
+        try evalExpression(expr, &env);
+    }
 }
 
 const Environment = struct {

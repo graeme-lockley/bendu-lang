@@ -5,7 +5,7 @@ const Errors = @import("errors.zig");
 const Lexer = @import("lexer.zig");
 const SP = @import("lib/string_pool.zig");
 
-pub fn parse(sp: *SP.StringPool, name: []const u8, buffer: []const u8, errors: *Errors.Errors) !?*AST.Expression {
+pub fn parse(sp: *SP.StringPool, name: []const u8, buffer: []const u8, errors: *Errors.Errors) !?*AST.Package {
     var l = Lexer.Lexer.init(sp.allocator);
 
     l.initBuffer(name, buffer) catch {
@@ -15,7 +15,7 @@ pub fn parse(sp: *SP.StringPool, name: []const u8, buffer: []const u8, errors: *
 
     var p = Parser.init(sp, l);
 
-    const e = p.module() catch {
+    const e = p.package() catch {
         try errors.append(p.grabErr().?);
         return null;
     };
@@ -38,9 +38,7 @@ pub const Parser = struct {
         };
     }
 
-    pub fn module(self: *Parser) Errors.ParserErrors!*AST.Expression {
-        const start = self.currentToken().locationRange.from;
-
+    pub fn package(self: *Parser) Errors.ParserErrors!*AST.Package {
         var exprs = std.ArrayList(*AST.Expression).init(self.allocator);
         defer exprs.deinit();
         errdefer {
@@ -57,7 +55,7 @@ pub const Parser = struct {
             }
         }
 
-        return try AST.Expression.create(self.allocator, AST.ExpressionKind{ .exprs = try exprs.toOwnedSlice() }, Errors.LocationRange{ .from = start, .to = self.currentToken().locationRange.to });
+        return try AST.Package.create(self.allocator, try exprs.toOwnedSlice());
     }
 
     pub fn expression(self: *Parser) Errors.ParserErrors!*AST.Expression {

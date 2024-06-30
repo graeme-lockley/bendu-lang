@@ -44,15 +44,26 @@ pub const Constraints = struct {
     }
 
     pub fn deinit(self: *Constraints, allocator: std.mem.Allocator) void {
+        self.deinitState(allocator);
+
+        self.items.deinit();
+        self.dependencies.deinit();
+    }
+
+    pub fn reset(self: *Constraints, allocator: std.mem.Allocator) void {
+        self.deinitState(allocator);
+
+        self.items.clearAndFree();
+        self.dependencies.clearAndFree();
+    }
+
+    fn deinitState(self: *Constraints, allocator: std.mem.Allocator) void {
         for (self.items.items) |item| {
             item.deinit(allocator);
         }
-        self.items.deinit();
-
         for (self.dependencies.items) |dependency| {
             dependency.deinit(allocator);
         }
-        self.dependencies.deinit();
     }
 
     pub fn add(self: *Constraints, t1: *Typing.Type, t2: *Typing.Type, locationRange: Errors.LocationRange) !void {

@@ -57,8 +57,15 @@ pub const TestState = struct {
         const ast = try Parser.parse(&self.sp, "script.bendu", source, &self.errors);
 
         if (ast) |a| {
-            defer a.decRef(self.allocator);
-            return Static.analysis(a, &self.sp, &self.errors);
+            defer a.destroy(self.allocator);
+
+            var result: ?*Typing.Type = null;
+
+            for (a.exprs) |expr| {
+                result = try Static.analysis(expr, &self.sp, &self.errors);
+            }
+
+            return result;
         } else {
             return null;
         }

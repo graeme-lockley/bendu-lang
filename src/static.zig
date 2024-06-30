@@ -156,6 +156,10 @@ const Env = struct {
     pub fn addDependent(self: *Env, a: *Typing.Type, b: *Typing.Type, locationRange: Errors.LocationRange) !void {
         try self.constraints.addDependency(a, b, locationRange);
     }
+
+    pub fn reset(self: *Env) void {
+        self.constraints.reset(self.allocator);
+    }
 };
 
 pub fn analysis(ast: *AST.Expression, sp: *SP.StringPool, errors: *Errors.Errors) !*Typing.Type {
@@ -172,6 +176,26 @@ pub fn analysis(ast: *AST.Expression, sp: *SP.StringPool, errors: *Errors.Errors
     try applyExpression(ast, &subst, allocator);
 
     return (ast.type orelse env.errorType).incRefR();
+}
+
+pub fn package(ast: *AST.Package, sp: *SP.StringPool, errors: *Errors.Errors) !*Typing.Type {
+    const allocator = sp.allocator;
+
+    var env = try Env.init(sp, errors);
+    defer env.deinit(allocator);
+
+    for (ast.exprs) |expr| {
+        env.reset();
+
+        _ = try expression(expr, &env);
+
+        var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, allocator);
+        defer subst.deinit(allocator);
+
+        try applyExpression(expr, &subst, allocator);
+    }
+
+    return (if (ast.exprs.len == 0) env.errorType else ast.exprs[ast.exprs.len - 1].type orelse env.errorType).incRefR();
 }
 
 fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
@@ -323,15 +347,20 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             ast.assignType(last.incRefR(), env.allocator);
         },
         .idDeclaration => {
-            const t = try expression(ast.kind.idDeclaration.value, env);
-
-            if (env.findNameInScope(ast.kind.idDeclaration.name)) |_| {
-                try env.appendError(try Errors.duplicateDeclarationError(env.sp.allocator, ast.locationRange, ast.kind.idDeclaration.name.slice()));
+            if (ast.kind.idDeclaration.value.kind == .literalFunction) {
+                std.debug.print("Function Declaration: {}\n", .{ast.kind.idDeclaration.value});
             } else {
-                try env.newName(ast.kind.idDeclaration.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = t.incRefR() });
-            }
+                _ = try expression(ast.kind.idDeclaration.value, env);
+                const t = try expression(ast.kind.idDeclaration.value, env);
 
-            ast.assignType(t.incRefR(), env.allocator);
+                if (env.findNameInScope(ast.kind.idDeclaration.name)) |_| {
+                    try env.appendError(try Errors.duplicateDeclarationError(env.sp.allocator, ast.locationRange, ast.kind.idDeclaration.name.slice()));
+                } else {
+                    try env.newName(ast.kind.idDeclaration.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = t.incRefR() });
+                }
+
+                ast.assignType(t.incRefR(), env.allocator);
+            }
         },
         .identifier => {
             if (env.findName(ast.kind.identifier)) |scheme| {

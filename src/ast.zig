@@ -50,6 +50,35 @@ pub const Operator = enum {
     }
 };
 
+pub const Package = struct {
+    exprs: []*Expression,
+
+    pub fn init(exprs: []*Expression) Package {
+        return Package{
+            .exprs = exprs,
+        };
+    }
+
+    pub fn deinit(self: *Package, allocator: std.mem.Allocator) void {
+        for (self.exprs) |expr| {
+            destroyExpr(allocator, expr);
+        }
+        allocator.free(self.exprs);
+    }
+
+    pub fn create(allocator: std.mem.Allocator, exprs: []*Expression) !*Package {
+        const package = try allocator.create(Package);
+        package.* = Package.init(exprs);
+
+        return package;
+    }
+
+    pub fn destroy(self: *Package, allocator: std.mem.Allocator) void {
+        self.deinit(allocator);
+        allocator.destroy(self);
+    }
+};
+
 pub const Expression = struct {
     kind: ExpressionKind,
     locationRange: Errors.LocationRange,

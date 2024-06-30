@@ -72,6 +72,7 @@ pub const Type = struct {
                 .OrEmpty => self.kind.OrEmpty.deinit(),
                 .OrExtend => self.kind.OrExtend.deinit(allocator),
                 .Tag => self.kind.Tag.deinit(),
+                .Tuple => self.kind.Tuple.deinit(allocator),
                 .Variable => self.kind.Variable.deinit(),
             }
             allocator.destroy(self);
@@ -140,6 +141,7 @@ pub const Type = struct {
             .OrEmpty => try self.kind.OrEmpty.append(buffer),
             .OrExtend => try self.kind.OrExtend.append(buffer),
             .Tag => try self.kind.Tag.append(buffer),
+            .Tuple => try self.kind.Tuple.append(buffer),
             .Variable => try self.kind.Variable.append(buffer),
         }
     }
@@ -189,6 +191,7 @@ pub const TypeKind = union(enum) {
     OrEmpty: OrEmptyType,
     OrExtend: OrExtendType,
     Tag: TagType,
+    Tuple: TupleType,
     Variable: VariableType,
 };
 
@@ -196,11 +199,9 @@ pub const BoundType = struct {
     value: u64,
 
     pub fn new(allocator: std.mem.Allocator, value: u64) !*Type {
-        const self = try Type.create(allocator, TypeKind{ .Bound = BoundType{
+        return try Type.create(allocator, TypeKind{ .Bound = BoundType{
             .value = value,
         } });
-
-        return self;
     }
 
     pub fn deinit(self: *BoundType) void {
@@ -218,12 +219,10 @@ pub const FunctionType = struct {
     range: *Type,
 
     pub fn new(allocator: std.mem.Allocator, domain: *Type, range: *Type) !*Type {
-        const self = try Type.create(allocator, TypeKind{ .Function = FunctionType{
+        return try Type.create(allocator, TypeKind{ .Function = FunctionType{
             .domain = domain,
             .range = range,
         } });
-
-        return self;
     }
 
     pub fn deinit(self: *FunctionType, allocator: std.mem.Allocator) void {
@@ -246,9 +245,7 @@ pub const FunctionType = struct {
 
 pub const OrEmptyType = struct {
     pub fn new(allocator: std.mem.Allocator) !*Type {
-        const self = try Type.create(allocator, TypeKind{ .OrEmpty = OrEmptyType{} });
-
-        return self;
+        return try Type.create(allocator, TypeKind{ .OrEmpty = OrEmptyType{} });
     }
 
     pub fn deinit(self: *OrEmptyType) void {
@@ -268,12 +265,10 @@ pub const OrExtendType = struct {
     rest: *Type,
 
     pub fn new(allocator: std.mem.Allocator, component: *Type, rest: *Type) !*Type {
-        const self = try Type.create(allocator, TypeKind{ .OrExtend = OrExtendType{
+        return try Type.create(allocator, TypeKind{ .OrExtend = OrExtendType{
             .component = component,
             .rest = rest,
         } });
-
-        return self;
     }
 
     pub fn deinit(self: *OrExtendType, allocator: std.mem.Allocator) void {
@@ -297,11 +292,9 @@ pub const TagType = struct {
     name: *SP.String,
 
     pub fn new(allocator: std.mem.Allocator, name: *SP.String) !*Type {
-        const self = try Type.create(allocator, TypeKind{ .Tag = TagType{
+        return try Type.create(allocator, TypeKind{ .Tag = TagType{
             .name = name,
         } });
-
-        return self;
     }
 
     pub fn deinit(self: *TagType) void {
@@ -310,6 +303,32 @@ pub const TagType = struct {
 
     pub fn append(self: *TagType, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
         try buffer.appendSlice(self.name.slice());
+    }
+};
+
+pub const TupleType = struct {
+    components: []*Type,
+
+    pub fn new(allocator: std.mem.Allocator, components: []*Type) !*Type {
+        return try Type.create(allocator, TypeKind{ .Tuple = TupleType{
+            .components = components,
+        } });
+    }
+
+    pub fn deinit(self: *TupleType, allocator: std.mem.Allocator) void {
+        for (self.components) |component| {
+            component.decRef(allocator);
+        }
+        allocator.free(self.components);
+    }
+
+    pub fn append(self: *TupleType, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
+        try self.components[0].append(buffer);
+
+        for (self.components[1..]) |component| {
+            try buffer.appendSlice(", ");
+            try component.append(buffer);
+        }
     }
 };
 

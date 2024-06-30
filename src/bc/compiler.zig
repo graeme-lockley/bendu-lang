@@ -6,11 +6,11 @@ const Pointer = @import("../runtime/pointer.zig");
 const Runtime = @import("../runtime/runtime.zig").Runtime;
 const SP = @import("../lib/string_pool.zig");
 
-pub fn compile(ast: *AST.Expression, allocator: std.mem.Allocator) ![]u8 {
+pub fn compile(ast: *AST.Package, allocator: std.mem.Allocator) ![]u8 {
     var compileState = try CompileState.init(allocator);
     defer compileState.deinit();
 
-    try compileExpr(ast, &compileState);
+    try compilePackage(ast, &compileState);
     try compileState.appendOp(Op.ret);
 
     return compileState.bc.toOwnedSlice();
@@ -91,6 +91,20 @@ const CompileState = struct {
         }
     }
 };
+
+fn compilePackage(ast: *AST.Package, state: *CompileState) !void {
+    const exprCount = ast.exprs.len;
+    if (exprCount == 0) {
+        try state.appendOp(Op.push_unit);
+    } else {
+        for (ast.exprs, 0..) |item, idx| {
+            try compileExpr(item, state);
+            if (idx != exprCount - 1) {
+                try state.appendOp(Op.discard);
+            }
+        }
+    }
+}
 
 fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
     switch (ast.kind) {

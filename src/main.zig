@@ -48,8 +48,8 @@ pub fn main() !void {
     const parseResult = try Parser.parse(&sp, "script.bendu", script, &errors);
 
     if (parseResult) |ast| {
-        defer ast.decRef(allocator);
-        const typ = try Static.analysis(ast, &sp, &errors);
+        defer ast.destroy(allocator);
+        const typ = try Static.package(ast, &sp, &errors);
         defer typ.decRef(allocator);
 
         if (!errors.hasErrors()) {
