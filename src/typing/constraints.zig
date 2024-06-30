@@ -53,8 +53,13 @@ pub const Constraints = struct {
     pub fn reset(self: *Constraints, allocator: std.mem.Allocator) void {
         self.deinitState(allocator);
 
-        self.items.clearAndFree();
-        self.dependencies.clearAndFree();
+        // The following is the most conservative implememation. It could
+        // probably be simpler and more efficient.
+        self.items.deinit();
+        self.dependencies.deinit();
+
+        self.items = std.ArrayList(Constraint).init(allocator);
+        self.dependencies = std.ArrayList(Constraint).init(allocator);
     }
 
     fn deinitState(self: *Constraints, allocator: std.mem.Allocator) void {
