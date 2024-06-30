@@ -59,13 +59,7 @@ pub const TestState = struct {
         if (ast) |a| {
             defer a.destroy(self.allocator);
 
-            var result: ?*Typing.Type = null;
-
-            for (a.exprs) |expr| {
-                result = try Static.analysis(expr, &self.sp, &self.errors);
-            }
-
-            return result;
+            return try Static.package(a, &self.sp, &self.errors);
         } else {
             return null;
         }
