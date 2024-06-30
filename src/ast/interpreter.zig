@@ -9,11 +9,7 @@ pub fn eval(ast: *AST.Package, runtime: *Runtime) !void {
     var env = Environment.init(runtime);
     defer env.deinit();
 
-    try env.runtime.push_unit();
-    for (ast.exprs) |expr| {
-        env.runtime.discard();
-        try evalExpression(expr, &env);
-    }
+    try evalPackage(ast, &env);
 }
 
 const Environment = struct {
@@ -37,6 +33,14 @@ const Environment = struct {
         self.state.deinit();
     }
 };
+
+fn evalPackage(ast: *AST.Package, env: *Environment) !void {
+    try env.runtime.push_unit();
+    for (ast.exprs) |expr| {
+        env.runtime.discard();
+        try evalExpression(expr, env);
+    }
+}
 
 fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
     switch (ast.kind) {
