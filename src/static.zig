@@ -195,7 +195,7 @@ pub fn package(ast: *AST.Package, sp: *SP.StringPool, errors: *Errors.Errors) !*
         try applyExpression(expr, &subst, allocator);
     }
 
-    return (if (ast.exprs.len == 0) env.errorType else ast.exprs[ast.exprs.len - 1].type orelse env.errorType).incRefR();
+    return (if (ast.exprs.len == 0) env.unitType else ast.exprs[ast.exprs.len - 1].type orelse env.errorType).incRefR();
 }
 
 fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
