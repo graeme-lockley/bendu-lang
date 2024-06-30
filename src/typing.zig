@@ -179,6 +179,21 @@ pub const Type = struct {
                     rest,
                 );
             },
+            .Tuple => {
+                const allocator = s.items.allocator;
+
+                var components = std.ArrayList(*Type).init(allocator);
+                defer components.deinit();
+
+                for (self.kind.Tuple.components) |component| {
+                    try components.append(try component.apply(s));
+                }
+
+                return try TupleType.new(
+                    allocator,
+                    try components.toOwnedSlice(),
+                );
+            },
             .Variable => return (s.get(@intFromPtr(self.kind.Variable.name)) orelse self).incRefR(),
             else => return self.incRefR(),
         }
@@ -254,9 +269,8 @@ pub const OrEmptyType = struct {
 
     pub fn append(self: *OrEmptyType, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
         _ = self;
-        _ = buffer;
 
-        unreachable;
+        try buffer.appendSlice("...");
     }
 };
 
@@ -323,12 +337,15 @@ pub const TupleType = struct {
     }
 
     pub fn append(self: *TupleType, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
-        try self.components[0].append(buffer);
+        try buffer.append('(');
 
+        try self.components[0].append(buffer);
         for (self.components[1..]) |component| {
             try buffer.appendSlice(", ");
             try component.append(buffer);
         }
+
+        try buffer.append(')');
     }
 };
 
