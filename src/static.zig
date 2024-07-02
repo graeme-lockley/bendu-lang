@@ -347,20 +347,15 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             ast.assignType(last.incRefR(), env.allocator);
         },
         .idDeclaration => {
-            if (ast.kind.idDeclaration.value.kind == .literalFunction) {
-                std.debug.print("Function Declaration: {}\n", .{ast.kind.idDeclaration.value});
+            const t = try expression(ast.kind.idDeclaration.value, env);
+
+            if (env.findNameInScope(ast.kind.idDeclaration.name)) |_| {
+                try env.appendError(try Errors.duplicateDeclarationError(env.sp.allocator, ast.locationRange, ast.kind.idDeclaration.name.slice()));
             } else {
-                _ = try expression(ast.kind.idDeclaration.value, env);
-                const t = try expression(ast.kind.idDeclaration.value, env);
-
-                if (env.findNameInScope(ast.kind.idDeclaration.name)) |_| {
-                    try env.appendError(try Errors.duplicateDeclarationError(env.sp.allocator, ast.locationRange, ast.kind.idDeclaration.name.slice()));
-                } else {
-                    try env.newName(ast.kind.idDeclaration.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = t.incRefR() });
-                }
-
-                ast.assignType(t.incRefR(), env.allocator);
+                try env.newName(ast.kind.idDeclaration.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = t.incRefR() });
             }
+
+            ast.assignType(t.incRefR(), env.allocator);
         },
         .identifier => {
             if (env.findName(ast.kind.identifier)) |scheme| {
@@ -402,12 +397,38 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
         .literalChar => ast.assignType(env.charType.incRefR(), env.allocator),
         .literalFloat => ast.assignType(env.floatType.incRefR(), env.allocator),
         .literalFunction => {
+            var functionParamTypes = std.ArrayList(*Typing.Type).init(env.allocator);
+            defer functionParamTypes.deinit();
+
             for (ast.kind.literalFunction.params) |param| {
+                const t = try env.pump.newBound(env.allocator);
+                try functionParamTypes.append(t);
+
+                if (env.findNameInScope(param.name)) |_| {
+                    try env.appendError(try Errors.duplicateDeclarationError(env.allocator, ast.locationRange, param.name.slice()));
+                } else {
+                    try env.newName(param.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = t.incRefR() });
+                }
+
                 if (param.default) |d| {
-                    _ = try expression(d, env);
+                    const defaultParamType = try expression(d, env);
+
+                    try env.addConstraint(defaultParamType, t, ast.locationRange);
                 }
             }
-            _ = try expression(ast.kind.literalFunction.body, env);
+            const range = try expression(ast.kind.literalFunction.body, env);
+
+            if (functionParamTypes.items.len == 1) {
+                const domain = functionParamTypes.pop();
+                const functionType = try Typing.FunctionType.new(env.allocator, domain, range);
+
+                ast.assignType(functionType, env.allocator);
+            } else {
+                const domain = try Typing.TupleType.new(env.allocator, try functionParamTypes.toOwnedSlice());
+
+                const functionType = try Typing.FunctionType.new(env.allocator, domain, range);
+                ast.assignType(functionType, env.allocator);
+            }
         },
         .literalInt => ast.assignType(env.intType.incRefR(), env.allocator),
         .literalRecord => {
@@ -615,6 +636,8 @@ test "!True" {
 
     try std.testing.expect(!state.errors.hasErrors());
     try std.testing.expect(result != null);
+
+    try state.expectTypeString(result.?, "Bool");
 }
 
 test "!23" {
@@ -627,3 +650,18 @@ test "!23" {
     try std.testing.expect(state.errors.hasErrors());
     try std.testing.expect(result != null);
 }
+
+// test "let inc(n) = n + 1" {
+//     var state = try TestState.init();
+//     defer state.deinit();
+
+//     const result = try state.parseAnalyse("let inc(n) = n + 1");
+//     defer result.?.decRef(state.allocator);
+
+//     try state.debugPrintErrors();
+
+//     try std.testing.expect(!state.errors.hasErrors());
+//     try std.testing.expect(result != null);
+
+//     try state.expectTypeString(result.?, "(Int) -> Int");
+// }

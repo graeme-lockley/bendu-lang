@@ -102,9 +102,8 @@ pub const Expression = struct {
     }
 
     pub inline fn assignType(self: *Expression, typ: *Typing.Type, allocator: std.mem.Allocator) void {
-        if (self.type != null) {
-            self.type.?.decRef(allocator);
-        }
+        const old = self.type;
+        defer if (old) |p| p.decRef(allocator);
 
         self.type = typ;
     }

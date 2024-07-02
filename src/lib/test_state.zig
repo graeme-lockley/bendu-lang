@@ -64,4 +64,28 @@ pub const TestState = struct {
             return null;
         }
     }
+
+    pub fn debugPrintErrors(self: *TestState) !void {
+        _ = self.setup();
+
+        if (self.errors.hasErrors()) {
+            std.debug.print("--- Errors ------------\n", .{});
+            for (self.errors.items.items) |*err| {
+                const str = try err.toString(self.allocator);
+                defer self.allocator.free(str);
+
+                std.debug.print("{s}\n", .{str});
+            }
+            std.debug.print("-----------------------\n", .{});
+        }
+    }
+
+    pub fn expectTypeString(self: *TestState, typ: *Typing.Type, name: []const u8) !void {
+        _ = self.setup();
+
+        const typeString = try typ.toString(self.allocator);
+        defer self.allocator.free(typeString);
+
+        try std.testing.expectEqualSlices(u8, name, typeString);
+    }
 };
