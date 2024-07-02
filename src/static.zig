@@ -420,13 +420,13 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
 
             if (functionParamTypes.items.len == 1) {
                 const domain = functionParamTypes.pop();
-                const functionType = try Typing.FunctionType.new(env.allocator, domain, range);
+                const functionType = try Typing.FunctionType.new(env.allocator, domain, range.incRefR());
 
                 ast.assignType(functionType, env.allocator);
             } else {
                 const domain = try Typing.TupleType.new(env.allocator, try functionParamTypes.toOwnedSlice());
 
-                const functionType = try Typing.FunctionType.new(env.allocator, domain, range);
+                const functionType = try Typing.FunctionType.new(env.allocator, domain, range.incRefR());
                 ast.assignType(functionType, env.allocator);
             }
         },
