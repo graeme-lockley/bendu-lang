@@ -33,7 +33,14 @@ pub const Subst = struct {
     }
 
     pub fn get(self: *Subst, key: u64) ?*Typing.Type {
-        return self.items.get(key);
+        var result = self.items.get(key);
+
+        while (result != null and result.?.kind == .Bound and self.contains(result.?.kind.Bound.value)) {
+            const bound = result.?.kind.Bound.value;
+            result = self.items.get(bound);
+        }
+
+        return result;
     }
 
     fn contains(self: *Subst, key: u64) bool {
@@ -49,7 +56,6 @@ pub const Subst = struct {
     }
 
     pub fn compose(self: *Subst, other: *Subst) !void {
-
         // const compose(s: Subst): Subst {
         //   return new Subst(
         //     Maps.union(Maps.map(s.items, (v) => v.apply(this)), this.items),
@@ -61,10 +67,21 @@ pub const Subst = struct {
             const substValue = try item.value_ptr.*.apply(self);
             defer substValue.decRef(self.items.allocator);
 
-            if (!self.contains(item.key_ptr.*)) {
-                try self.put(item.key_ptr.*, substValue);
-            }
+            try self.put(item.key_ptr.*, substValue);
         }
+    }
+
+    pub fn debugPrint(self: *Subst) !void {
+        std.debug.print("--- Subst ------------\n", .{});
+        var iterator = self.items.iterator();
+        while (iterator.next()) |item| {
+            const key = item.key_ptr.*;
+            const value = item.value_ptr.*;
+            const valueStr = try value.toString(self.items.allocator);
+            defer self.items.allocator.free(valueStr);
+            std.debug.print("'{d} -> {s}\n", .{ key, valueStr });
+        }
+        std.debug.print("----------------------\n", .{});
     }
 };
 

@@ -30,6 +30,15 @@ pub const Constraint = struct {
         self.t1 = try t1.apply(s);
         self.t2 = try t2.apply(s);
     }
+
+    pub fn debugPrint(self: *Constraint, allocator: std.mem.Allocator) !void {
+        const s1 = try self.t1.toString(allocator);
+        defer allocator.free(s1);
+        const s2 = try self.t2.toString(allocator);
+        defer allocator.free(s2);
+
+        std.debug.print("- {s} ~ {s}\n", .{ s1, s2 });
+    }
 };
 
 pub const Constraints = struct {
@@ -92,6 +101,14 @@ pub const Constraints = struct {
     pub fn apply(self: *Constraints, s: *Typing.Subst) !void {
         try applyArrayList(&self.items, s);
         try applyArrayList(&self.dependencies, s);
+    }
+
+    pub fn debugPrint(self: *Constraints) !void {
+        std.debug.print("--- Constraints ------------\n", .{});
+        for (self.items.items) |*err| {
+            try err.debugPrint(self.items.allocator);
+        }
+        std.debug.print("----------------------------\n", .{});
     }
 };
 

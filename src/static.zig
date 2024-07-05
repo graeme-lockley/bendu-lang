@@ -418,17 +418,10 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             }
             const range = try expression(ast.kind.literalFunction.body, env);
 
-            if (functionParamTypes.items.len == 1) {
-                const domain = functionParamTypes.pop();
-                const functionType = try Typing.FunctionType.new(env.allocator, domain, range.incRefR());
+            const domain = try Typing.TupleType.new(env.allocator, try functionParamTypes.toOwnedSlice());
 
-                ast.assignType(functionType, env.allocator);
-            } else {
-                const domain = try Typing.TupleType.new(env.allocator, try functionParamTypes.toOwnedSlice());
-
-                const functionType = try Typing.FunctionType.new(env.allocator, domain, range.incRefR());
-                ast.assignType(functionType, env.allocator);
-            }
+            const functionType = try Typing.FunctionType.new(env.allocator, domain, range.incRefR());
+            ast.assignType(functionType, env.allocator);
         },
         .literalInt => ast.assignType(env.intType.incRefR(), env.allocator),
         .literalRecord => {
@@ -527,23 +520,14 @@ fn applyExpression(ast: *AST.Expression, subst: *Typing.Subst, allocator: std.me
                 try applyExpression(case.body, subst, allocator);
             }
         },
-        .dot => {
-            _ = try applyExpression(ast.kind.dot.record, subst, allocator);
+        .dot => _ = try applyExpression(ast.kind.dot.record, subst, allocator),
+        .exprs => for (ast.kind.exprs) |expr| {
+            try applyExpression(expr, subst, allocator);
         },
-        .exprs => {
-            for (ast.kind.exprs) |expr| {
-                try applyExpression(expr, subst, allocator);
-            }
-        },
-        .idDeclaration => {
-            try applyExpression(ast.kind.idDeclaration.value, subst, allocator);
-        },
-        .ifte => {
-            for (ast.kind.ifte) |case| {
-                if (case.condition) |condition| {
-                    try applyExpression(condition, subst, allocator);
-                }
-                try applyExpression(case.then, subst, allocator);
+        .idDeclaration => try applyExpression(ast.kind.idDeclaration.value, subst, allocator),
+        .ifte => for (ast.kind.ifte) |case| {
+            if (case.condition) |condition| {
+                try applyExpression(condition, subst, allocator);
             }
         },
         .indexRange => {
@@ -568,20 +552,16 @@ fn applyExpression(ast: *AST.Expression, subst: *Typing.Subst, allocator: std.me
             }
             try applyExpression(ast.kind.literalFunction.body, subst, allocator);
         },
-        .literalRecord => {
-            for (ast.kind.literalRecord) |field| {
-                switch (field) {
-                    .value => try applyExpression(field.value.value, subst, allocator),
-                    .record => try applyExpression(field.record, subst, allocator),
-                }
+        .literalRecord => for (ast.kind.literalRecord) |field| {
+            switch (field) {
+                .value => try applyExpression(field.value.value, subst, allocator),
+                .record => try applyExpression(field.record, subst, allocator),
             }
         },
-        .literalSequence => {
-            for (ast.kind.literalSequence) |elem| {
-                switch (elem) {
-                    .value => try applyExpression(elem.value, subst, allocator),
-                    .sequence => try applyExpression(elem.sequence, subst, allocator),
-                }
+        .literalSequence => for (ast.kind.literalSequence) |elem| {
+            switch (elem) {
+                .value => try applyExpression(elem.value, subst, allocator),
+                .sequence => try applyExpression(elem.sequence, subst, allocator),
             }
         },
         .match => {
@@ -596,9 +576,7 @@ fn applyExpression(ast: *AST.Expression, subst: *Typing.Subst, allocator: std.me
             try applyPattern(ast.kind.patternDeclaration.pattern, subst, allocator);
             try applyExpression(ast.kind.patternDeclaration.value, subst, allocator);
         },
-        .raise => {
-            try applyExpression(ast.kind.raise.expr, subst, allocator);
-        },
+        .raise => try applyExpression(ast.kind.raise.expr, subst, allocator),
         .whilee => {
             try applyExpression(ast.kind.whilee.condition, subst, allocator);
             try applyExpression(ast.kind.whilee.body, subst, allocator);
@@ -651,17 +629,17 @@ test "!23" {
     try std.testing.expect(result != null);
 }
 
-// test "let inc(n) = n + 1" {
-//     var state = try TestState.init();
-//     defer state.deinit();
+test "let inc(n) = n + 1" {
+    var state = try TestState.init();
+    defer state.deinit();
 
-//     const result = try state.parseAnalyse("let inc(n) = n + 1");
-//     defer result.?.decRef(state.allocator);
+    const result = try state.parseAnalyse("let inc(n) = n + 1");
+    defer result.?.decRef(state.allocator);
 
-//     try state.debugPrintErrors();
+    try state.debugPrintErrors();
 
-//     try std.testing.expect(!state.errors.hasErrors());
-//     try std.testing.expect(result != null);
+    try std.testing.expect(!state.errors.hasErrors());
+    try std.testing.expect(result != null);
 
-//     try state.expectTypeString(result.?, "(Int) -> Int");
-// }
+    try state.expectTypeString(result.?, "(Int) -> Int");
+}
