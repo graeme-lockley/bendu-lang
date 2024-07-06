@@ -34,6 +34,11 @@ pub const Scheme = struct {
         }
     }
 
+    pub fn destroy(self: *Scheme, allocator: std.mem.Allocator) void {
+        self.deinit(allocator);
+        allocator.destroy(self);
+    }
+
     pub fn instantiate(self: Scheme, pump: *Pump, allocator: std.mem.Allocator) !*Type {
         var s = Subst.init(allocator);
         defer s.deinit(allocator);

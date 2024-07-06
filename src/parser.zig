@@ -71,14 +71,14 @@ pub const Parser = struct {
                     var literalFn = try self.functionTail(letToken.locationRange.from);
                     errdefer literalFn.decRef(self.allocator);
 
-                    return try AST.Expression.create(self.allocator, AST.ExpressionKind{ .idDeclaration = AST.IdDeclarationExpression{ .name = try self.stringPool.intern(name), .value = literalFn } }, Errors.LocationRange{ .from = nameToken.locationRange.from, .to = literalFn.locationRange.to });
+                    return try AST.Expression.create(self.allocator, AST.ExpressionKind{ .idDeclaration = AST.IdDeclarationExpression{ .name = try self.stringPool.intern(name), .value = literalFn, .scheme = null } }, Errors.LocationRange{ .from = nameToken.locationRange.from, .to = literalFn.locationRange.to });
                 } else {
                     try self.matchSkipToken(Lexer.TokenKind.Equal);
 
                     const value = try self.expression();
                     errdefer value.decRef(self.allocator);
 
-                    return try AST.Expression.create(self.allocator, AST.ExpressionKind{ .idDeclaration = AST.IdDeclarationExpression{ .name = try self.stringPool.intern(name), .value = value } }, Errors.LocationRange{ .from = letToken.locationRange.from, .to = value.locationRange.to });
+                    return try AST.Expression.create(self.allocator, AST.ExpressionKind{ .idDeclaration = AST.IdDeclarationExpression{ .name = try self.stringPool.intern(name), .value = value, .scheme = null } }, Errors.LocationRange{ .from = letToken.locationRange.from, .to = value.locationRange.to });
                 }
             } else {
                 const pttrn = try self.pattern();

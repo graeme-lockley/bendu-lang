@@ -643,3 +643,18 @@ test "let inc(n) = n + 1" {
 
     try state.expectTypeString(result.?, "(Int) -> Int");
 }
+
+// test "let add(n, m) = n + m" {
+//     var state = try TestState.init();
+//     defer state.deinit();
+
+//     const result = try state.parseAnalyse("let add(n, m) = n + m");
+//     defer result.?.decRef(state.allocator);
+
+//     try state.debugPrintErrors();
+
+//     try std.testing.expect(!state.errors.hasErrors());
+//     try std.testing.expect(result != null);
+
+//     try state.expectTypeString(result.?, "[a: Char | Float | Int | String] (a, a) -> a");
+// }

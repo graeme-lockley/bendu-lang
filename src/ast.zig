@@ -189,10 +189,15 @@ pub const DotExpression = struct {
 pub const IdDeclarationExpression = struct {
     name: *SP.String,
     value: *Expression,
+    scheme: ?*Typing.Scheme,
 
     pub fn deinit(self: *IdDeclarationExpression, allocator: std.mem.Allocator) void {
         self.name.decRef();
         destroyExpr(allocator, self.value);
+
+        if (self.scheme) |s| {
+            s.destroy(allocator);
+        }
     }
 };
 
