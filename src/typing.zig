@@ -39,6 +39,29 @@ pub const Scheme = struct {
         allocator.destroy(self);
     }
 
+    pub fn clone(self: *Scheme, allocator: std.mem.Allocator) !Scheme {
+        var names = std.ArrayList(SchemeBinding).init(allocator);
+        defer names.deinit();
+
+        for (self.names) |name| {
+            const t = name.type;
+
+            if (t != null) {
+                t.?.incRef();
+            }
+
+            try names.append(SchemeBinding{
+                .name = name.name.incRefR(),
+                .type = t,
+            });
+        }
+
+        return Scheme{
+            .names = try names.toOwnedSlice(),
+            .type = self.type.incRefR(),
+        };
+    }
+
     pub fn instantiate(self: Scheme, pump: *Pump, allocator: std.mem.Allocator) !*Type {
         var s = Subst.init(allocator);
         defer s.deinit(allocator);

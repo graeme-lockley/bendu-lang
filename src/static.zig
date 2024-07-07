@@ -173,11 +173,13 @@ pub fn package(ast: *AST.Package, sp: *SP.StringPool, errors: *Errors.Errors) !v
 
         _ = try expression(expr, &env);
 
-        var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, allocator);
-        defer subst.deinit(allocator);
+        if (expr.kind != .idDeclaration) {
+            var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, allocator);
+            defer subst.deinit(allocator);
 
-        var state = ApplyASTState{ .subst = &subst, .env = &env };
-        try applyExpression(expr, &state);
+            var state = ApplyASTState{ .subst = &subst, .env = &env };
+            try applyExpression(expr, &state);
+        }
     }
 }
 
@@ -308,13 +310,19 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
         .idDeclaration => {
             const t = try expression(ast.kind.idDeclaration.value, env);
 
+            ast.assignType(t.incRefR(), env.allocator);
+
+            var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, env.allocator);
+            defer subst.deinit(env.allocator);
+
+            var state = ApplyASTState{ .subst = &subst, .env = env };
+            try applyExpression(ast, &state);
+
             if (env.findNameInScope(ast.kind.idDeclaration.name)) |_| {
                 try env.appendError(try Errors.duplicateDeclarationError(env.sp.allocator, ast.locationRange, ast.kind.idDeclaration.name.slice()));
             } else {
-                try env.newName(ast.kind.idDeclaration.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = t.incRefR() });
+                try env.newName(ast.kind.idDeclaration.name, try ast.kind.idDeclaration.scheme.?.clone(env.allocator));
             }
-
-            ast.assignType(t.incRefR(), env.allocator);
         },
         .identifier => {
             if (env.findName(ast.kind.identifier)) |scheme| {
@@ -356,6 +364,9 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
         .literalChar => ast.assignType(env.charType.incRefR(), env.allocator),
         .literalFloat => ast.assignType(env.floatType.incRefR(), env.allocator),
         .literalFunction => {
+            try env.openScope();
+            defer env.closeScope();
+
             var functionParamTypes = std.ArrayList(*Typing.Type).init(env.allocator);
             defer functionParamTypes.deinit();
 
