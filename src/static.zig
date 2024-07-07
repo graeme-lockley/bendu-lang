@@ -173,12 +173,12 @@ pub fn analysis(ast: *AST.Expression, sp: *SP.StringPool, errors: *Errors.Errors
     var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, allocator);
     defer subst.deinit(allocator);
 
-    try applyExpression(ast, &subst, allocator);
+    try applyExpression(ast, &subst, allocator, sp, &env.constraints);
 
     return (ast.type orelse env.errorType).incRefR();
 }
 
-pub fn package(ast: *AST.Package, sp: *SP.StringPool, errors: *Errors.Errors) !*Typing.Type {
+pub fn package(ast: *AST.Package, sp: *SP.StringPool, errors: *Errors.Errors) !void {
     const allocator = sp.allocator;
 
     var env = try Env.init(sp, errors);
@@ -192,10 +192,8 @@ pub fn package(ast: *AST.Package, sp: *SP.StringPool, errors: *Errors.Errors) !*
         var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, allocator);
         defer subst.deinit(allocator);
 
-        try applyExpression(expr, &subst, allocator);
+        try applyExpression(expr, &subst, allocator, sp, &env.constraints);
     }
-
-    return (if (ast.exprs.len == 0) env.unitType else ast.exprs[ast.exprs.len - 1].type orelse env.errorType).incRefR();
 }
 
 fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
@@ -493,113 +491,236 @@ fn pattern(ast: *AST.Pattern, env: *Env) !*Typing.Type {
     return env.errorType;
 }
 
-fn applyExpression(ast: *AST.Expression, subst: *Typing.Subst, allocator: std.mem.Allocator) !void {
+fn applyExpression(ast: *AST.Expression, subst: *Typing.Subst, allocator: std.mem.Allocator, sp: *SP.StringPool, constraints: *Typing.Constraints) !void {
     if (ast.type) |t| {
         ast.assignType(try t.apply(subst), allocator);
     }
 
     switch (ast.kind) {
         .assignment => {
-            try applyExpression(ast.kind.assignment.lhs, subst, allocator);
-            try applyExpression(ast.kind.assignment.rhs, subst, allocator);
+            try applyExpression(ast.kind.assignment.lhs, subst, allocator, sp, constraints);
+            try applyExpression(ast.kind.assignment.rhs, subst, allocator, sp, constraints);
         },
         .binaryOp => {
-            try applyExpression(ast.kind.binaryOp.lhs, subst, allocator);
-            try applyExpression(ast.kind.binaryOp.rhs, subst, allocator);
+            try applyExpression(ast.kind.binaryOp.lhs, subst, allocator, sp, constraints);
+            try applyExpression(ast.kind.binaryOp.rhs, subst, allocator, sp, constraints);
         },
         .call => {
-            try applyExpression(ast.kind.call.callee, subst, allocator);
+            try applyExpression(ast.kind.call.callee, subst, allocator, sp, constraints);
             for (ast.kind.call.args) |arg| {
-                try applyExpression(arg, subst, allocator);
+                try applyExpression(arg, subst, allocator, sp, constraints);
             }
         },
         .catche => {
-            try applyExpression(ast.kind.catche.value, subst, allocator);
+            try applyExpression(ast.kind.catche.value, subst, allocator, sp, constraints);
             for (ast.kind.catche.cases) |case| {
-                try applyPattern(case.pattern, subst, allocator);
-                try applyExpression(case.body, subst, allocator);
+                try applyPattern(case.pattern, subst, allocator, sp, constraints);
+                try applyExpression(case.body, subst, allocator, sp, constraints);
             }
         },
-        .dot => _ = try applyExpression(ast.kind.dot.record, subst, allocator),
+        .dot => _ = try applyExpression(ast.kind.dot.record, subst, allocator, sp, constraints),
         .exprs => for (ast.kind.exprs) |expr| {
-            try applyExpression(expr, subst, allocator);
+            try applyExpression(expr, subst, allocator, sp, constraints);
         },
-        .idDeclaration => try applyExpression(ast.kind.idDeclaration.value, subst, allocator),
+        .idDeclaration => {
+            try applyExpression(ast.kind.idDeclaration.value, subst, allocator, sp, constraints);
+
+            var state = AccumlativeState.init(allocator, sp, constraints);
+            defer state.deinit();
+
+            const typ = try accumulateFreeVariableNames(ast.type.?, &state);
+            ast.kind.idDeclaration.scheme = Typing.Scheme{ .names = try state.names.toOwnedSlice(), .type = typ };
+        },
         .ifte => for (ast.kind.ifte) |case| {
             if (case.condition) |condition| {
-                try applyExpression(condition, subst, allocator);
+                try applyExpression(condition, subst, allocator, sp, constraints);
             }
         },
         .indexRange => {
-            try applyExpression(ast.kind.indexRange.expr, subst, allocator);
+            try applyExpression(ast.kind.indexRange.expr, subst, allocator, sp, constraints);
 
             if (ast.kind.indexRange.start) |start| {
-                try applyExpression(start, subst, allocator);
+                try applyExpression(start, subst, allocator, sp, constraints);
             }
             if (ast.kind.indexRange.end) |end| {
-                try applyExpression(end, subst, allocator);
+                try applyExpression(end, subst, allocator, sp, constraints);
             }
         },
         .indexValue => {
-            try applyExpression(ast.kind.indexValue.expr, subst, allocator);
-            try applyExpression(ast.kind.indexValue.index, subst, allocator);
+            try applyExpression(ast.kind.indexValue.expr, subst, allocator, sp, constraints);
+            try applyExpression(ast.kind.indexValue.index, subst, allocator, sp, constraints);
         },
         .literalFunction => {
             for (ast.kind.literalFunction.params) |param| {
                 if (param.default) |d| {
-                    try applyExpression(d, subst, allocator);
+                    try applyExpression(d, subst, allocator, sp, constraints);
                 }
             }
-            try applyExpression(ast.kind.literalFunction.body, subst, allocator);
+            try applyExpression(ast.kind.literalFunction.body, subst, allocator, sp, constraints);
         },
         .literalRecord => for (ast.kind.literalRecord) |field| {
             switch (field) {
-                .value => try applyExpression(field.value.value, subst, allocator),
-                .record => try applyExpression(field.record, subst, allocator),
+                .value => try applyExpression(field.value.value, subst, allocator, sp, constraints),
+                .record => try applyExpression(field.record, subst, allocator, sp, constraints),
             }
         },
         .literalSequence => for (ast.kind.literalSequence) |elem| {
             switch (elem) {
-                .value => try applyExpression(elem.value, subst, allocator),
-                .sequence => try applyExpression(elem.sequence, subst, allocator),
+                .value => try applyExpression(elem.value, subst, allocator, sp, constraints),
+                .sequence => try applyExpression(elem.sequence, subst, allocator, sp, constraints),
             }
         },
         .match => {
-            try applyExpression(ast.kind.match.value, subst, allocator);
+            try applyExpression(ast.kind.match.value, subst, allocator, sp, constraints);
             for (ast.kind.match.cases) |case| {
-                try applyPattern(case.pattern, subst, allocator);
-                try applyExpression(case.body, subst, allocator);
+                try applyPattern(case.pattern, subst, allocator, sp, constraints);
+                try applyExpression(case.body, subst, allocator, sp, constraints);
             }
         },
-        .notOp => try applyExpression(ast.kind.notOp.value, subst, allocator),
+        .notOp => try applyExpression(ast.kind.notOp.value, subst, allocator, sp, constraints),
         .patternDeclaration => {
-            try applyPattern(ast.kind.patternDeclaration.pattern, subst, allocator);
-            try applyExpression(ast.kind.patternDeclaration.value, subst, allocator);
+            try applyPattern(ast.kind.patternDeclaration.pattern, subst, allocator, sp, constraints);
+            try applyExpression(ast.kind.patternDeclaration.value, subst, allocator, sp, constraints);
         },
-        .raise => try applyExpression(ast.kind.raise.expr, subst, allocator),
+        .raise => try applyExpression(ast.kind.raise.expr, subst, allocator, sp, constraints),
         .whilee => {
-            try applyExpression(ast.kind.whilee.condition, subst, allocator);
-            try applyExpression(ast.kind.whilee.body, subst, allocator);
+            try applyExpression(ast.kind.whilee.condition, subst, allocator, sp, constraints);
+            try applyExpression(ast.kind.whilee.body, subst, allocator, sp, constraints);
         },
         else => {},
     }
 }
 
-fn applyPattern(ast: *AST.Pattern, subst: *Typing.Subst, allocator: std.mem.Allocator) !void {
+fn applyPattern(ast: *AST.Pattern, subst: *Typing.Subst, allocator: std.mem.Allocator, sp: *SP.StringPool, constraints: *Typing.Constraints) !void {
     switch (ast.kind) {
         .record => {
             for (ast.kind.record.entries) |field| {
                 if (field.pattern) |p| {
-                    try applyPattern(p, subst, allocator);
+                    try applyPattern(p, subst, allocator, sp, constraints);
                 }
             }
         },
         .sequence => {
             for (ast.kind.sequence.patterns) |p| {
-                try applyPattern(p, subst, allocator);
+                try applyPattern(p, subst, allocator, sp, constraints);
             }
         },
         else => {},
+    }
+}
+
+const AccumlativeState = struct {
+    allocator: std.mem.Allocator,
+    sp: *SP.StringPool,
+    names: std.ArrayList(Typing.SchemeBinding),
+    boundBindings: std.AutoHashMap(u64, *Typing.Type),
+    constraints: *Typing.Constraints,
+    n: u32,
+
+    fn init(allocator: std.mem.Allocator, sp: *SP.StringPool, constraints: *Typing.Constraints) AccumlativeState {
+        return AccumlativeState{
+            .allocator = allocator,
+            .sp = sp,
+            .names = std.ArrayList(Typing.SchemeBinding).init(allocator),
+            .boundBindings = std.AutoHashMap(u64, *Typing.Type).init(allocator),
+            .constraints = constraints,
+            .n = 0,
+        };
+    }
+
+    fn deinit(self: *AccumlativeState) void {
+        self.names.deinit();
+        self.boundBindings.deinit();
+    }
+
+    fn newBound(self: *AccumlativeState, v: u64) !*Typing.Type {
+        const key = self.n;
+        self.n += 1;
+
+        var buffer = std.ArrayList(u8).init(self.allocator);
+        defer buffer.deinit();
+
+        try buffer.append(@intCast(key + @as(u32, @intCast('a'))));
+        const keySP = try self.sp.internOwned(try buffer.toOwnedSlice());
+
+        const typ = try Typing.VariableType.new(self.allocator, keySP);
+
+        try self.boundBindings.put(v, typ);
+        const typeDependency = self.constraints.findDependency(v);
+
+        if (typeDependency) |d| {
+            d.incRef();
+        }
+
+        // if (typeDependency == null) {
+        //     std.debug.print("--- v: {d} ------------\n", .{v});
+
+        //     try self.constraints.debugPrint();
+        // }
+
+        try self.names.append(Typing.SchemeBinding{
+            .name = keySP.incRefR(),
+            .type = typeDependency,
+        });
+
+        return typ;
+    }
+
+    fn getBound(self: *AccumlativeState, v: u64) ?*Typing.Type {
+        return self.boundBindings.get(v);
+    }
+};
+
+fn accumulateFreeVariableNames(typ: *Typing.Type, state: *AccumlativeState) !*Typing.Type {
+    switch (typ.kind) {
+        .Bound => {
+            if (state.getBound(typ.kind.Bound.value)) |n| {
+                return n.incRefR();
+            } else {
+                return try state.newBound(typ.kind.Bound.value);
+            }
+        },
+        .Function => {
+            const domain = try accumulateFreeVariableNames(typ.kind.Function.domain, state);
+            errdefer domain.decRef(state.allocator);
+
+            const range = try accumulateFreeVariableNames(typ.kind.Function.range, state);
+            errdefer range.decRef(state.allocator);
+
+            return try Typing.FunctionType.new(
+                state.allocator,
+                domain,
+                range,
+            );
+        },
+        .OrExtend => {
+            const component = try accumulateFreeVariableNames(typ.kind.OrExtend.component, state);
+            errdefer component.decRef(state.allocator);
+
+            const rest = try accumulateFreeVariableNames(typ.kind.OrExtend.rest, state);
+            errdefer rest.decRef(state.allocator);
+
+            return try Typing.OrExtendType.new(
+                state.allocator,
+                component,
+                rest,
+            );
+        },
+        .Tuple => {
+            var components = std.ArrayList(*Typing.Type).init(state.allocator);
+            defer components.deinit();
+
+            for (typ.kind.Tuple.components) |component| {
+                try components.append(try accumulateFreeVariableNames(component, state));
+            }
+
+            return try Typing.TupleType.new(
+                state.allocator,
+                try components.toOwnedSlice(),
+            );
+        },
+        // .Variable => return (s.get(@intFromPtr(self.kind.Variable.name)) orelse self).incRefR(),
+        else => return typ.incRefR(),
     }
 }
 
@@ -644,17 +765,9 @@ test "let inc(n) = n + 1" {
     try state.expectTypeString(result.?, "(Int) -> Int");
 }
 
-// test "let add(n, m) = n + m" {
-//     var state = try TestState.init();
-//     defer state.deinit();
+test "let add(n, m) = n + m" {
+    var state = try TestState.init();
+    defer state.deinit();
 
-//     const result = try state.parseAnalyse("let add(n, m) = n + m");
-//     defer result.?.decRef(state.allocator);
-
-//     try state.debugPrintErrors();
-
-//     try std.testing.expect(!state.errors.hasErrors());
-//     try std.testing.expect(result != null);
-
-//     try state.expectTypeString(result.?, "[a: Char | Float | Int | String] (a, a) -> a");
-// }
+    try state.expectSchemeString("let add(n, m) = n + m", "[a: Char | Float | Int | String] (a, a) -> a");
+}

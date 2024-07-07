@@ -59,9 +59,31 @@ pub const TestState = struct {
         if (ast) |a| {
             defer a.destroy(self.allocator);
 
-            return try Static.package(a, &self.sp, &self.errors);
+            try Static.package(a, &self.sp, &self.errors);
+
+            return if (a.exprs.len == 0 or a.exprs[a.exprs.len - 1].type == null) null else a.exprs[a.exprs.len - 1].type.?.incRefR();
         } else {
             return null;
+        }
+    }
+
+    pub fn expectSchemeString(self: *TestState, source: []const u8, schemeString: []const u8) !void {
+        _ = self.setup();
+
+        const ast = try Parser.parse(&self.sp, "script.bendu", source, &self.errors);
+
+        try self.debugPrintErrors();
+        try std.testing.expect(!self.errors.hasErrors());
+
+        if (ast) |a| {
+            defer a.destroy(self.allocator);
+
+            try Static.package(a, &self.sp, &self.errors);
+
+            const s = try a.exprs[a.exprs.len - 1].kind.idDeclaration.scheme.?.toString(self.allocator);
+            defer self.allocator.free(s);
+
+            try std.testing.expectEqualStrings(schemeString, s);
         }
     }
 
@@ -86,6 +108,6 @@ pub const TestState = struct {
         const typeString = try typ.toString(self.allocator);
         defer self.allocator.free(typeString);
 
-        try std.testing.expectEqualSlices(u8, name, typeString);
+        try std.testing.expectEqualStrings(name, typeString);
     }
 };

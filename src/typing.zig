@@ -52,6 +52,41 @@ pub const Scheme = struct {
 
         return try self.type.apply(&s);
     }
+
+    pub fn toString(self: *Scheme, allocator: std.mem.Allocator) ![]u8 {
+        if (self.names.len == 0) {
+            return self.type.toString(allocator);
+        } else {
+            var buffer = std.ArrayList(u8).init(allocator);
+            defer buffer.deinit();
+
+            try buffer.append('[');
+            for (self.names, 0..) |n, i| {
+                if (i > 0) {
+                    try buffer.appendSlice(", ");
+                }
+                try buffer.appendSlice(n.name.slice());
+
+                if (n.type) |t| {
+                    const ts = try t.toString(allocator);
+                    defer allocator.free(ts);
+
+                    try buffer.append(':');
+                    try buffer.append(' ');
+                    try buffer.appendSlice(ts);
+                }
+            }
+            try buffer.append(']');
+            try buffer.append(' ');
+
+            const typString = try self.type.toString(allocator);
+            defer allocator.free(typString);
+
+            try buffer.appendSlice(typString);
+
+            return buffer.toOwnedSlice();
+        }
+    }
 };
 
 pub const Type = struct {

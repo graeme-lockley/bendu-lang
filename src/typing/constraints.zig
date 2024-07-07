@@ -108,7 +108,21 @@ pub const Constraints = struct {
         for (self.items.items) |*err| {
             try err.debugPrint(self.items.allocator);
         }
+        std.debug.print("--- Dependencies -----------\n", .{});
+        for (self.dependencies.items) |*err| {
+            try err.debugPrint(self.items.allocator);
+        }
         std.debug.print("----------------------------\n", .{});
+    }
+
+    pub fn findDependency(self: *Constraints, v: u64) ?*Typing.Type {
+        for (self.dependencies.items) |dependency| {
+            if (dependency.t1.kind == .Bound and dependency.t1.kind.Bound.value == v) {
+                return dependency.t2;
+            }
+        }
+
+        return null;
     }
 };
 

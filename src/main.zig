@@ -49,10 +49,10 @@ pub fn main() !void {
 
     if (parseResult) |ast| {
         defer ast.destroy(allocator);
-        const typ = try Static.package(ast, &sp, &errors);
-        defer typ.decRef(allocator);
+        try Static.package(ast, &sp, &errors);
 
-        if (!errors.hasErrors()) {
+        if (!errors.hasErrors() and ast.exprs.len > 0) {
+            const typ = ast.exprs[ast.exprs.len - 1].type.?;
             const typeString = try typ.toString(allocator);
             defer allocator.free(typeString);
 
