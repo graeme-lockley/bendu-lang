@@ -176,7 +176,7 @@ pub fn package(ast: *AST.Package, sp: *SP.StringPool, errors: *Errors.Errors) !v
         var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, allocator);
         defer subst.deinit(allocator);
 
-        var state = ApplyASTState{ .subst = &subst, .allocator = allocator, .sp = sp, .constraints = &env.constraints };
+        var state = ApplyASTState{ .subst = &subst, .env = &env };
         try applyExpression(expr, &state);
     }
 }
@@ -478,14 +478,12 @@ fn pattern(ast: *AST.Pattern, env: *Env) !*Typing.Type {
 
 const ApplyASTState = struct {
     subst: *Typing.Subst,
-    allocator: std.mem.Allocator,
-    sp: *SP.StringPool,
-    constraints: *Typing.Constraints,
+    env: *Env,
 };
 
 fn applyExpression(ast: *AST.Expression, state: *ApplyASTState) !void {
     if (ast.type) |t| {
-        ast.assignType(try t.apply(state.subst), state.allocator);
+        ast.assignType(try t.apply(state.subst), state.env.allocator);
     }
 
     switch (ast.kind) {
@@ -517,7 +515,7 @@ fn applyExpression(ast: *AST.Expression, state: *ApplyASTState) !void {
         .idDeclaration => {
             try applyExpression(ast.kind.idDeclaration.value, state);
 
-            var accState = AccumlativeState.init(state.allocator, state.sp, state.constraints);
+            var accState = AccumlativeState.init(state.env.allocator, state.env.sp, &state.env.constraints);
             defer accState.deinit();
 
             const typ = try accumulateFreeVariableNames(ast.type.?, &accState);
