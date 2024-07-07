@@ -239,31 +239,7 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
                     try env.addConstraint(lhs, result, ast.kind.binaryOp.lhs.locationRange);
                     try env.addConstraint(rhs, result, ast.kind.binaryOp.rhs.locationRange);
 
-                    const dependentType = try Typing.OrExtendType.new(
-                        env.allocator,
-                        env.boolType.incRefR(),
-                        try Typing.OrExtendType.new(
-                            env.allocator,
-                            env.charType.incRefR(),
-                            try Typing.OrExtendType.new(
-                                env.allocator,
-                                env.floatType.incRefR(),
-                                try Typing.OrExtendType.new(
-                                    env.allocator,
-                                    env.intType.incRefR(),
-                                    try Typing.OrExtendType.new(
-                                        env.allocator,
-                                        env.stringType.incRefR(),
-                                        try Typing.OrExtendType.new(
-                                            env.allocator,
-                                            env.unitType.incRefR(),
-                                            try Typing.OrEmptyType.new(env.allocator),
-                                        ),
-                                    ),
-                                ),
-                            ),
-                        ),
-                    );
+                    const dependentType = try Typing.OrExtendType.new(env.allocator, env.boolType.incRefR(), try Typing.OrExtendType.new(env.allocator, env.charType.incRefR(), try Typing.OrExtendType.new(env.allocator, env.floatType.incRefR(), try Typing.OrExtendType.new(env.allocator, env.intType.incRefR(), try Typing.OrExtendType.new(env.allocator, env.stringType.incRefR(), try Typing.OrExtendType.new(env.allocator, env.unitType.incRefR(), try Typing.OrEmptyType.new(env.allocator)))))));
                     defer dependentType.decRef(env.allocator);
 
                     try env.addDependent(result, dependentType, ast.locationRange);
