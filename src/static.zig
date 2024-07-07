@@ -162,22 +162,6 @@ const Env = struct {
     }
 };
 
-pub fn analysis(ast: *AST.Expression, sp: *SP.StringPool, errors: *Errors.Errors) !*Typing.Type {
-    const allocator = sp.allocator;
-
-    var env = try Env.init(sp, errors);
-    defer env.deinit(allocator);
-
-    _ = try expression(ast, &env);
-
-    var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, allocator);
-    defer subst.deinit(allocator);
-
-    try applyExpression(ast, &subst, allocator, sp, &env.constraints);
-
-    return (ast.type orelse env.errorType).incRefR();
-}
-
 pub fn package(ast: *AST.Package, sp: *SP.StringPool, errors: *Errors.Errors) !void {
     const allocator = sp.allocator;
 
@@ -779,3 +763,18 @@ test "let add(n, m) = n + m" {
 
     try state.expectSchemeString("let add(n, m) = n + m", "[a: Char | Float | Int | String] (a, a) -> a");
 }
+
+// test "let inc(n) = n + 1 ; inc(10)" {
+//     var state = try TestState.init();
+//     defer state.deinit();
+
+//     const result = try state.parseAnalyse("let inc(n) = n + 1 ; inc(10)");
+//     defer result.?.decRef(state.allocator);
+
+//     try state.debugPrintErrors();
+
+//     try std.testing.expect(!state.errors.hasErrors());
+//     try std.testing.expect(result != null);
+
+//     try state.expectTypeString(result.?, "Int");
+// }
