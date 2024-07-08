@@ -282,22 +282,22 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
                 },
             }
         },
-        .call => {
-            _ = try expression(ast.kind.call.callee, env);
-            for (ast.kind.call.args) |arg| {
-                _ = try expression(arg, env);
-            }
-        },
-        .catche => {
-            _ = try expression(ast.kind.catche.value, env);
-            for (ast.kind.catche.cases) |case| {
-                _ = try pattern(case.pattern, env);
-                _ = try expression(case.body, env);
-            }
-        },
-        .dot => {
-            _ = try expression(ast.kind.dot.record, env);
-        },
+        // .call => {
+        //     _ = try expression(ast.kind.call.callee, env);
+        //     for (ast.kind.call.args) |arg| {
+        //         _ = try expression(arg, env);
+        //     }
+        // },
+        // .catche => {
+        //     _ = try expression(ast.kind.catche.value, env);
+        //     for (ast.kind.catche.cases) |case| {
+        //         _ = try pattern(case.pattern, env);
+        //         _ = try expression(case.body, env);
+        //     }
+        // },
+        // .dot => {
+        //     _ = try expression(ast.kind.dot.record, env);
+        // },
         .exprs => {
             var last: *Typing.Type = env.errorType;
 
@@ -346,20 +346,20 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
                 try env.addConstraint(result, thenType, case.then.locationRange);
             }
         },
-        .indexRange => {
-            _ = try expression(ast.kind.indexRange.expr, env);
+        // .indexRange => {
+        //     _ = try expression(ast.kind.indexRange.expr, env);
 
-            if (ast.kind.indexRange.start) |start| {
-                _ = try expression(start, env);
-            }
-            if (ast.kind.indexRange.end) |end| {
-                _ = try expression(end, env);
-            }
-        },
-        .indexValue => {
-            _ = try expression(ast.kind.indexValue.expr, env);
-            _ = try expression(ast.kind.indexValue.index, env);
-        },
+        //     if (ast.kind.indexRange.start) |start| {
+        //         _ = try expression(start, env);
+        //     }
+        //     if (ast.kind.indexRange.end) |end| {
+        //         _ = try expression(end, env);
+        //     }
+        // },
+        // .indexValue => {
+        //     _ = try expression(ast.kind.indexValue.expr, env);
+        //     _ = try expression(ast.kind.indexValue.index, env);
+        // },
         .literalBool => ast.assignType(env.boolType.incRefR(), env.allocator),
         .literalChar => ast.assignType(env.charType.incRefR(), env.allocator),
         .literalFloat => ast.assignType(env.floatType.incRefR(), env.allocator),
@@ -394,31 +394,31 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             ast.assignType(functionType, env.allocator);
         },
         .literalInt => ast.assignType(env.intType.incRefR(), env.allocator),
-        .literalRecord => {
-            for (ast.kind.literalRecord) |field| {
-                switch (field) {
-                    .value => _ = try expression(field.value.value, env),
-                    .record => _ = try expression(field.record, env),
-                }
-            }
-        },
-        .literalSequence => {
-            for (ast.kind.literalSequence) |elem| {
-                switch (elem) {
-                    .value => _ = try expression(elem.value, env),
-                    .sequence => _ = try expression(elem.sequence, env),
-                }
-            }
-        },
+        // .literalRecord => {
+        //     for (ast.kind.literalRecord) |field| {
+        //         switch (field) {
+        //             .value => _ = try expression(field.value.value, env),
+        //             .record => _ = try expression(field.record, env),
+        //         }
+        //     }
+        // },
+        // .literalSequence => {
+        //     for (ast.kind.literalSequence) |elem| {
+        //         switch (elem) {
+        //             .value => _ = try expression(elem.value, env),
+        //             .sequence => _ = try expression(elem.sequence, env),
+        //         }
+        //     }
+        // },
         .literalString => ast.assignType(env.stringType.incRefR(), env.allocator),
         .literalVoid => ast.assignType(env.unitType.incRefR(), env.allocator),
-        .match => {
-            _ = try expression(ast.kind.match.value, env);
-            for (ast.kind.match.cases) |case| {
-                _ = try pattern(case.pattern, env);
-                _ = try expression(case.body, env);
-            }
-        },
+        // .match => {
+        //     _ = try expression(ast.kind.match.value, env);
+        //     for (ast.kind.match.cases) |case| {
+        //         _ = try pattern(case.pattern, env);
+        //         _ = try expression(case.body, env);
+        //     }
+        // },
         .notOp => {
             const t = try expression(ast.kind.notOp.value, env);
             if (!t.isBool()) {
@@ -426,18 +426,18 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             }
             ast.assignType(env.boolType.incRefR(), env.allocator);
         },
-        .patternDeclaration => {
-            _ = try pattern(ast.kind.patternDeclaration.pattern, env);
-            _ = try expression(ast.kind.patternDeclaration.value, env);
-        },
-        .raise => {
-            _ = try expression(ast.kind.raise.expr, env);
-        },
-        .whilee => {
-            _ = try expression(ast.kind.whilee.condition, env);
-            _ = try expression(ast.kind.whilee.body, env);
-        },
-        // else => {},
+        // .patternDeclaration => {
+        //     _ = try pattern(ast.kind.patternDeclaration.pattern, env);
+        //     _ = try expression(ast.kind.patternDeclaration.value, env);
+        // },
+        // .raise => {
+        //     _ = try expression(ast.kind.raise.expr, env);
+        // },
+        // .whilee => {
+        //     _ = try expression(ast.kind.whilee.condition, env);
+        //     _ = try expression(ast.kind.whilee.body, env);
+        // },
+        else => unreachable,
     }
 
     return ast.type orelse env.errorType;
