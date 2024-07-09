@@ -46,6 +46,14 @@ pub const LexicalError = struct {
     }
 };
 
+pub const NotImplementedError = struct {
+    explanation: []const u8,
+
+    pub fn deinit(self: NotImplementedError, allocator: std.mem.Allocator) void {
+        allocator.free(self.explanation);
+    }
+};
+
 pub const ParserError = struct {
     lexeme: []const u8,
     expected: []const TokenKind,
@@ -110,6 +118,7 @@ pub const Error = struct {
             .LexicalKind => try writer.print("Lexical error: {s}", .{self.detail.LexicalKind.lexeme}),
             .LiteralFloatOverflowKind => try writer.print("Literal float overflow: {s}", .{self.detail.LiteralFloatOverflowKind.lexeme}),
             .LiteralIntOverflowKind => try writer.print("Literal int overflow: {s}", .{self.detail.LiteralIntOverflowKind.lexeme}),
+            .NotImplementedKind => try writer.print("Not implemented: {s}", .{self.detail.NotImplementedKind.explanation}),
             .ParserKind => {
                 try writer.print("Syntax error: Found \"{s}\", expected one of ", .{self.detail.ParserKind.lexeme});
                 for (self.detail.ParserKind.expected, 0..) |expected, idx| {
@@ -164,6 +173,7 @@ pub const ErrorKind = enum {
     LexicalKind,
     LiteralFloatOverflowKind,
     LiteralIntOverflowKind,
+    NotImplementedKind,
     ParserKind,
     UndefinedNameKind,
     UndefinedOperatorKind,
@@ -176,6 +186,7 @@ pub const ErrorDetail = union(ErrorKind) {
     LexicalKind: LexicalError,
     LiteralFloatOverflowKind: LexicalError,
     LiteralIntOverflowKind: LexicalError,
+    NotImplementedKind: NotImplementedError,
     ParserKind: ParserError,
     UndefinedNameKind: UndefinedNameError,
     UndefinedOperatorKind: UndefinedOperatorError,
@@ -188,6 +199,7 @@ pub const ErrorDetail = union(ErrorKind) {
             .LexicalKind => self.LexicalKind.deinit(allocator),
             .LiteralFloatOverflowKind => self.LiteralFloatOverflowKind.deinit(allocator),
             .LiteralIntOverflowKind => self.LiteralIntOverflowKind.deinit(allocator),
+            .NotImplementedKind => self.NotImplementedKind.deinit(allocator),
             .ParserKind => self.ParserKind.deinit(allocator),
             .UndefinedNameKind => self.UndefinedNameKind.deinit(allocator),
             .UndefinedOperatorKind => self.UndefinedOperatorKind.deinit(allocator),
@@ -221,6 +233,12 @@ pub fn literalFloatOverflowError(allocator: std.mem.Allocator, locationRange: Lo
 pub fn literalIntOverflowError(allocator: std.mem.Allocator, locationRange: LocationRange, lexeme: []const u8) !Error {
     return try Error.init(allocator, locationRange, ErrorDetail{ .LiteralIntOverflowKind = .{
         .lexeme = try allocator.dupe(u8, lexeme),
+    } });
+}
+
+pub fn notImplementedError(allocator: std.mem.Allocator, locationRange: LocationRange, explanation: []const u8) !Error {
+    return try Error.init(allocator, locationRange, ErrorDetail{ .NotImplementedKind = .{
+        .explanation = try allocator.dupe(u8, explanation),
     } });
 }
 

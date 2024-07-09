@@ -282,12 +282,15 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
                 },
             }
         },
-        // .call => {
-        //     _ = try expression(ast.kind.call.callee, env);
-        //     for (ast.kind.call.args) |arg| {
-        //         _ = try expression(arg, env);
-        //     }
-        // },
+        .call => {
+            if (ast.kind.call.callee.kind == .identifier) {} else {
+                try env.appendError(try Errors.notImplementedError(env.sp.allocator, ast.kind.call.callee.locationRange, "Only support for calling local procedures"));
+            }
+            _ = try expression(ast.kind.call.callee, env);
+            for (ast.kind.call.args) |arg| {
+                _ = try expression(arg, env);
+            }
+        },
         // .catche => {
         //     _ = try expression(ast.kind.catche.value, env);
         //     for (ast.kind.catche.cases) |case| {
