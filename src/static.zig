@@ -283,12 +283,38 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             }
         },
         .call => {
-            if (ast.kind.call.callee.kind == .identifier) {} else {
+            if (ast.kind.call.callee.kind == .identifier) {
+                const calleeType = try expression(ast.kind.call.callee, env);
+                var parameterTypeItems = std.ArrayList(*Typing.Type).init(env.allocator);
+                defer {
+                    for (parameterTypeItems.items) |t| {
+                        t.decRef(env.allocator);
+                    }
+                    parameterTypeItems.deinit();
+                }
+
+                for (ast.kind.call.args) |arg| {
+                    try parameterTypeItems.append((try expression(arg, env)).incRefR());
+                }
+                const returnType = try env.pump.newBound(env.allocator);
+
+                const t1 = try Typing.TupleType.new(env.allocator, try parameterTypeItems.toOwnedSlice());
+                const t2 = try Typing.FunctionType.new(
+                    env.allocator,
+                    t1,
+                    returnType,
+                );
+                defer t2.decRef(env.allocator);
+
+                try env.addConstraint(
+                    calleeType,
+                    t2,
+                    ast.locationRange,
+                );
+
+                ast.assignType(returnType.incRefR(), env.allocator);
+            } else {
                 try env.appendError(try Errors.notImplementedError(env.sp.allocator, ast.kind.call.callee.locationRange, "Only support for calling local procedures"));
-            }
-            _ = try expression(ast.kind.call.callee, env);
-            for (ast.kind.call.args) |arg| {
-                _ = try expression(arg, env);
             }
         },
         // .catche => {
@@ -752,17 +778,17 @@ test "let add(n, m) = n + m" {
     try state.expectSchemeString("let add(n, m) = n + m", "[a: Char | Float | Int | String] (a, a) -> a");
 }
 
-// test "let inc(n) = n + 1 ; inc(10)" {
-//     var state = try TestState.init();
-//     defer state.deinit();
+test "let inc(n) = n + 1 ; inc(10)" {
+    var state = try TestState.init();
+    defer state.deinit();
 
-//     const result = try state.parseAnalyse("let inc(n) = n + 1 ; inc(10)");
-//     defer result.?.decRef(state.allocator);
+    const result = try state.parseAnalyse("let inc(n) = n + 1 ; inc(10)");
+    defer result.?.decRef(state.allocator);
 
-//     try state.debugPrintErrors();
+    try state.debugPrintErrors();
 
-//     try std.testing.expect(!state.errors.hasErrors());
-//     try std.testing.expect(result != null);
+    try std.testing.expect(!state.errors.hasErrors());
+    try std.testing.expect(result != null);
 
-//     try state.expectTypeString(result.?, "Int");
-// }
+    try state.expectTypeString(result.?, "Int");
+}
