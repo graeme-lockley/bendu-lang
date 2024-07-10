@@ -475,6 +475,9 @@ fn unify(t1: *Type, t2: *Type, locationRange: Errors.LocationRange, errors: *Err
 
         return unifyMany(t1s, t2s, locationRange, errors, allocator);
     }
+    if (t1.kind == .Tuple and t2.kind == .Tuple) {
+        return unifyMany(t1.kind.Tuple.components, t2.kind.Tuple.components, locationRange, errors, allocator);
+    }
 
     try errors.append(try Errors.unificationError(allocator, locationRange, t1, t2));
     return Subst.init(allocator);
