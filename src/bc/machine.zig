@@ -9,6 +9,7 @@ const SP = @import("../lib/string_pool.zig");
 pub fn execute(bc: []u8, runtime: *Runtime) !void {
     const writer = std.io.getStdOut().writer();
     var ip: usize = 0;
+    var lbp: usize = 0;
 
     while (true) {
         const op = @as(Op, @enumFromInt(bc[ip]));
@@ -55,6 +56,29 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
             .push_global => {
                 try runtime.push_pointer(runtime.stackItem(@intCast(readInt(bc, ip + 1))));
                 ip += 9;
+            },
+
+            .call_local => {
+                const newLBP = runtime.stack.items.len;
+
+                try runtime.push_unit();
+                try runtime.push_int(@as(i63, @intCast(ip)) + 5);
+                try runtime.push_int(@intCast(lbp));
+
+                lbp = newLBP;
+
+                ip = @intCast(readInt(bc, ip + 1));
+            },
+            .ret_local => {
+                const n: usize = @intCast(readInt(bc, ip + 1));
+
+                const oldLBP = lbp;
+                const r = runtime.stack.items[lbp];
+                ip = @intCast(runtime.stack.items[lbp + 1]);
+                lbp = @intCast(runtime.stack.items[lbp + 2]);
+                runtime.stack.items.len = oldLBP - n;
+
+                try runtime.push_pointer(r);
             },
 
             .jmp => {
