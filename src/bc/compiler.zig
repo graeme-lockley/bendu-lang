@@ -16,24 +16,83 @@ pub fn compile(ast: *AST.Package, allocator: std.mem.Allocator) ![]u8 {
     return compileState.bc.toOwnedSlice();
 }
 
+const Scope = struct {
+    parent: ?*Scope,
+    bindings: std.AutoHashMap(*SP.String, BindingKind),
+    nextBinding: usize,
+
+    fn deinit(self: *Scope) void {
+        self.parent = null;
+        self.bindings.deinit();
+    }
+};
+
 const CompileState = struct {
     allocator: std.mem.Allocator,
     bc: std.ArrayList(u8),
-    bindings: std.AutoHashMap(*SP.String, usize),
-    nextGlobalBinding: usize,
+    scope: ?*Scope,
 
     fn init(allocator: std.mem.Allocator) !CompileState {
-        return CompileState{
+        var result = CompileState{
             .allocator = allocator,
             .bc = std.ArrayList(u8).init(allocator),
-            .bindings = std.AutoHashMap(*SP.String, usize).init(allocator),
-            .nextGlobalBinding = 0,
+            .scope = null,
         };
+
+        try result.open();
+
+        return result;
     }
 
     fn deinit(self: *CompileState) void {
         self.bc.deinit();
-        self.bindings.deinit();
+        while (self.scope != null) {
+            self.close();
+        }
+    }
+
+    fn open(self: *CompileState) !void {
+        const newScope = try self.allocator.create(Scope);
+        newScope.* = Scope{
+            .parent = self.scope,
+            .bindings = std.AutoHashMap(*SP.String, BindingKind).init(self.allocator),
+            .nextBinding = 0,
+        };
+
+        self.scope = newScope;
+    }
+
+    fn close(self: *CompileState) void {
+        const parent = self.scope.?.parent;
+        self.scope.?.deinit();
+        self.allocator.destroy(self.scope.?);
+        self.scope = parent;
+    }
+
+    fn findBinding(self: *CompileState, key: *SP.String) ?BindingKind {
+        var currentScope: ?*Scope = self.scope;
+        while (currentScope) |scope| {
+            if (scope.bindings.get(key)) |binding| {
+                return binding;
+            }
+            currentScope = scope.parent;
+        }
+        return null;
+    }
+
+    fn bindInScope(self: *CompileState, key: *SP.String, value: BindingKind) !void {
+        if (self.scope.?.bindings.contains(key)) {
+            try std.io.getStdErr().writer().print("Internal Error: Attempt to redefine {s}\n", .{key.slice()});
+            std.process.exit(1);
+        }
+
+        try self.scope.?.bindings.put(key, value);
+    }
+
+    fn nextBindingOffset(self: *CompileState) usize {
+        const result = self.scope.?.nextBinding;
+        self.scope.?.nextBinding += 1;
+        return result;
     }
 
     fn appendOp(self: *CompileState, op: Op) !void {
@@ -90,6 +149,12 @@ const CompileState = struct {
             try self.bc.append(c);
         }
     }
+};
+
+const BindingKind = union(enum) {
+    PackageVariable: usize, // offset in stack
+    PackageFunction: usize, // offset in bytecode
+    LocalVariable: i64, // offset from lbp - positive is into stack and negative will be arguments
 };
 
 fn compilePackage(ast: *AST.Package, state: *CompileState) !void {
@@ -343,12 +408,14 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
         .idDeclaration => {
             const name = ast.kind.idDeclaration.name;
 
-            if (state.bindings.get(name)) |_| {
+            if (state.findBinding(name)) |_| {
                 try std.io.getStdErr().writer().print("Internal Error: Attempt to redefine {s}\n", .{ast.kind.idDeclaration.name.slice()});
                 std.process.exit(1);
             } else {
-                try state.bindings.put(name, state.nextGlobalBinding);
-                state.nextGlobalBinding += 1;
+                try state.bindInScope(
+                    name,
+                    BindingKind{ .PackageVariable = state.nextBindingOffset() },
+                );
 
                 try compileExpr(ast.kind.idDeclaration.value, state);
                 try state.appendOp(Op.duplicate);
@@ -357,9 +424,14 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
         .identifier => {
             const name = ast.kind.identifier;
 
-            if (state.bindings.get(name)) |binding| {
-                try state.appendOp(Op.push_global);
-                try state.appendInt(@intCast(binding));
+            if (state.findBinding(name)) |binding| {
+                switch (binding) {
+                    .PackageVariable => {
+                        try state.appendOp(Op.push_global);
+                        try state.appendInt(@intCast(binding.PackageVariable));
+                    },
+                    else => unreachable,
+                }
             } else {
                 try std.io.getStdErr().writer().print("Internal Error: Use of undeclared identifier {s}\n", .{name.slice()});
                 std.process.exit(1);
