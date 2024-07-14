@@ -149,6 +149,10 @@ const CompileState = struct {
             try self.bc.append(c);
         }
     }
+
+    fn bcOffset(self: *CompileState) usize {
+        return self.bc.items.len;
+    }
 };
 
 const BindingKind = union(enum) {
@@ -177,18 +181,18 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
             try compileExpr(ast.kind.binaryOp.lhs, state);
             if (ast.kind.binaryOp.op == .And) {
                 try state.appendOp(Op.jmp_tos_false);
-                const offset = state.bc.items.len;
+                const offset = state.bcOffset();
                 try state.appendInt(0);
                 try state.appendOp(Op.discard);
                 try compileExpr(ast.kind.binaryOp.rhs, state);
-                try state.appendIntAt(@intCast(state.bc.items.len), offset);
+                try state.appendIntAt(@intCast(state.bcOffset()), offset);
             } else {
                 try state.appendOp(Op.jmp_tos_true);
-                const offset = state.bc.items.len;
+                const offset = state.bcOffset();
                 try state.appendInt(0);
                 try state.appendOp(Op.discard);
                 try compileExpr(ast.kind.binaryOp.rhs, state);
-                try state.appendIntAt(@intCast(state.bc.items.len), offset);
+                try state.appendIntAt(@intCast(state.bcOffset()), offset);
             }
         } else {
             try compileExpr(ast.kind.binaryOp.lhs, state);
@@ -378,9 +382,9 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                 try std.io.getStdErr().writer().print("Internal Error: Expected identifier\n", .{});
                 std.process.exit(1);
             } else {
-                const callee = ast.kind.call.callee.kind.identifier.slice();
+                const callee = ast.kind.call.callee.kind.identifier;
 
-                if (std.mem.eql(u8, callee, "println")) {
+                if (std.mem.eql(u8, callee.slice(), "println")) {
                     const exprCount = ast.kind.call.args.len;
                     for (ast.kind.call.args, 0..) |expr, idx| {
                         try compileExpr(expr, state);
@@ -390,8 +394,19 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                         try state.appendOp(Op.print_int);
                     }
                     try state.appendOp(Op.print_ln);
+                } else if (state.findBinding(callee)) |c| {
+                    for (ast.kind.call.args) |expr| {
+                        try compileExpr(expr, state);
+                    }
+                    switch (c) {
+                        .PackageFunction => {
+                            try state.appendOp(Op.call_local);
+                            try state.appendInt(@intCast(c.PackageFunction));
+                        },
+                        else => unreachable,
+                    }
                 } else {
-                    try std.io.getStdErr().writer().print("Internal Error: Unknown function {s}\n", .{callee});
+                    try std.io.getStdErr().writer().print("Internal Error: Unknown function {s}\n", .{callee.slice()});
                     std.process.exit(1);
                 }
             }
@@ -411,6 +426,30 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
             if (state.findBinding(name)) |_| {
                 try std.io.getStdErr().writer().print("Internal Error: Attempt to redefine {s}\n", .{ast.kind.idDeclaration.name.slice()});
                 std.process.exit(1);
+            } else if (ast.kind.idDeclaration.value.kind == .literalFunction) {
+                const value = ast.kind.idDeclaration.value;
+                const numberOfParameters: i64 = @intCast(value.kind.literalFunction.params.len);
+
+                try state.appendOp(Op.push_unit);
+                try state.appendOp(Op.jmp);
+                const patch = state.bcOffset();
+                try state.appendInt(0);
+
+                try state.bindInScope(
+                    name,
+                    BindingKind{ .PackageFunction = state.bcOffset() },
+                );
+
+                try state.open();
+                defer state.close();
+
+                for (value.kind.literalFunction.params, 0..) |param, i| {
+                    try state.bindInScope(param.name, BindingKind{ .LocalVariable = @as(i64, @intCast(i)) - numberOfParameters });
+                }
+                try compileExpr(value.kind.literalFunction.body, state);
+                try state.appendOp(Op.ret_local);
+                try state.appendInt(numberOfParameters);
+                try state.appendIntAt(@intCast(state.bcOffset()), patch);
             } else {
                 try state.bindInScope(
                     name,
@@ -430,6 +469,10 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                         try state.appendOp(Op.push_global);
                         try state.appendInt(@intCast(binding.PackageVariable));
                     },
+                    .LocalVariable => {
+                        try state.appendOp(Op.push_local);
+                        try state.appendInt(@intCast(binding.LocalVariable));
+                    },
                     else => unreachable,
                 }
             } else {
@@ -444,23 +487,23 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
 
             for (ast.kind.ifte) |ifte| {
                 if (nextPatch) |p| {
-                    try state.appendIntAt(@intCast(state.bc.items.len), p);
+                    try state.appendIntAt(@intCast(state.bcOffset()), p);
                     nextPatch = null;
                 }
                 if (ifte.condition) |condition| {
                     try compileExpr(condition, state);
                     try state.appendOp(Op.jmp_false);
-                    nextPatch = state.bc.items.len;
+                    nextPatch = state.bcOffset();
                     try state.appendInt(0);
                     try compileExpr(ifte.then, state);
                     try state.appendOp(Op.jmp);
-                    try restPatches.append(state.bc.items.len);
+                    try restPatches.append(state.bcOffset());
                     try state.appendInt(0);
                 } else {
                     try compileExpr(ifte.then, state);
 
                     for (restPatches.items) |p| {
-                        try state.appendIntAt(@intCast(state.bc.items.len), p);
+                        try state.appendIntAt(@intCast(state.bcOffset()), p);
                     }
                     return;
                 }

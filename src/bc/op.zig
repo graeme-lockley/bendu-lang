@@ -11,6 +11,7 @@ pub const Op = enum(u8) {
     push_unit,
 
     push_global,
+    push_local,
 
     call_local,
     ret_local,

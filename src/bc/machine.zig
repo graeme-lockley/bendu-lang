@@ -6,6 +6,8 @@ const Pointer = @import("../runtime/pointer.zig");
 const Runtime = @import("../runtime/runtime.zig").Runtime;
 const SP = @import("../lib/string_pool.zig");
 
+const DEBUG = false;
+
 pub fn execute(bc: []u8, runtime: *Runtime) !void {
     const writer = std.io.getStdOut().writer();
     var ip: usize = 0;
@@ -14,7 +16,16 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
     while (true) {
         const op = @as(Op, @enumFromInt(bc[ip]));
 
-        // std.io.getStdOut().writer().print("instruction: ip={d}, op={}, stack={}\n", .{ ip, op, stack }) catch {};
+        if (DEBUG) {
+            std.debug.print("instruction: ip={d}, op={}, stack=[", .{ ip, op });
+            for (runtime.stack.items, 0..) |item, i| {
+                if (i > 0) {
+                    std.debug.print(", ", .{});
+                }
+                std.debug.print("{d}", .{Pointer.asInt(item)});
+            }
+            std.debug.print("]\n", .{});
+        }
 
         switch (op) {
             .ret => return,
@@ -35,7 +46,13 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 ip += 9;
             },
             .push_int => {
-                try runtime.push_int(@intCast(readInt(bc, ip + 1)));
+                const v = readInt(bc, ip + 1);
+
+                if (DEBUG) {
+                    std.debug.print("> value: {d}\n", .{v});
+                }
+
+                try runtime.push_int(@intCast(v));
                 ip += 9;
             },
             .push_string => {
@@ -57,12 +74,26 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 try runtime.push_pointer(runtime.stackItem(@intCast(readInt(bc, ip + 1))));
                 ip += 9;
             },
+            .push_local => {
+                const offset: usize = @intCast(@as(i64, @intCast(lbp)) + readInt(bc, ip + 1));
+                const value = runtime.stackItem(offset);
+
+                if (DEBUG) {
+                    std.debug.print("> offset: {d}, value: {d}\n", .{ offset, value });
+                }
+
+                try runtime.push_pointer(value);
+                ip += 9;
+            },
 
             .call_local => {
                 const newLBP = runtime.stack.items.len;
 
-                try runtime.push_unit();
-                try runtime.push_int(@as(i63, @intCast(ip)) + 5);
+                if (DEBUG) {
+                    std.debug.print("> lbp: {d}, new lbp: {d}\n", .{ lbp, newLBP });
+                }
+
+                try runtime.push_int(@as(i63, @intCast(ip)) + 9);
                 try runtime.push_int(@intCast(lbp));
 
                 lbp = newLBP;
@@ -73,12 +104,16 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 const n: usize = @intCast(readInt(bc, ip + 1));
 
                 const oldLBP = lbp;
-                const r = runtime.stack.items[lbp];
-                ip = @intCast(runtime.stack.items[lbp + 1]);
-                lbp = @intCast(runtime.stack.items[lbp + 2]);
+                const r = runtime.pop();
+                ip = @intCast(Pointer.asInt(runtime.stack.items[lbp]));
+                lbp = @intCast(Pointer.asInt(runtime.stack.items[lbp]));
                 runtime.stack.items.len = oldLBP - n;
 
                 try runtime.push_pointer(r);
+
+                if (DEBUG) {
+                    std.debug.print("> ip: {d},  lbp: {d},  r: {d}\n", .{ ip, lbp, r });
+                }
             },
 
             .jmp => {
