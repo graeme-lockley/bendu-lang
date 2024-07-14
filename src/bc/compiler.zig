@@ -313,7 +313,7 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                     } else if (ast.type.?.isFloat()) {
                         try state.appendOp(Op.minus_float);
                     } else {
-                        try state.appendOp(Op.add);
+                        try state.appendOp(Op.minus);
                     }
                 },
                 .Modulo => try state.appendOp(Op.modulo_int),
