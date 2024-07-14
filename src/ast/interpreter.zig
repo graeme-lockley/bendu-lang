@@ -6,31 +6,86 @@ const Runtime = @import("../runtime/runtime.zig").Runtime;
 const SP = @import("../lib/string_pool.zig");
 
 pub fn eval(ast: *AST.Package, runtime: *Runtime) !void {
-    var env = Environment.init(runtime);
+    var env = try Environment.init(runtime);
     defer env.deinit();
 
     try evalPackage(ast, &env);
 }
 
-const Environment = struct {
-    state: std.AutoHashMap(*SP.String, usize),
-    runtime: *Runtime,
+const Scope = struct {
+    parent: ?*Scope,
+    bindings: std.AutoHashMap(*SP.String, usize),
 
-    pub fn init(runtime: *Runtime) Environment {
-        return Environment{
-            .state = std.AutoHashMap(*SP.String, usize).init(runtime.allocator),
-            .runtime = runtime,
-        };
-    }
-
-    pub fn deinit(self: *Environment) void {
-        var iterator = self.state.keyIterator();
+    pub fn deinit(self: *Scope) void {
+        var iterator = self.bindings.keyIterator();
 
         while (iterator.next()) |key| {
             key.*.decRef();
         }
 
-        self.state.deinit();
+        self.bindings.deinit();
+    }
+};
+
+const Environment = struct {
+    allocator: std.mem.Allocator,
+    scope: ?*Scope,
+    runtime: *Runtime,
+
+    pub fn init(runtime: *Runtime) !Environment {
+        var result = Environment{
+            .allocator = runtime.allocator,
+            .scope = null,
+            .runtime = runtime,
+        };
+
+        try result.open();
+
+        return result;
+    }
+
+    pub fn deinit(self: *Environment) void {
+        while (self.scope != null) {
+            self.close();
+        }
+    }
+    fn open(self: *Environment) !void {
+        const newScope = try self.allocator.create(Scope);
+        newScope.* = Scope{
+            .parent = self.scope,
+            .bindings = std.AutoHashMap(*SP.String, usize).init(self.allocator),
+        };
+
+        self.scope = newScope;
+    }
+
+    fn close(self: *Environment) void {
+        const parent = self.scope.?.parent;
+
+        self.scope.?.deinit();
+        self.allocator.destroy(self.scope.?);
+        self.scope = parent;
+    }
+
+    fn findBinding(self: *Environment, key: *SP.String) ?usize {
+        var currentScope: ?*Scope = self.scope;
+        while (currentScope) |scope| {
+            if (scope.bindings.get(key)) |binding| {
+                return binding;
+            }
+            currentScope = scope.parent;
+        }
+
+        return null;
+    }
+
+    fn bind(self: *Environment, key: *SP.String, value: usize) !void {
+        if (self.scope.?.bindings.contains(key)) {
+            try std.io.getStdErr().writer().print("Internal Error: Attempt to redefine {s}\n", .{key.slice()});
+            std.process.exit(1);
+        }
+
+        try self.scope.?.bindings.put(key, value);
     }
 };
 
@@ -210,15 +265,15 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
         .idDeclaration => {
             try evalExpression(ast.kind.idDeclaration.value, env);
 
-            if (env.state.get(ast.kind.idDeclaration.name) != null) {
+            if (env.findBinding(ast.kind.idDeclaration.name) != null) {
                 try std.io.getStdErr().writer().print("Internal Error: Attempt to redefine {s}\n", .{ast.kind.idDeclaration.name.slice()});
                 std.process.exit(1);
             }
 
-            try env.state.put(ast.kind.idDeclaration.name.incRefR(), env.runtime.stackPointer());
+            try env.bind(ast.kind.idDeclaration.name.incRefR(), env.runtime.stackPointer());
             try env.runtime.duplicate();
         },
-        .identifier => if (env.state.get(ast.kind.identifier)) |value| {
+        .identifier => if (env.findBinding(ast.kind.identifier)) |value| {
             try env.runtime.push_pointer(env.runtime.stackItem(value));
         } else {
             try std.io.getStdErr().writer().print("Internal Error: Undefined variable {s}\n", .{ast.kind.identifier.slice()});
