@@ -106,7 +106,7 @@ pub fn execute(bc: []u8, runtime: *Runtime) !void {
                 const oldLBP = lbp;
                 const r = runtime.pop();
                 ip = @intCast(Pointer.asInt(runtime.stack.items[lbp]));
-                lbp = @intCast(Pointer.asInt(runtime.stack.items[lbp]));
+                lbp = @intCast(Pointer.asInt(runtime.stack.items[lbp + 1]));
                 runtime.stack.items.len = oldLBP - n;
 
                 try runtime.push_pointer(r);

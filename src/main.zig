@@ -127,7 +127,7 @@ fn printValue(v: Pointer.Pointer, typ: *Typing.Type) !void {
 
 fn valueToString(v: Pointer.Pointer, typ: *Typing.Type, buffer: *std.ArrayList(u8)) !void {
     switch (typ.kind) {
-        .Function => try buffer.appendSlice("Function"),
+        .Function => try buffer.appendSlice("fn"),
         .Tag => {
             const name = typ.kind.Tag.name.slice();
 

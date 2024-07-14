@@ -5,6 +5,8 @@ const Pointer = @import("../runtime/pointer.zig");
 const Runtime = @import("../runtime/runtime.zig").Runtime;
 const SP = @import("../lib/string_pool.zig");
 
+const DEBUG = false;
+
 pub fn eval(ast: *AST.Package, runtime: *Runtime) !void {
     var env = try Environment.init(runtime);
     defer env.deinit();
@@ -16,11 +18,14 @@ const Scope = struct {
     parent: ?*Scope,
     bindings: std.AutoHashMap(*SP.String, BindingKind),
 
-    pub fn deinit(self: *Scope) void {
-        var iterator = self.bindings.keyIterator();
+    pub fn deinit(self: *Scope, allocator: std.mem.Allocator) void {
+        var iterator = self.bindings.iterator();
 
-        while (iterator.next()) |key| {
-            key.*.decRef();
+        while (iterator.next()) |entry| {
+            entry.key_ptr.*.decRef();
+            if (entry.value_ptr.* == .PackageFunction) {
+                entry.value_ptr.*.PackageFunction.decRef(allocator);
+            }
         }
 
         self.bindings.deinit();
@@ -31,12 +36,14 @@ const Environment = struct {
     allocator: std.mem.Allocator,
     scope: ?*Scope,
     runtime: *Runtime,
+    lbp: usize,
 
     pub fn init(runtime: *Runtime) !Environment {
         var result = Environment{
             .allocator = runtime.allocator,
             .scope = null,
             .runtime = runtime,
+            .lbp = 0,
         };
 
         try result.open();
@@ -49,6 +56,7 @@ const Environment = struct {
             self.close();
         }
     }
+
     fn open(self: *Environment) !void {
         const newScope = try self.allocator.create(Scope);
         newScope.* = Scope{
@@ -62,7 +70,7 @@ const Environment = struct {
     fn close(self: *Environment) void {
         const parent = self.scope.?.parent;
 
-        self.scope.?.deinit();
+        self.scope.?.deinit(self.allocator);
         self.allocator.destroy(self.scope.?);
         self.scope = parent;
     }
@@ -85,13 +93,13 @@ const Environment = struct {
             std.process.exit(1);
         }
 
-        try self.scope.?.bindings.put(key, value);
+        try self.scope.?.bindings.put(key.incRefR(), value);
     }
 };
 
 const BindingKind = union(enum) {
     PackageVariable: usize, // offset in stack
-    PackageFunction: usize, // offset in bytecode
+    PackageFunction: *AST.Expression, // lambda expression associated with the function
     LocalVariable: i64, // offset from lbp - positive is into stack and negative will be arguments
 };
 
@@ -242,9 +250,9 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
                 try std.io.getStdErr().writer().print("Internal Error: Expected identifier\n", .{});
                 std.process.exit(1);
             } else {
-                const callee = ast.kind.call.callee.kind.identifier.slice();
+                const callee = ast.kind.call.callee.kind.identifier;
 
-                if (std.mem.eql(u8, callee, "println")) {
+                if (std.mem.eql(u8, callee.slice(), "println")) {
                     const writer = std.io.getStdOut().writer();
 
                     try env.runtime.push_int(0);
@@ -255,8 +263,44 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
                         try writer.print("{d} ", .{Pointer.asInt(env.runtime.peek().?)});
                     }
                     try writer.print("\n", .{});
+                } else if (env.findBinding(callee)) |binding| {
+                    switch (binding) {
+                        .PackageFunction => {
+                            const function = binding.PackageFunction;
+                            const args = ast.kind.call.args;
+                            const n = args.len;
+
+                            if (n != function.kind.literalFunction.params.len) {
+                                try std.io.getStdErr().writer().print("Internal Error: Expected {d} arguments, got {d}\n", .{ function.kind.literalFunction.params.len, n });
+                                std.process.exit(1);
+                            }
+
+                            try env.open();
+                            defer env.close();
+
+                            for (function.kind.literalFunction.params, 0..) |arg, i| {
+                                try env.bind(arg.name, BindingKind{ .LocalVariable = @as(i64, @intCast(i)) - @as(i64, @intCast(n)) });
+                                try evalExpression(args[i], env);
+                            }
+
+                            const oldLBP = env.lbp;
+                            env.lbp = env.runtime.stack.items.len;
+
+                            try evalExpression(function.kind.literalFunction.body, env);
+
+                            env.lbp = oldLBP;
+
+                            const r = env.runtime.pop();
+                            env.runtime.stack.items.len = oldLBP;
+                            try env.runtime.push_pointer(r);
+                        },
+                        else => {
+                            try std.io.getStdErr().writer().print("Internal Error: Unsupported binding kind: {}\n", .{binding});
+                            std.process.exit(1);
+                        },
+                    }
                 } else {
-                    try std.io.getStdErr().writer().print("Internal Error: Unknown function {s}\n", .{callee});
+                    try std.io.getStdErr().writer().print("Internal Error: Unknown function {s}\n", .{callee.slice()});
                     std.process.exit(1);
                 }
             }
@@ -274,14 +318,29 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
                 std.process.exit(1);
             }
 
-            try evalExpression(ast.kind.idDeclaration.value, env);
+            if (ast.kind.idDeclaration.value.kind == .literalFunction) {
+                try env.bind(ast.kind.idDeclaration.name, BindingKind{ .PackageFunction = ast.kind.idDeclaration.value.incRefR() });
+                try env.runtime.push_unit();
+            } else {
+                try evalExpression(ast.kind.idDeclaration.value, env);
 
-            try env.bind(ast.kind.idDeclaration.name.incRefR(), BindingKind{ .PackageVariable = env.runtime.stackPointer() });
-            try env.runtime.duplicate();
+                try env.bind(ast.kind.idDeclaration.name, BindingKind{ .PackageVariable = env.runtime.stackPointer() });
+                try env.runtime.duplicate();
+            }
         },
         .identifier => if (env.findBinding(ast.kind.identifier)) |value| {
             switch (value) {
                 .PackageVariable => try env.runtime.push_pointer(env.runtime.stackItem(value.PackageVariable)),
+                .LocalVariable => {
+                    if (DEBUG) {
+                        std.debug.print(".identifier: lbp: {d}, offset: {d}\n", .{ env.lbp, value.LocalVariable });
+                    }
+
+                    const lbp: i64 = @intCast(env.lbp);
+                    const offset: usize = @intCast(lbp + value.LocalVariable);
+
+                    try env.runtime.push_pointer(env.runtime.stackItem(offset));
+                },
                 else => {
                     try std.io.getStdErr().writer().print("Internal Error: Unsupported binding kind: {}\n", .{value});
                     std.process.exit(1);
