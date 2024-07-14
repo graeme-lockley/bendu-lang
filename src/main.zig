@@ -49,11 +49,18 @@ pub fn main() !void {
 
     if (parseResult) |ast| {
         defer ast.destroy(allocator);
-        try Static.package(ast, &sp, &errors);
+
+        var env = try Static.Env.init(&sp, &errors);
+        defer env.deinit();
+
+        try Static.package(ast, &env);
 
         if (!errors.hasErrors() and ast.exprs.len > 0) {
             const typ = ast.exprs[ast.exprs.len - 1].type.?;
-            const typeString = try typ.toString(allocator);
+            var scheme = try typ.generalise(env.allocator, env.sp, &env.constraints);
+            defer scheme.deinit(env.allocator);
+
+            const typeString = try scheme.toString(allocator);
             defer allocator.free(typeString);
 
             var runtime = Runtime.Runtime.init(&sp);

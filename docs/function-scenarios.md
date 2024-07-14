@@ -79,3 +79,16 @@ The above might seem a little strange as it implies that it specifically refers
 to the compiler. However it is worthwhile to note that the interpreter uses the
 same stack structure and, rather than using recursion when performing a call,
 continues to iterate and uses this runtime stack to manage the execution.
+
+A function can be declared with type parameters and will be called correctly.
+
+```bendu-repl
+> let subtract(a, b) = a - b
+fn: [a: Char | Float | Int] (a, a) -> a
+
+> subtract(5, 2)
+3: Int
+
+> subtract('z', 'a')
+'\x25': Char
+```

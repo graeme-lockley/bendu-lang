@@ -59,7 +59,10 @@ pub const TestState = struct {
         if (ast) |a| {
             defer a.destroy(self.allocator);
 
-            try Static.package(a, &self.sp, &self.errors);
+            var env = try Static.Env.init(&self.sp, &self.errors);
+            defer env.deinit();
+
+            try Static.package(a, &env);
 
             return if (a.exprs.len == 0 or a.exprs[a.exprs.len - 1].type == null) null else a.exprs[a.exprs.len - 1].type.?.incRefR();
         } else {
@@ -78,7 +81,10 @@ pub const TestState = struct {
         if (ast) |a| {
             defer a.destroy(self.allocator);
 
-            try Static.package(a, &self.sp, &self.errors);
+            var env = try Static.Env.init(&self.sp, &self.errors);
+            defer env.deinit();
+
+            try Static.package(a, &env);
 
             const s = try a.exprs[a.exprs.len - 1].kind.idDeclaration.scheme.?.toString(self.allocator);
             defer self.allocator.free(s);

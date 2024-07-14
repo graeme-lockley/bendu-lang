@@ -5,7 +5,7 @@ const Errors = @import("errors.zig");
 const SP = @import("lib/string_pool.zig");
 const Typing = @import("typing.zig");
 
-const Env = struct {
+pub const Env = struct {
     boolType: *Typing.Type,
     charType: *Typing.Type,
     errorType: *Typing.Type,
@@ -65,21 +65,21 @@ const Env = struct {
         };
     }
 
-    pub fn deinit(self: *Env, allocator: std.mem.Allocator) void {
-        self.boolType.decRef(allocator);
-        self.charType.decRef(allocator);
-        self.errorType.decRef(allocator);
-        self.floatType.decRef(allocator);
-        self.intType.decRef(allocator);
-        self.stringType.decRef(allocator);
-        self.unitType.decRef(allocator);
+    pub fn deinit(self: *Env) void {
+        self.boolType.decRef(self.allocator);
+        self.charType.decRef(self.allocator);
+        self.errorType.decRef(self.allocator);
+        self.floatType.decRef(self.allocator);
+        self.intType.decRef(self.allocator);
+        self.stringType.decRef(self.allocator);
+        self.unitType.decRef(self.allocator);
 
-        self.constraints.deinit(allocator);
+        self.constraints.deinit(self.allocator);
         for (self.names.items) |*names| {
             var iterator = names.iterator();
             while (iterator.next()) |*entry| {
                 entry.key_ptr.*.decRef();
-                entry.value_ptr.*.deinit(allocator);
+                entry.value_ptr.*.deinit(self.allocator);
             }
             names.deinit();
         }
@@ -88,7 +88,7 @@ const Env = struct {
         var iterator2 = self.schemes.iterator();
         while (iterator2.next()) |entry| {
             entry.key_ptr.*.decRef();
-            entry.value_ptr.*.deinit(allocator);
+            entry.value_ptr.*.deinit(self.allocator);
         }
         self.schemes.deinit();
     }
@@ -162,22 +162,17 @@ const Env = struct {
     }
 };
 
-pub fn package(ast: *AST.Package, sp: *SP.StringPool, errors: *Errors.Errors) !void {
-    const allocator = sp.allocator;
-
-    var env = try Env.init(sp, errors);
-    defer env.deinit(allocator);
-
+pub fn package(ast: *AST.Package, env: *Env) !void {
     for (ast.exprs) |expr| {
         env.resetConstraints();
 
-        _ = try expression(expr, &env);
+        _ = try expression(expr, env);
 
         if (expr.kind != .idDeclaration) {
-            var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, allocator);
-            defer subst.deinit(allocator);
+            var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, env.allocator);
+            defer subst.deinit(env.allocator);
 
-            var state = ApplyASTState{ .subst = &subst, .env = &env };
+            var state = ApplyASTState{ .subst = &subst, .env = env };
             try applyExpression(expr, &state);
         }
     }
@@ -531,11 +526,7 @@ fn applyExpression(ast: *AST.Expression, state: *ApplyASTState) !void {
         .idDeclaration => {
             try applyExpression(ast.kind.idDeclaration.value, state);
 
-            var accState = AccumlativeState.init(state.env.allocator, state.env.sp, &state.env.constraints);
-            defer accState.deinit();
-
-            const typ = try accumulateFreeVariableNames(ast.type.?, &accState);
-            ast.kind.idDeclaration.scheme = Typing.Scheme{ .names = try accState.names.toOwnedSlice(), .type = typ };
+            ast.kind.idDeclaration.scheme = try ast.type.?.generalise(state.env.allocator, state.env.sp, &state.env.constraints);
         },
         .ifte => for (ast.kind.ifte) |case| {
             if (case.condition) |condition| {
@@ -612,121 +603,6 @@ fn applyPattern(ast: *AST.Pattern, state: *ApplyASTState) !void {
             }
         },
         else => {},
-    }
-}
-
-const AccumlativeState = struct {
-    allocator: std.mem.Allocator,
-    sp: *SP.StringPool,
-    names: std.ArrayList(Typing.SchemeBinding),
-    boundBindings: std.AutoHashMap(u64, *Typing.Type),
-    constraints: *Typing.Constraints,
-    n: u32,
-
-    fn init(allocator: std.mem.Allocator, sp: *SP.StringPool, constraints: *Typing.Constraints) AccumlativeState {
-        return AccumlativeState{
-            .allocator = allocator,
-            .sp = sp,
-            .names = std.ArrayList(Typing.SchemeBinding).init(allocator),
-            .boundBindings = std.AutoHashMap(u64, *Typing.Type).init(allocator),
-            .constraints = constraints,
-            .n = 0,
-        };
-    }
-
-    fn deinit(self: *AccumlativeState) void {
-        self.names.deinit();
-        self.boundBindings.deinit();
-    }
-
-    fn newBound(self: *AccumlativeState, v: u64) !*Typing.Type {
-        const key = self.n;
-        self.n += 1;
-
-        var buffer = std.ArrayList(u8).init(self.allocator);
-        defer buffer.deinit();
-
-        try buffer.append(@intCast(key + @as(u32, @intCast('a'))));
-        const keySP = try self.sp.internOwned(try buffer.toOwnedSlice());
-
-        const typ = try Typing.VariableType.new(self.allocator, keySP);
-
-        try self.boundBindings.put(v, typ);
-        const typeDependency = self.constraints.findDependency(v);
-
-        if (typeDependency) |d| {
-            d.incRef();
-        }
-
-        // if (typeDependency == null) {
-        //     std.debug.print("--- v: {d} ------------\n", .{v});
-
-        //     try self.constraints.debugPrint();
-        // }
-
-        try self.names.append(Typing.SchemeBinding{
-            .name = keySP.incRefR(),
-            .type = typeDependency,
-        });
-
-        return typ;
-    }
-
-    fn getBound(self: *AccumlativeState, v: u64) ?*Typing.Type {
-        return self.boundBindings.get(v);
-    }
-};
-
-fn accumulateFreeVariableNames(typ: *Typing.Type, state: *AccumlativeState) !*Typing.Type {
-    switch (typ.kind) {
-        .Bound => {
-            if (state.getBound(typ.kind.Bound.value)) |n| {
-                return n.incRefR();
-            } else {
-                return try state.newBound(typ.kind.Bound.value);
-            }
-        },
-        .Function => {
-            const domain = try accumulateFreeVariableNames(typ.kind.Function.domain, state);
-            errdefer domain.decRef(state.allocator);
-
-            const range = try accumulateFreeVariableNames(typ.kind.Function.range, state);
-            errdefer range.decRef(state.allocator);
-
-            return try Typing.FunctionType.new(
-                state.allocator,
-                domain,
-                range,
-            );
-        },
-        .OrExtend => {
-            const component = try accumulateFreeVariableNames(typ.kind.OrExtend.component, state);
-            errdefer component.decRef(state.allocator);
-
-            const rest = try accumulateFreeVariableNames(typ.kind.OrExtend.rest, state);
-            errdefer rest.decRef(state.allocator);
-
-            return try Typing.OrExtendType.new(
-                state.allocator,
-                component,
-                rest,
-            );
-        },
-        .Tuple => {
-            var components = std.ArrayList(*Typing.Type).init(state.allocator);
-            defer components.deinit();
-
-            for (typ.kind.Tuple.components) |component| {
-                try components.append(try accumulateFreeVariableNames(component, state));
-            }
-
-            return try Typing.TupleType.new(
-                state.allocator,
-                try components.toOwnedSlice(),
-            );
-        },
-        // .Variable => return (s.get(@intFromPtr(self.kind.Variable.name)) orelse self).incRefR(),
-        else => return typ.incRefR(),
     }
 }
 
