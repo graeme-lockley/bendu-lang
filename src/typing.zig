@@ -287,8 +287,7 @@ pub const BoundType = struct {
     }
 
     pub fn append(self: *BoundType, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
-        try buffer.append('\'');
-        try buffer.writer().print("{d}", .{self.value});
+        try buffer.writer().print("'{d}", .{self.value});
     }
 };
 

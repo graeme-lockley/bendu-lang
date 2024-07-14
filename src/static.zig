@@ -355,7 +355,7 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
         },
         .identifier => {
             if (env.findName(ast.kind.identifier)) |scheme| {
-                ast.assignType(scheme.type.incRefR(), env.allocator);
+                ast.assignType(try scheme.instantiate(&env.pump, env.allocator), env.allocator);
             } else {
                 try env.appendError(try Errors.undefinedNameError(env.sp.allocator, ast.locationRange, ast.kind.identifier.slice()));
             }
@@ -776,6 +776,21 @@ test "let add(n, m) = n + m" {
     defer state.deinit();
 
     try state.expectSchemeString("let add(n, m) = n + m", "[a: Char | Float | Int | String] (a, a) -> a");
+}
+
+test "let add(n, m) = n + m ; add(1, 2)" {
+    var state = try TestState.init();
+    defer state.deinit();
+
+    const result = try state.parseAnalyse("let add(n, m) = n + m ; add(1, 2)");
+    defer result.?.decRef(state.allocator);
+
+    try state.debugPrintErrors();
+
+    try std.testing.expect(!state.errors.hasErrors());
+    try std.testing.expect(result != null);
+
+    try state.expectTypeString(result.?, "Int");
 }
 
 test "let inc(n) = n + 1 ; inc(10)" {
