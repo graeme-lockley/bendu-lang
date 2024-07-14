@@ -14,7 +14,7 @@ pub fn eval(ast: *AST.Package, runtime: *Runtime) !void {
 
 const Scope = struct {
     parent: ?*Scope,
-    bindings: std.AutoHashMap(*SP.String, usize),
+    bindings: std.AutoHashMap(*SP.String, BindingKind),
 
     pub fn deinit(self: *Scope) void {
         var iterator = self.bindings.keyIterator();
@@ -53,7 +53,7 @@ const Environment = struct {
         const newScope = try self.allocator.create(Scope);
         newScope.* = Scope{
             .parent = self.scope,
-            .bindings = std.AutoHashMap(*SP.String, usize).init(self.allocator),
+            .bindings = std.AutoHashMap(*SP.String, BindingKind).init(self.allocator),
         };
 
         self.scope = newScope;
@@ -67,7 +67,7 @@ const Environment = struct {
         self.scope = parent;
     }
 
-    fn findBinding(self: *Environment, key: *SP.String) ?usize {
+    fn findBinding(self: *Environment, key: *SP.String) ?BindingKind {
         var currentScope: ?*Scope = self.scope;
         while (currentScope) |scope| {
             if (scope.bindings.get(key)) |binding| {
@@ -79,7 +79,7 @@ const Environment = struct {
         return null;
     }
 
-    fn bind(self: *Environment, key: *SP.String, value: usize) !void {
+    fn bind(self: *Environment, key: *SP.String, value: BindingKind) !void {
         if (self.scope.?.bindings.contains(key)) {
             try std.io.getStdErr().writer().print("Internal Error: Attempt to redefine {s}\n", .{key.slice()});
             std.process.exit(1);
@@ -87,6 +87,12 @@ const Environment = struct {
 
         try self.scope.?.bindings.put(key, value);
     }
+};
+
+const BindingKind = union(enum) {
+    PackageVariable: usize, // offset in stack
+    PackageFunction: usize, // offset in bytecode
+    LocalVariable: i64, // offset from lbp - positive is into stack and negative will be arguments
 };
 
 fn evalPackage(ast: *AST.Package, env: *Environment) !void {
@@ -263,18 +269,24 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
             }
         },
         .idDeclaration => {
-            try evalExpression(ast.kind.idDeclaration.value, env);
-
             if (env.findBinding(ast.kind.idDeclaration.name) != null) {
                 try std.io.getStdErr().writer().print("Internal Error: Attempt to redefine {s}\n", .{ast.kind.idDeclaration.name.slice()});
                 std.process.exit(1);
             }
 
-            try env.bind(ast.kind.idDeclaration.name.incRefR(), env.runtime.stackPointer());
+            try evalExpression(ast.kind.idDeclaration.value, env);
+
+            try env.bind(ast.kind.idDeclaration.name.incRefR(), BindingKind{ .PackageVariable = env.runtime.stackPointer() });
             try env.runtime.duplicate();
         },
         .identifier => if (env.findBinding(ast.kind.identifier)) |value| {
-            try env.runtime.push_pointer(env.runtime.stackItem(value));
+            switch (value) {
+                .PackageVariable => try env.runtime.push_pointer(env.runtime.stackItem(value.PackageVariable)),
+                else => {
+                    try std.io.getStdErr().writer().print("Internal Error: Unsupported binding kind: {}\n", .{value});
+                    std.process.exit(1);
+                },
+            }
         } else {
             try std.io.getStdErr().writer().print("Internal Error: Undefined variable {s}\n", .{ast.kind.identifier.slice()});
             std.process.exit(1);
@@ -312,7 +324,7 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
             try env.runtime.not();
         },
         else => {
-            try std.io.getStdErr().writer().print("Internal Error: Unsupported expression kind\n", .{});
+            try std.io.getStdErr().writer().print("Internal Error: Unsupported expression kind: {}\n", .{ast.kind});
             std.process.exit(1);
         },
     }
