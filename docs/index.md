@@ -1,16 +1,39 @@
-Bendu is a statically typed programming language that is designed to be simple, easy to use, fast and efficient.
+Bendu is a statically typed programming language that is designed to be simple,
+easy to use, fast and efficient.
 
-I love tinkering around with programming languages trying to understand the techniques used to implement them. I have been working on a number of projects in [little languages](https://github.com/littlelanguages) and [rebo-lang](https://github.com/graeme-lockley/rebo-lang) exploring these techniques.  In particular, Rebo was a very interesting project that I worked on as the following properties emerged:
+I love tinkering around with programming languages trying to understand the
+techniques used to implement them. I have been working on a number of projects
+in [little languages](https://github.com/littlelanguages) and
+[rebo-lang](https://github.com/graeme-lockley/rebo-lang) exploring these
+techniques. In particular, Rebo was a very interesting project that I worked on
+as the following properties emerged:
 
-- The start up time was very fast - it felt instantaneous.  This had the effect of being able to do things very quickly without any wait.  Psychologically this was very satisfying.
-- The language is very simple and easy to use.  It is a joy to write code in Rebo.
-- The testing cycle was very easy in that Rebo supported an executable markdown format that allowed tests to be written in a markdown file in a conversational style.  Consider the [language basics](https://github.com/graeme-lockley/rebo-lang/blob/main/docs/index.md) documentation for Rebo as an example.  Further take a look at [a parser](https://github.com/graeme-lockley/bytecode-lang/blob/main/src-compiler/parser.md) and it's [bytecode compiler](https://github.com/graeme-lockley/bytecode-lang/blob/main/src-compiler/compiler.md) as examples of how this works.  It is worth noting that executing the markdown files to verify the assertions in these three examples takes 11ms, 52ms and 59ms respectively on a 2017 i7 iMac.  This is very fast and makes the testing cycle very quick.
+- The start up time was very fast - it felt instantaneous. This had the effect
+  of being able to do things very quickly without any wait. Psychologically this
+  was very satisfying.
+- The language is very simple and easy to use. It is a joy to write code in
+  Rebo.
+- The testing cycle was very easy in that Rebo supported an executable markdown
+  format that allowed tests to be written in a markdown file in a conversational
+  style. Consider the
+  [language basics](https://github.com/graeme-lockley/rebo-lang/blob/main/docs/index.md)
+  documentation for Rebo as an example. Further take a look at
+  [a parser](https://github.com/graeme-lockley/bytecode-lang/blob/main/src-compiler/parser.md)
+  and it's
+  [bytecode compiler](https://github.com/graeme-lockley/bytecode-lang/blob/main/src-compiler/compiler.md)
+  as examples of how this works. It is worth noting that executing the markdown
+  files to verify the assertions in these three examples takes 11ms, 52ms and
+  59ms respectively on a 2017 i7 iMac. This is very fast and makes the testing
+  cycle very quick.
 
-I have been thinking about how to combine these properties into a new language and Bendu is the result.  The language is designed to be simple and easy to use, fast and efficient and to support a conversational style of testing.
+I have been thinking about how to combine these properties into a new language
+and Bendu is the result. The language is designed to be simple and easy to use,
+fast and efficient and to support a conversational style of testing.
 
 Primary influences on Bendu are:
 
-- [Rebo](https://github.com/graeme-lockley/rebo-lang) and it's inspiration [Oak](https://oaklang.org)
+- [Rebo](https://github.com/graeme-lockley/rebo-lang) and it's inspiration
+  [Oak](https://oaklang.org)
 - [Grain](https://grain-lang.org)
 - [Roc](https://roc-lang.org)
 - [Gleam](https://gleam.run)
@@ -26,32 +49,41 @@ Bendu has the following features:
 
 The tooling is written in Zig with ancillary tools written in Bendu.
 
-
 # Core Language
 
 Let's get started by getting a feeling for Bendu code.
 
-The goal here is to become familiar with values, functions and control statements so you will be more confident reading Bendu code in the libraries, tools and demos.
+The goal here is to become familiar with values, functions and control
+statements so you will be more confident reading Bendu code in the libraries,
+tools and demos.
 
-All the code snippets in this section are valid Bendu code.  You can try them out in the [Bendu Playground](https://bendu-lang.org/playground) or using the Bendu REPL.  The REPL is a great way to experiment with Bendu code.
+All the code snippets in this section are valid Bendu code. You can try them out
+in the [Bendu Playground](https://bendu-lang.org/playground) or using the Bendu
+REPL. The REPL is a great way to experiment with Bendu code.
 
-``` bash
+```bash
 $ bendu repl
-> 
+>
 ```
 
 ## Values
 
-The smallest building block in Bendu is called a **value**.  A value is a piece of data that can be manipulated by a program.  There are 9 of different types of values in Bendu: unit, boolean, char, integer, float, string, function, sequence, and record types.
+The smallest building block in Bendu is called a **value**. A value is a piece
+of data that can be manipulated by a program. There are 9 of different types of
+values in Bendu: unit, boolean, char, integer, float, string, function,
+sequence, and record types.
 
-Let's start by looking at the simplest value, the unit value.  The unit value is written as `()` and represents the absence of a value.  It is used in situations where a value is required but there is no value to provide.
+Let's start by looking at the simplest value, the unit value. The unit value is
+written as `()` and represents the absence of a value. It is used in situations
+where a value is required but there is no value to provide.
 
 ```bendu-repl
 > ()
 (): Unit
 ```
 
-The `?` operator is used to provide an alternative value should the first value be `()`.
+The `?` operator is used to provide an alternative value should the first value
+be `()`.
 
 ```rebo-repl
 > () ? 10
@@ -61,7 +93,8 @@ The `?` operator is used to provide an alternative value should the first value 
 11
 ```
 
-The boolean values are `true` and `false`.  They are used to represent the truth of a condition.
+The boolean values are `true` and `false`. They are used to represent the truth
+of a condition.
 
 ```bendu-repl
 > True
@@ -73,7 +106,8 @@ False: Bool
 
 The customary operators `&&` and `||` are used to combine boolean values.
 
-The char value is a single character.  It is written as `'c'` where `c` is any character.  Internally a char value is represented as an 8 bit unsigned byte.
+The char value is a single character. It is written as `'c'` where `c` is any
+character. Internally a char value is represented as an 8 bit unsigned byte.
 
 ```bendu-repl
 > 'a'
@@ -99,16 +133,20 @@ There are 4 special forms that can be used as a char literal.
 13
 ```
 
-The last special character is the escape character and used when special characters are needed in char literals.
+The last special character is the escape character and used when special
+characters are needed in char literals.
 
-An integer value is a whole number.  It is written as `n` where `n` is any whole number.  Internally an integer value is represented as a 64 bit signed integer.
+An integer value is a whole number. It is written as `n` where `n` is any whole
+number. Internally an integer value is represented as a 64 bit signed integer.
 
 ```bendu-repl
 > 10 + 3
 13: Int
 ```
 
-A float value is a decimal number.  It is written as `n.m` where `n` is any whole number and `m` is any whole number.  Internally a float value is represented as a 64 bit floating point number.
+A float value is a decimal number. It is written as `n.m` where `n` is any whole
+number and `m` is any whole number. Internally a float value is represented as a
+64 bit floating point number.
 
 ```bendu-repl
 > 3.151
@@ -128,14 +166,17 @@ A float value can also be written using scientific notation.
 0.03151: Float
 ```
 
-A string value is an immutable sequence of characters.  It is written as `"s"` where `s` is any sequence of characters.  Internally a string value is represented as a sequence of 8 bit unsigned bytes.
+A string value is an immutable sequence of characters. It is written as `"s"`
+where `s` is any sequence of characters. Internally a string value is
+represented as a sequence of 8 bit unsigned bytes.
 
 ```bendu-repl
 > "Hello World"
 "Hello World": String
 ```
 
-Like character, there are 4 special characters that can be used in a string literal.
+Like character, there are 4 special characters that can be used in a string
+literal.
 
 ```bendu-repl
 > "Hello\n \\ \"World\""
@@ -147,7 +188,11 @@ Like character, there are 4 special characters that can be used in a string lite
 
 ## Functions
 
-A function value is a piece of code that can be executed.  It is written as `fn(args) = expr` where `args` is a comma separated list of arguments each with an optional default value and `expr` is an expression.  The `=` character used in the definition of a function is optional.  Idiomatically it is used when the function body is a single expression.
+A function value is a piece of code that can be executed. It is written as
+`fn(args) = expr` where `args` is a comma separated list of arguments each with
+an optional default value and `expr` is an expression. The `=` character used in
+the definition of a function is optional. Idiomatically it is used when the
+function body is a single expression.
 
 ```rebo-repl
 > let add = fn(a = 0, b = 1) = a + b
@@ -186,7 +231,8 @@ fn(x)
 ()
 ```
 
-A function can also be declared with many parameters which are then passed as a sequence.
+A function can also be declared with many parameters which are then passed as a
+sequence.
 
 ```rebo-repl
 > let add(...args) = reduce(args, fn(a, b) = a + b, 0)
@@ -204,28 +250,30 @@ fn(...args)
 
 ## If Expression
 
-An `if` expression is used to support conditional behavior.  A definition of the Ackermann function would be a good example of this.
+An `if` expression is used to support conditional behavior. A definition of the
+Ackermann function would be a good example of this.
 
-```rebo-repl
+```bendu-repl
 > let ackermann(m, n) = 
 .   if m == 0 -> n + 1 
 .    | n == 0 -> ackermann(m - 1, 1) 
 .    | ackermann(m - 1, ackermann(m, n - 1))
-fn(m, n)
+fn: (Int, Int) -> Int
 
 > ackermann(1, 2)
-4
+4: Int
 
 > ackermann(2, 3)
-9
+9: Int
 
 > ackermann(3, 2)
-29
+29: Int
 ```
 
 ## While Expression
 
-A `while` expression is used to support looping behavior.  A definition of the factorial function would be a good example of this.
+A `while` expression is used to support looping behavior. A definition of the
+factorial function would be a good example of this.
 
 ```rebo-repl
 > let factorial(n) {
@@ -251,7 +299,8 @@ fn(n)
 
 ## Sequences
 
-This structure is used to represent a sequence of values.  It is written as `[v1, v2, ...]` where `v1`, `v2`, etc are values.
+This structure is used to represent a sequence of values. It is written as
+`[v1, v2, ...]` where `v1`, `v2`, etc are values.
 
 ```rebo-repl
 > []
@@ -264,7 +313,8 @@ This structure is used to represent a sequence of values.  It is written as `[v1
 "Sequence"
 ```
 
-The `[]` operator is used to access a value in a sequence.  The index is zero based.
+The `[]` operator is used to access a value in a sequence. The index is zero
+based.
 
 ```rebo-repl
 > let seq = [1, 2, 3]
@@ -274,7 +324,9 @@ The `[]` operator is used to access a value in a sequence.  The index is zero ba
 1
 ```
 
-A range can be used to access a subsequence of a sequence.  The range is written as `start:end` where `start` and `end` are integers.  The range is inclusive of `start` and exclusive of `end`.
+A range can be used to access a subsequence of a sequence. The range is written
+as `start:end` where `start` and `end` are integers. The range is inclusive of
+`start` and exclusive of `end`.
 
 ```rebo-repl
 > let seq = [1, 2, 3]
@@ -303,7 +355,8 @@ The `[]` operator can also be used to update a value in a sequence.
 [10, 100, 200, 300, 3]
 ```
 
-The `[]` operator can also be used to remove values from a sequence when assigning `()` to the range.
+The `[]` operator can also be used to remove values from a sequence when
+assigning `()` to the range.
 
 ```rebo-repl
 > let seq = [1, 2, 3, 4, 5]
@@ -316,7 +369,8 @@ The `[]` operator can also be used to remove values from a sequence when assigni
 [1, 4, 5]
 ```
 
-The operators `<<` and `>>` are used to append and prepend a value onto to a sequence.
+The operators `<<` and `>>` are used to append and prepend a value onto to a
+sequence.
 
 ```rebo-repl
 > let seq = [1, 2, 3]
@@ -332,7 +386,8 @@ The operators `<<` and `>>` are used to append and prepend a value onto to a seq
 [1, 2, 3]
 ```
 
-As can be seen, the operators do not modify the sequence but return a new sequence. The operators `>!` and `<!` are used to modify the sequence.
+As can be seen, the operators do not modify the sequence but return a new
+sequence. The operators `>!` and `<!` are used to modify the sequence.
 
 ```rebo-repl
 > let seq = [1, 2, 3]
@@ -360,7 +415,9 @@ Finally, the `...` notation is used to create lists from existing lists.
 
 ## Records
 
-A record is a collection of named values.  It is written as `{name1: v1, name2: v2, ...}` where `name1`, `name2` are names and `v1`, `v2` are values.
+A record is a collection of named values. It is written as
+`{name1: v1, name2: v2, ...}` where `name1`, `name2` are names and `v1`, `v2`
+are values.
 
 ```rebo-repl
 > let person = {name: "John", age: 20}
@@ -393,7 +450,8 @@ The `.` operator can also be used to update a value in a record.
 {name: "Jane", age: 20}
 ```
 
-Like with sequences, the `...` operator can be used to create a new record from an existing record.
+Like with sequences, the `...` operator can be used to create a new record from
+an existing record.
 
 ```rebo-repl
 > let person = {name: "John", age: 20}

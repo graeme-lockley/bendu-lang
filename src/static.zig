@@ -332,15 +332,35 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             ast.assignType(last.incRefR(), env.allocator);
         },
         .idDeclaration => {
-            const t = try expression(ast.kind.idDeclaration.value, env);
+            const tv = try env.pump.newBound(env.allocator);
+            {
+                try env.openScope();
+                defer env.closeScope();
 
-            ast.assignType(t.incRefR(), env.allocator);
+                var params = std.ArrayList(AST.FunctionParam).init(env.allocator);
+                defer params.deinit();
 
-            var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, env.allocator);
-            defer subst.deinit(env.allocator);
+                try params.append(AST.FunctionParam{ .name = ast.kind.idDeclaration.name.incRefR(), .default = null });
+                const newDeclarationExpr = try AST.Expression.create(
+                    env.allocator,
+                    AST.ExpressionKind{ .literalFunction = AST.LiteralFunction{ .params = try params.toOwnedSlice(), .restOfParams = null, .body = ast.kind.idDeclaration.value.incRefR() } },
+                    ast.locationRange,
+                );
+                newDeclarationExpr.assignType(tv, env.allocator);
+                defer newDeclarationExpr.decRef(env.allocator);
 
-            var state = ApplyASTState{ .subst = &subst, .env = env };
-            try applyExpression(ast, &state);
+                try env.newName(ast.kind.idDeclaration.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = tv });
+
+                const t = try expression(ast.kind.idDeclaration.value, env);
+
+                ast.assignType(t.incRefR(), env.allocator);
+
+                var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, env.allocator);
+                defer subst.deinit(env.allocator);
+
+                var state = ApplyASTState{ .subst = &subst, .env = env };
+                try applyExpression(ast, &state);
+            }
 
             if (env.findNameInScope(ast.kind.idDeclaration.name)) |_| {
                 try env.appendError(try Errors.duplicateDeclarationError(env.sp.allocator, ast.locationRange, ast.kind.idDeclaration.name.slice()));
@@ -647,6 +667,21 @@ test "let inc(n) = n + 1" {
     try state.expectTypeString(result.?, "(Int) -> Int");
 }
 
+test "let inc(n) = n + 1 ; inc(10)" {
+    var state = try TestState.init();
+    defer state.deinit();
+
+    const result = try state.parseAnalyse("let inc(n) = n + 1 ; inc(10)");
+    defer result.?.decRef(state.allocator);
+
+    try state.debugPrintErrors();
+
+    try std.testing.expect(!state.errors.hasErrors());
+    try std.testing.expect(result != null);
+
+    try state.expectTypeString(result.?, "Int");
+}
+
 test "let add(n, m) = n + m" {
     var state = try TestState.init();
     defer state.deinit();
@@ -669,11 +704,11 @@ test "let add(n, m) = n + m ; add(1, 2)" {
     try state.expectTypeString(result.?, "Int");
 }
 
-test "let inc(n) = n + 1 ; inc(10)" {
+test "let factorial(n) = if n < 2 -> 1 | n * factorial(n - 1)" {
     var state = try TestState.init();
     defer state.deinit();
 
-    const result = try state.parseAnalyse("let inc(n) = n + 1 ; inc(10)");
+    const result = try state.parseAnalyse("let factorial(n) = if n < 2 -> 1 | n * factorial(n - 1)");
     defer result.?.decRef(state.allocator);
 
     try state.debugPrintErrors();
@@ -681,5 +716,5 @@ test "let inc(n) = n + 1 ; inc(10)" {
     try std.testing.expect(!state.errors.hasErrors());
     try std.testing.expect(result != null);
 
-    try state.expectTypeString(result.?, "Int");
+    try state.expectTypeString(result.?, "(Int) -> Int");
 }

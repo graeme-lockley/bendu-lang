@@ -92,3 +92,27 @@ fn: [a: Char | Float | Int] (a, a) -> a
 > subtract('z', 'a')
 '\x25': Char
 ```
+
+## In package, recursive, non-higher order, private function without closure
+
+This scenario refers to a type inference concern rather than a compilation or
+execution concern. Nonetheless it is necessary working through this scenario
+with the additional requirements:
+
+- Simple recursion, and
+- Mutual recursion.
+
+### Simple recursion
+
+This is where a procedure is dependent on its self. For example the procedure to
+calculate factorial is an excellent example of this recursion.
+
+```bendu-repl
+> let factorial(n) =
+.   if n < 2 -> 1
+.    | n * factorial(n - 1)
+fn: (Int) -> Int
+
+> factorial(10)
+3628800: Int
+```

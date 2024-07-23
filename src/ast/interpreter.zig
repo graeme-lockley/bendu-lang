@@ -252,18 +252,7 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
             } else {
                 const callee = ast.kind.call.callee.kind.identifier;
 
-                if (std.mem.eql(u8, callee.slice(), "println")) {
-                    const writer = std.io.getStdOut().writer();
-
-                    try env.runtime.push_int(0);
-
-                    for (ast.kind.call.args) |expr| {
-                        env.runtime.discard();
-                        try evalExpression(expr, env);
-                        try writer.print("{d} ", .{Pointer.asInt(env.runtime.peek().?)});
-                    }
-                    try writer.print("\n", .{});
-                } else if (env.findBinding(callee)) |binding| {
+                if (env.findBinding(callee)) |binding| {
                     switch (binding) {
                         .PackageFunction => {
                             const function = binding.PackageFunction;
@@ -278,12 +267,14 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
                             try env.open();
                             defer env.close();
 
+                            const oldLBP = env.lbp;
+                            const stackHeight = env.runtime.stack.items.len;
+
                             for (function.kind.literalFunction.params, 0..) |arg, i| {
                                 try env.bind(arg.name, BindingKind{ .LocalVariable = @as(i64, @intCast(i)) - @as(i64, @intCast(n)) });
                                 try evalExpression(args[i], env);
                             }
 
-                            const oldLBP = env.lbp;
                             env.lbp = env.runtime.stack.items.len;
 
                             try evalExpression(function.kind.literalFunction.body, env);
@@ -291,7 +282,7 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
                             env.lbp = oldLBP;
 
                             const r = env.runtime.pop();
-                            env.runtime.stack.items.len = oldLBP;
+                            env.runtime.stack.items.len = stackHeight;
                             try env.runtime.push_pointer(r);
                         },
                         else => {
@@ -355,12 +346,13 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
                 if (ifte.condition) |condition| {
                     try evalExpression(condition, env);
 
-                    if (Pointer.asBool(env.runtime.peek().?)) {
-                        env.runtime.discard();
+                    const guard = Pointer.asBool(env.runtime.peek().?);
+                    env.runtime.discard();
+
+                    if (guard) {
                         try evalExpression(ifte.then, env);
                         return;
                     }
-                    env.runtime.discard();
                 } else {
                     try evalExpression(ifte.then, env);
                     return;
@@ -387,4 +379,54 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
             std.process.exit(1);
         },
     }
+}
+
+fn run(script: []const u8, result: []const u8) !void {
+    const Errors = @import("../errors.zig");
+    const Main = @import("../main.zig");
+    const Parser = @import("../parser.zig");
+    const Static = @import("../static.zig");
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+    defer _ = gpa.deinit();
+
+    var sp = SP.StringPool.init(allocator);
+    defer sp.deinit();
+
+    var errors = try Errors.Errors.init(allocator);
+    defer errors.deinit();
+
+    const parseResult = try Parser.parse(&sp, "script.bendu", script, &errors);
+
+    try std.testing.expect(parseResult != null);
+
+    if (parseResult) |ast| {
+        defer ast.destroy(allocator);
+
+        var env = try Static.Env.init(&sp, &errors);
+        defer env.deinit();
+
+        try Static.package(ast, &env);
+
+        try std.testing.expect(!errors.hasErrors());
+
+        var runtime = Runtime.init(&sp);
+        defer runtime.deinit();
+
+        try eval(ast, &runtime);
+
+        const typ = ast.exprs[ast.exprs.len - 1].type.?;
+
+        var sb = std.ArrayList(u8).init(allocator);
+        defer sb.deinit();
+
+        try Main.valueTypeToString(runtime.peek().?, typ, &sb);
+        try std.testing.expectEqualStrings(result, sb.items);
+    }
+}
+
+test "ackermann" {
+    try run("let ackermann(m, n) = if m == 0 -> n + 1 | n == 0 -> ackermann(m - 1, 1) | ackermann(m - 1, ackermann(m, n - 1))", "fn: (Int, Int) -> Int");
+    try run("let ackermann(m, n) { if m == 0 -> n + 1 | n == 0 -> ackermann(m - 1, 1) | ackermann(m - 1, ackermann(m, n - 1)) } ; ackermann(1, 1)", "3: Int");
 }

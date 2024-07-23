@@ -132,7 +132,7 @@ fn printValue(v: Pointer.Pointer, typ: *Typing.Type) !void {
     try stdout.print("{s}", .{buffer.items});
 }
 
-fn valueToString(v: Pointer.Pointer, typ: *Typing.Type, buffer: *std.ArrayList(u8)) !void {
+pub fn valueToString(v: Pointer.Pointer, typ: *Typing.Type, buffer: *std.ArrayList(u8)) !void {
     switch (typ.kind) {
         .Function => try buffer.appendSlice("fn"),
         .Tag => {
@@ -175,13 +175,23 @@ fn valueToString(v: Pointer.Pointer, typ: *Typing.Type, buffer: *std.ArrayList(u
             }
         },
         .Variable => try buffer.appendSlice("Variable"),
-        else => unreachable,
+        else => {
+            std.debug.print("Error: Unknown {}\n", .{typ.kind});
+            unreachable;
+        },
     }
+}
+
+pub fn valueTypeToString(v: Pointer.Pointer, typ: *Typing.Type, buffer: *std.ArrayList(u8)) !void {
+    try valueToString(v, typ, buffer);
+    try buffer.appendSlice(": ");
+    try typ.append(buffer);
 }
 
 test "All tests" {
     _ = @import("lexer.zig");
     _ = @import("parser.zig");
+    _ = @import("ast/interpreter.zig");
     _ = @import("runtime/memory.zig");
     _ = @import("runtime/pointer.zig");
     _ = @import("runtime/runtime.zig");
