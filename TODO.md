@@ -18,7 +18,7 @@ complete:
 
 The following is the list of big features that need to be implemented.
 
-- [X] Basic types
+- [x] Basic types
 - [ ] Functions
 - [ ] Mutable variables
 - [ ] Tuples
@@ -46,7 +46,8 @@ The following is the list of big features that need to be implemented.
 
 - [x] Implement the `if` expression in the AST interpreter
 - [x] Implement the `if` expression in the BC interpreter
-- [x] Enforce syntactically that there MUST be at least one branch without a guard
+- [x] Enforce syntactically that there MUST be at least one branch without a
+      guard
 
 ## while
 
@@ -54,14 +55,6 @@ The following is the list of big features that need to be implemented.
 - [ ] Implement the `while` expression in the BC interpreter
 
 # Data Types
-
-## Unit
-
-- [x] Implement the `Unit` type
-- [x] Implement the `Unit` type in the AST interpreter
-- [x] Implement the `Unit` type in the BC interpreter
-- [x] Integrate into main so that the value can be viewed.
-- [x] Implement ==, !=, <, <=, >, >=
 
 ## Bool
 
@@ -75,6 +68,43 @@ The following is the list of big features that need to be implemented.
 - [x] Implement ||
 - [x] Implement ==
 - [x] Implement !=
+
+## Char
+
+- [x] Add the `Char` type to the language
+- [x] Infer `Char` literal values
+- [x] Implement the `Char` type in the AST interpreter
+- [x] Implement the `Char` type in the BC interpreter
+- [x] Integrate into main so that the value can be viewed.
+- [x] Implement +, -, *, **, /
+- [x] Implement ==, !=, <, <=, >, >=
+- [ ] Handle divide by zero
+
+## Float
+
+- [x] Add the `Float` type to the language
+- [x] Infer `Float` literal values
+- [x] Implement the `Float` type in the AST interpreter
+- [x] Implement the `Float` type in the BC interpreter
+- [x] Integrate into main so that the value can be viewed.
+- [x] Implement +, -, *, **, /
+- [x] Implement ==, !=, <, <=, >, >=
+- [ ] Handle divide by zero
+
+## Functions
+
+- [x] In package, non-recursive, non-higher order, private function without
+      closure
+- [x] In package, singular recursive, non-higher order, private function without
+      closure
+- [ ] Change AST to accommodate multiple declarations with respect to ID
+      declaration
+- [ ] Change the parser to allow multiple ID declarations separated with `and`
+- [ ] Extend type inference to across mutually recursive functions
+- [ ] AST execute in package, mutually recursive, non-higher order, private
+      function without closure
+- [ ] Bytecode compile and execute in package, mutually recursive, non-higher
+      order, private function without closure
 
 ## Int
 
@@ -92,27 +122,11 @@ The following is the list of big features that need to be implemented.
 - [ ] Handle divide by zero
 - [ ] Handle modulo zero
 
-## Float
+## Record
 
-- [x] Add the `Float` type to the language
-- [x] Infer `Float` literal values
-- [x] Implement the `Float` type in the AST interpreter
-- [x] Implement the `Float` type in the BC interpreter
-- [x] Integrate into main so that the value can be viewed.
-- [x] Implement +, -, *, **, /
-- [x] Implement ==, !=, <, <=, >, >=
-- [ ] Handle divide by zero
-
-## Char
-
-- [x] Add the `Char` type to the language
-- [x] Infer `Char` literal values
-- [x] Implement the `Char` type in the AST interpreter
-- [x] Implement the `Char` type in the BC interpreter
-- [x] Integrate into main so that the value can be viewed.
-- [x] Implement +, -, *, **, /
-- [x] Implement ==, !=, <, <=, >, >=
-- [ ] Handle divide by zero
+- [ ] Report an error when attempt is made to reference or assign to an unknown
+      field
+- [ ] Incorporate mutable fields
 
 ## String
 
@@ -124,11 +138,13 @@ The following is the list of big features that need to be implemented.
 - [x] Implement +
 - [x] Implement ==, !=, <, <=, >, >=
 
-## Record
+## Unit
 
-- [ ] Report an error when attempt is made to reference or assign to an unknown
-      field
-- [ ] Incorporate mutable fields
+- [x] Implement the `Unit` type
+- [x] Implement the `Unit` type in the AST interpreter
+- [x] Implement the `Unit` type in the BC interpreter
+- [x] Integrate into main so that the value can be viewed.
+- [x] Implement ==, !=, <, <=, >, >=
 
 # Operators
 
