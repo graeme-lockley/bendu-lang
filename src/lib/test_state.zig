@@ -86,10 +86,17 @@ pub const TestState = struct {
 
             try Static.package(a, &env);
 
-            const s = try a.exprs[a.exprs.len - 1].kind.declarations[0].IdDeclaration.scheme.?.toString(self.allocator);
-            defer self.allocator.free(s);
+            const lastExpr = a.exprs[a.exprs.len - 1];
 
-            try std.testing.expectEqualStrings(schemeString, s);
+            switch (lastExpr.kind) {
+                .declarations => {
+                    const s = try lastExpr.kind.declarations[0].IdDeclaration.scheme.?.toString(self.allocator);
+                    defer self.allocator.free(s);
+
+                    try std.testing.expectEqualStrings(schemeString, s);
+                },
+                else => try self.expectTypeString(lastExpr.type.?, schemeString),
+            }
         }
     }
 
@@ -108,7 +115,7 @@ pub const TestState = struct {
         }
     }
 
-    pub fn expectTypeString(self: *TestState, typ: *Typing.Type, name: []const u8) !void {
+    fn expectTypeString(self: *TestState, typ: *Typing.Type, name: []const u8) !void {
         _ = self.setup();
 
         const typeString = try typ.toString(self.allocator);
@@ -117,3 +124,10 @@ pub const TestState = struct {
         try std.testing.expectEqualStrings(name, typeString);
     }
 };
+
+pub fn expectSchemeString(source: []const u8, schemeString: []const u8) !void {
+    var state = try TestState.init();
+    defer state.deinit();
+
+    try state.expectSchemeString(source, schemeString);
+}

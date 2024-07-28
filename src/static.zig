@@ -638,23 +638,14 @@ fn applyPattern(ast: *AST.Pattern, state: *ApplyASTState) !void {
     }
 }
 
-const TestState = @import("lib/test_state.zig").TestState;
+const TestState = @import("lib/test_state.zig");
 
 test "!True" {
-    var state = try TestState.init();
-    defer state.deinit();
-
-    const result = try state.parseAnalyse("!True");
-    defer result.?.decRef(state.allocator);
-
-    try std.testing.expect(!state.errors.hasErrors());
-    try std.testing.expect(result != null);
-
-    try state.expectTypeString(result.?, "Bool");
+    try TestState.expectSchemeString("!True", "Bool");
 }
 
 test "!23" {
-    var state = try TestState.init();
+    var state = try TestState.TestState.init();
     defer state.deinit();
 
     const result = try state.parseAnalyse("!23");
@@ -665,68 +656,21 @@ test "!23" {
 }
 
 test "let inc(n) = n + 1" {
-    var state = try TestState.init();
-    defer state.deinit();
-
-    const result = try state.parseAnalyse("let inc(n) = n + 1");
-    defer result.?.decRef(state.allocator);
-
-    try state.debugPrintErrors();
-
-    try std.testing.expect(!state.errors.hasErrors());
-    try std.testing.expect(result != null);
-
-    try state.expectTypeString(result.?, "(Int) -> Int");
+    try TestState.expectSchemeString("let inc(n) = n + 1", "(Int) -> Int");
 }
 
 test "let inc(n) = n + 1 ; inc(10)" {
-    var state = try TestState.init();
-    defer state.deinit();
-
-    const result = try state.parseAnalyse("let inc(n) = n + 1 ; inc(10)");
-    defer result.?.decRef(state.allocator);
-
-    try state.debugPrintErrors();
-
-    try std.testing.expect(!state.errors.hasErrors());
-    try std.testing.expect(result != null);
-
-    try state.expectTypeString(result.?, "Int");
+    try TestState.expectSchemeString("let inc(n) = n + 1 ; inc(10)", "Int");
 }
 
 test "let add(n, m) = n + m" {
-    var state = try TestState.init();
-    defer state.deinit();
-
-    try state.expectSchemeString("let add(n, m) = n + m", "[a: Char | Float | Int | String] (a, a) -> a");
+    try TestState.expectSchemeString("let add(n, m) = n + m", "[a: Char | Float | Int | String] (a, a) -> a");
 }
 
 test "let add(n, m) = n + m ; add(1, 2)" {
-    var state = try TestState.init();
-    defer state.deinit();
-
-    const result = try state.parseAnalyse("let add(n, m) = n + m ; add(1, 2)");
-    defer result.?.decRef(state.allocator);
-
-    try state.debugPrintErrors();
-
-    try std.testing.expect(!state.errors.hasErrors());
-    try std.testing.expect(result != null);
-
-    try state.expectTypeString(result.?, "Int");
+    try TestState.expectSchemeString("let add(n, m) = n + m ; add(1, 2)", "Int");
 }
 
 test "let factorial(n) = if n < 2 -> 1 | n * factorial(n - 1)" {
-    var state = try TestState.init();
-    defer state.deinit();
-
-    const result = try state.parseAnalyse("let factorial(n) = if n < 2 -> 1 | n * factorial(n - 1)");
-    defer result.?.decRef(state.allocator);
-
-    try state.debugPrintErrors();
-
-    try std.testing.expect(!state.errors.hasErrors());
-    try std.testing.expect(result != null);
-
-    try state.expectTypeString(result.?, "(Int) -> Int");
+    try TestState.expectSchemeString("let factorial(n) = if n < 2 -> 1 | n * factorial(n - 1)", "(Int) -> Int");
 }
