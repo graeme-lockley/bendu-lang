@@ -116,3 +116,53 @@ fn: (Int) -> Int
 > factorial(10)
 3628800: Int
 ```
+
+A classic recursive function is the Ackermann function.
+
+```bendu-repl
+> let ackermann(m, n) = 
+.   if m == 0 -> n + 1 
+.    | n == 0 -> ackermann(m - 1, 1) 
+.    | ackermann(m - 1, ackermann(m, n - 1))
+fn: (Int, Int) -> Int
+
+> ackermann(1, 2)
+4: Int
+
+> ackermann(2, 3)
+9: Int
+
+> ackermann(3, 2)
+29: Int
+```
+
+### Mutual recursion
+
+This is where multiple procedures are dependent upon each other. The following
+example illustrates this.
+
+```
+> let odd(n) = if n == 0 -> false | even(n - 1)
+. and even(n) = if n == 0 -> true | odd(n - 1)
+fn: (Int) -> Bool
+
+> odd(5)
+True: Bool
+
+> even(5)
+False: Bool
+```
+
+```rebo-repl
+> let odd(n) = if n == 0 -> false | even(n - 1)
+fn(n)
+
+> let even(n) = if n == 0 -> true | odd(n - 1)
+fn(n)
+
+> odd(5)
+true
+
+> even(5)
+false
+```
