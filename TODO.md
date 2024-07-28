@@ -99,7 +99,7 @@ The following is the list of big features that need to be implemented.
       closure
 - [x] Change AST to accommodate multiple declarations with respect to ID and
       pattern declaration
-- [ ] Change the parser to allow multiple ID declarations separated with `and`
+- [x] Change the parser to allow multiple ID declarations separated with `and`
 - [ ] Extend type inference to across mutually recursive functions
 - [ ] AST execute in package, mutually recursive, non-higher order, private
       function without closure
