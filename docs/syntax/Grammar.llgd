@@ -21,13 +21,17 @@ TypeTuple: TypeTerm {"*" TypeTerm};
 TypeTerm: LowerID | UpperID {Type} | "(" Type ")" | "{" [LowerID [":" Type] {"," LowerID [":" Type]} "," "..."] | "..." "}";
 
 Expression
-    : "let" Pattern "=" Expression
-    | "let" Identifier ["!"] ["+"] FunctionTail
+    : "let" DeclarationExpression {"and" DeclarationExpression}
     | "if" ["|"] Expression "->" Expression {"|" Expression "->" Expression}
     | "while" Expression "->" Expression
     | "match" Expression ["|"] MatchCase {"|" MatchCase}
     | "raise" Expression
     | Catch [":=" Expression]
+    ;
+
+DeclarationExpression
+    : Pattern "=" Expression
+    | Identifier ["!"] ["+"] FunctionTail
     ;
 
 MatchCase

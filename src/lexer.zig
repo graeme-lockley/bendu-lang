@@ -12,6 +12,7 @@ const keywords = std.StaticStringMap(TokenKind).initComptime(.{
     .{ "False", TokenKind.LiteralBoolFalse },
     .{ "True", TokenKind.LiteralBoolTrue },
 
+    .{ "and", TokenKind.And },
     .{ "catch", TokenKind.Catch },
     .{ "fn", TokenKind.Fn },
     .{ "if", TokenKind.If },

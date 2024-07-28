@@ -11,6 +11,7 @@ pub const TokenKind = enum {
 
     Identifier,
 
+    And,
     Catch,
     Fn,
     If,
@@ -71,6 +72,7 @@ pub const TokenKind = enum {
 
             TokenKind.Identifier => return "identifier",
 
+            TokenKind.And => return "and",
             TokenKind.Catch => return "catch",
             TokenKind.Fn => return "fn",
             TokenKind.If => return "if",
