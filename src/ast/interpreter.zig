@@ -296,27 +296,30 @@ fn evalExpression(ast: *AST.Expression, env: *Environment) !void {
                 }
             }
         },
+        .declarations => {
+            const declaration = ast.kind.declarations[0].IdDeclaration;
+
+            if (env.findBinding(declaration.name) != null) {
+                try std.io.getStdErr().writer().print("Internal Error: Attempt to redefine {s}\n", .{declaration.name.slice()});
+                std.process.exit(1);
+            }
+
+            if (declaration.value.kind == .literalFunction) {
+                try env.bind(declaration.name, BindingKind{ .PackageFunction = declaration.value.incRefR() });
+                try env.runtime.push_unit();
+            } else {
+                try evalExpression(declaration.value, env);
+
+                try env.bind(declaration.name, BindingKind{ .PackageVariable = env.runtime.stackPointer() });
+                try env.runtime.duplicate();
+            }
+        },
+
         .exprs => {
             try env.runtime.push_int(0);
             for (ast.kind.exprs) |expr| {
                 env.runtime.discard();
                 try evalExpression(expr, env);
-            }
-        },
-        .idDeclaration => {
-            if (env.findBinding(ast.kind.idDeclaration.name) != null) {
-                try std.io.getStdErr().writer().print("Internal Error: Attempt to redefine {s}\n", .{ast.kind.idDeclaration.name.slice()});
-                std.process.exit(1);
-            }
-
-            if (ast.kind.idDeclaration.value.kind == .literalFunction) {
-                try env.bind(ast.kind.idDeclaration.name, BindingKind{ .PackageFunction = ast.kind.idDeclaration.value.incRefR() });
-                try env.runtime.push_unit();
-            } else {
-                try evalExpression(ast.kind.idDeclaration.value, env);
-
-                try env.bind(ast.kind.idDeclaration.name, BindingKind{ .PackageVariable = env.runtime.stackPointer() });
-                try env.runtime.duplicate();
             }
         },
         .identifier => if (env.findBinding(ast.kind.identifier)) |value| {

@@ -411,23 +411,16 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                 }
             }
         },
-        .exprs => {
-            const exprCount = ast.kind.exprs.len;
-            for (ast.kind.exprs, 0..) |item, idx| {
-                try compileExpr(item, state);
-                if (idx != exprCount - 1) {
-                    try state.appendOp(Op.discard);
-                }
-            }
-        },
-        .idDeclaration => {
-            const name = ast.kind.idDeclaration.name;
+        .declarations => {
+            const declaration = &ast.kind.declarations[0].IdDeclaration;
+
+            const name = declaration.name;
 
             if (state.findBinding(name)) |_| {
-                try std.io.getStdErr().writer().print("Internal Error: Attempt to redefine {s}\n", .{ast.kind.idDeclaration.name.slice()});
+                try std.io.getStdErr().writer().print("Internal Error: Attempt to redefine {s}\n", .{declaration.name.slice()});
                 std.process.exit(1);
-            } else if (ast.kind.idDeclaration.value.kind == .literalFunction) {
-                const value = ast.kind.idDeclaration.value;
+            } else if (declaration.value.kind == .literalFunction) {
+                const value = declaration.value;
                 const numberOfParameters: i64 = @intCast(value.kind.literalFunction.params.len);
 
                 try state.appendOp(Op.push_unit);
@@ -456,10 +449,20 @@ fn compileExpr(ast: *AST.Expression, state: *CompileState) !void {
                     BindingKind{ .PackageVariable = state.nextBindingOffset() },
                 );
 
-                try compileExpr(ast.kind.idDeclaration.value, state);
+                try compileExpr(declaration.value, state);
                 try state.appendOp(Op.duplicate);
             }
         },
+        .exprs => {
+            const exprCount = ast.kind.exprs.len;
+            for (ast.kind.exprs, 0..) |item, idx| {
+                try compileExpr(item, state);
+                if (idx != exprCount - 1) {
+                    try state.appendOp(Op.discard);
+                }
+            }
+        },
+
         .identifier => {
             const name = ast.kind.identifier;
 

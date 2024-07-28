@@ -168,7 +168,7 @@ pub fn package(ast: *AST.Package, env: *Env) !void {
 
         _ = try expression(expr, env);
 
-        if (expr.kind != .idDeclaration) {
+        if (expr.kind != .declarations) {
             var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, env.allocator);
             defer subst.deinit(env.allocator);
 
@@ -319,6 +319,49 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
         //         _ = try expression(case.body, env);
         //     }
         // },
+        .declarations => {
+            if (ast.kind.declarations.len != 1) {
+                unreachable;
+            }
+
+            const declaration = &ast.kind.declarations[0].IdDeclaration;
+
+            const tv = try env.pump.newBound(env.allocator);
+            {
+                try env.openScope();
+                defer env.closeScope();
+
+                var params = std.ArrayList(AST.FunctionParam).init(env.allocator);
+                defer params.deinit();
+
+                try params.append(AST.FunctionParam{ .name = declaration.name.incRefR(), .default = null });
+                const newDeclarationExpr = try AST.Expression.create(
+                    env.allocator,
+                    AST.ExpressionKind{ .literalFunction = AST.LiteralFunction{ .params = try params.toOwnedSlice(), .restOfParams = null, .body = declaration.value.incRefR() } },
+                    ast.locationRange,
+                );
+                newDeclarationExpr.assignType(tv, env.allocator);
+                defer newDeclarationExpr.decRef(env.allocator);
+
+                try env.newName(declaration.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = tv });
+
+                const t = try expression(declaration.value, env);
+
+                ast.assignType(t.incRefR(), env.allocator);
+
+                var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, env.allocator);
+                defer subst.deinit(env.allocator);
+
+                var state = ApplyASTState{ .subst = &subst, .env = env };
+                try applyExpression(ast, &state);
+            }
+
+            if (env.findNameInScope(declaration.name)) |_| {
+                try env.appendError(try Errors.duplicateDeclarationError(env.sp.allocator, ast.locationRange, declaration.name.slice()));
+            } else {
+                try env.newName(declaration.name, try declaration.scheme.?.clone(env.allocator));
+            }
+        },
         // .dot => {
         //     _ = try expression(ast.kind.dot.record, env);
         // },
@@ -330,43 +373,6 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             }
 
             ast.assignType(last.incRefR(), env.allocator);
-        },
-        .idDeclaration => {
-            const tv = try env.pump.newBound(env.allocator);
-            {
-                try env.openScope();
-                defer env.closeScope();
-
-                var params = std.ArrayList(AST.FunctionParam).init(env.allocator);
-                defer params.deinit();
-
-                try params.append(AST.FunctionParam{ .name = ast.kind.idDeclaration.name.incRefR(), .default = null });
-                const newDeclarationExpr = try AST.Expression.create(
-                    env.allocator,
-                    AST.ExpressionKind{ .literalFunction = AST.LiteralFunction{ .params = try params.toOwnedSlice(), .restOfParams = null, .body = ast.kind.idDeclaration.value.incRefR() } },
-                    ast.locationRange,
-                );
-                newDeclarationExpr.assignType(tv, env.allocator);
-                defer newDeclarationExpr.decRef(env.allocator);
-
-                try env.newName(ast.kind.idDeclaration.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = tv });
-
-                const t = try expression(ast.kind.idDeclaration.value, env);
-
-                ast.assignType(t.incRefR(), env.allocator);
-
-                var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, env.allocator);
-                defer subst.deinit(env.allocator);
-
-                var state = ApplyASTState{ .subst = &subst, .env = env };
-                try applyExpression(ast, &state);
-            }
-
-            if (env.findNameInScope(ast.kind.idDeclaration.name)) |_| {
-                try env.appendError(try Errors.duplicateDeclarationError(env.sp.allocator, ast.locationRange, ast.kind.idDeclaration.name.slice()));
-            } else {
-                try env.newName(ast.kind.idDeclaration.name, try ast.kind.idDeclaration.scheme.?.clone(env.allocator));
-            }
         },
         .identifier => {
             if (env.findName(ast.kind.identifier)) |scheme| {
@@ -539,14 +545,24 @@ fn applyExpression(ast: *AST.Expression, state: *ApplyASTState) !void {
                 try applyExpression(case.body, state);
             }
         },
+        .declarations => {
+            for (ast.kind.declarations) |*declaration| {
+                switch (declaration.*) {
+                    .IdDeclaration => {
+                        try applyExpression(declaration.IdDeclaration.value, state);
+
+                        declaration.IdDeclaration.scheme = try ast.type.?.generalise(state.env.allocator, state.env.sp, &state.env.constraints);
+                    },
+                    .PatternDeclaration => {
+                        try applyPattern(declaration.PatternDeclaration.pattern, state);
+                        try applyExpression(declaration.PatternDeclaration.value, state);
+                    },
+                }
+            }
+        },
         .dot => _ = try applyExpression(ast.kind.dot.record, state),
         .exprs => for (ast.kind.exprs) |expr| {
             try applyExpression(expr, state);
-        },
-        .idDeclaration => {
-            try applyExpression(ast.kind.idDeclaration.value, state);
-
-            ast.kind.idDeclaration.scheme = try ast.type.?.generalise(state.env.allocator, state.env.sp, &state.env.constraints);
         },
         .ifte => for (ast.kind.ifte) |case| {
             if (case.condition) |condition| {
@@ -595,10 +611,6 @@ fn applyExpression(ast: *AST.Expression, state: *ApplyASTState) !void {
             }
         },
         .notOp => try applyExpression(ast.kind.notOp.value, state),
-        .patternDeclaration => {
-            try applyPattern(ast.kind.patternDeclaration.pattern, state);
-            try applyExpression(ast.kind.patternDeclaration.value, state);
-        },
         .raise => try applyExpression(ast.kind.raise.expr, state),
         .whilee => {
             try applyExpression(ast.kind.whilee.condition, state);

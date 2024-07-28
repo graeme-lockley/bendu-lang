@@ -132,9 +132,9 @@ pub const ExpressionKind = union(enum) {
     binaryOp: BinaryOpExpression,
     call: CallExpression,
     catche: CatchExpression,
+    declarations: []DeclarationExpression,
     dot: DotExpression,
     exprs: []*Expression,
-    idDeclaration: IdDeclarationExpression,
     identifier: *SP.String,
     ifte: []IfCouple,
     indexRange: IndexRangeExpression,
@@ -150,7 +150,6 @@ pub const ExpressionKind = union(enum) {
     literalVoid: void,
     match: MatchExpression,
     notOp: NotOpExpression,
-    patternDeclaration: PatternDeclarationExpression,
     raise: RaiseExpression,
     whilee: WhileExpression,
 };
@@ -174,6 +173,11 @@ pub const CallExpression = struct {
 pub const CatchExpression = struct {
     value: *Expression,
     cases: []MatchCase,
+};
+
+pub const DeclarationExpression = union(enum) {
+    IdDeclaration: IdDeclarationExpression,
+    PatternDeclaration: PatternDeclarationExpression,
 };
 
 pub const DotExpression = struct {
@@ -327,6 +331,16 @@ fn destroyExpr(allocator: std.mem.Allocator, expr: *Expression) void {
                 }
                 allocator.free(expr.kind.catche.cases);
             },
+            .declarations => {
+                for (expr.kind.declarations) |*declaration| {
+                    switch (declaration.*) {
+                        .IdDeclaration => declaration.IdDeclaration.deinit(allocator),
+                        .PatternDeclaration => declaration.PatternDeclaration.deinit(allocator),
+                    }
+                }
+
+                allocator.free(expr.kind.declarations);
+            },
             .dot => expr.kind.dot.deinit(allocator),
             .exprs => {
                 for (expr.kind.exprs) |v| {
@@ -334,7 +348,6 @@ fn destroyExpr(allocator: std.mem.Allocator, expr: *Expression) void {
                 }
                 allocator.free(expr.kind.exprs);
             },
-            .idDeclaration => expr.kind.idDeclaration.deinit(allocator),
             .identifier => expr.kind.identifier.decRef(),
             .ifte => {
                 for (expr.kind.ifte) |v| {
@@ -390,7 +403,6 @@ fn destroyExpr(allocator: std.mem.Allocator, expr: *Expression) void {
                 allocator.free(expr.kind.match.cases);
             },
             .notOp => destroyExpr(allocator, expr.kind.notOp.value),
-            .patternDeclaration => expr.kind.patternDeclaration.deinit(allocator),
             .raise => destroyExpr(allocator, expr.kind.raise.expr),
             .whilee => {
                 destroyExpr(allocator, expr.kind.whilee.condition);

@@ -86,7 +86,7 @@ pub const TestState = struct {
 
             try Static.package(a, &env);
 
-            const s = try a.exprs[a.exprs.len - 1].kind.idDeclaration.scheme.?.toString(self.allocator);
+            const s = try a.exprs[a.exprs.len - 1].kind.declarations[0].IdDeclaration.scheme.?.toString(self.allocator);
             defer self.allocator.free(s);
 
             try std.testing.expectEqualStrings(schemeString, s);

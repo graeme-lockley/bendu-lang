@@ -61,6 +61,11 @@ pub const Parser = struct {
     pub fn expression(self: *Parser) Errors.ParserErrors!*AST.Expression {
         if (self.currentTokenKind() == Lexer.TokenKind.Let) {
             const letToken = try self.nextToken();
+            const startPosition = letToken.locationRange.from;
+            var endPosition = letToken.locationRange.to;
+
+            var declarations = std.ArrayList(AST.DeclarationExpression).init(self.allocator);
+            defer declarations.deinit();
 
             const nextNextToken = try self.peekNextToken();
             if (self.currentTokenKind() == Lexer.TokenKind.Identifier and (nextNextToken == Lexer.TokenKind.Equal or nextNextToken == Lexer.TokenKind.LParen)) {
@@ -71,14 +76,16 @@ pub const Parser = struct {
                     var literalFn = try self.functionTail(letToken.locationRange.from);
                     errdefer literalFn.decRef(self.allocator);
 
-                    return try AST.Expression.create(self.allocator, AST.ExpressionKind{ .idDeclaration = AST.IdDeclarationExpression{ .name = try self.stringPool.intern(name), .value = literalFn, .scheme = null } }, Errors.LocationRange{ .from = nameToken.locationRange.from, .to = literalFn.locationRange.to });
+                    endPosition = literalFn.locationRange.to;
+                    try declarations.append(AST.DeclarationExpression{ .IdDeclaration = AST.IdDeclarationExpression{ .name = try self.stringPool.intern(name), .value = literalFn, .scheme = null } });
                 } else {
                     try self.matchSkipToken(Lexer.TokenKind.Equal);
 
                     const value = try self.expression();
                     errdefer value.decRef(self.allocator);
 
-                    return try AST.Expression.create(self.allocator, AST.ExpressionKind{ .idDeclaration = AST.IdDeclarationExpression{ .name = try self.stringPool.intern(name), .value = value, .scheme = null } }, Errors.LocationRange{ .from = letToken.locationRange.from, .to = value.locationRange.to });
+                    endPosition = value.locationRange.to;
+                    try declarations.append(AST.DeclarationExpression{ .IdDeclaration = AST.IdDeclarationExpression{ .name = try self.stringPool.intern(name), .value = value, .scheme = null } });
                 }
             } else {
                 const pttrn = try self.pattern();
@@ -89,8 +96,11 @@ pub const Parser = struct {
                 const value = try self.expression();
                 errdefer value.decRef(self.allocator);
 
-                return try AST.Expression.create(self.allocator, AST.ExpressionKind{ .patternDeclaration = AST.PatternDeclarationExpression{ .pattern = pttrn, .value = value } }, Errors.LocationRange{ .from = letToken.locationRange.from, .to = value.locationRange.to });
+                endPosition = value.locationRange.to;
+                try declarations.append(AST.DeclarationExpression{ .PatternDeclaration = AST.PatternDeclarationExpression{ .pattern = pttrn, .value = value } });
             }
+
+            return try AST.Expression.create(self.allocator, AST.ExpressionKind{ .declarations = try declarations.toOwnedSlice() }, Errors.LocationRange{ .from = startPosition, .to = endPosition });
         } else if (self.currentTokenKind() == Lexer.TokenKind.If) {
             const ifToken = try self.nextToken();
 
