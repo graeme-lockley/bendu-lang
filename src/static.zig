@@ -674,3 +674,8 @@ test "let add(n, m) = n + m ; add(1, 2)" {
 test "let factorial(n) = if n < 2 -> 1 | n * factorial(n - 1)" {
     try TestState.expectSchemeString("let factorial(n) = if n < 2 -> 1 | n * factorial(n - 1)", "(Int) -> Int");
 }
+
+// test "mutually recursive functions" {
+//     try TestState.expectSchemeString("let x = 1 and y = 2", "Int; Int");
+//     try TestState.expectSchemeString("let odd(n) = if n == 0 -> false | even(n - 1) and even(n) = if n == 0 -> true | odd(n - 1)", "(Int) -> Bool; (Int) -> Bool");
+// }
