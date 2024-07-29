@@ -320,41 +320,54 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
         //     }
         // },
         .declarations => {
-            if (ast.kind.declarations.len != 1) {
-                unreachable;
-            }
-
             const declaration = &ast.kind.declarations[0].IdDeclaration;
 
             const tv = try env.pump.newBound(env.allocator);
-            {
-                try env.openScope();
-                defer env.closeScope();
-
-                var params = std.ArrayList(AST.FunctionParam).init(env.allocator);
-                defer params.deinit();
-
-                try params.append(AST.FunctionParam{ .name = declaration.name.incRefR(), .default = null });
-                const newDeclarationExpr = try AST.Expression.create(
-                    env.allocator,
-                    AST.ExpressionKind{ .literalFunction = AST.LiteralFunction{ .params = try params.toOwnedSlice(), .restOfParams = null, .body = declaration.value.incRefR() } },
-                    ast.locationRange,
-                );
-                newDeclarationExpr.assignType(tv, env.allocator);
-                defer newDeclarationExpr.decRef(env.allocator);
-
-                try env.newName(declaration.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = tv });
-
-                const t = try expression(declaration.value, env);
-
-                ast.assignType(t.incRefR(), env.allocator);
-
-                var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, env.allocator);
-                defer subst.deinit(env.allocator);
-
-                var state = ApplyASTState{ .subst = &subst, .env = env };
-                try applyExpression(ast, &state);
+            const tvs = try env.allocator.alloc(*Typing.Type, ast.kind.declarations.len);
+            defer {
+                for (ast.kind.declarations, 0..) |_, idx| {
+                    tvs[idx].decRef(env.allocator);
+                }
+                env.allocator.free(tvs);
             }
+
+            try env.openScope();
+
+            for (ast.kind.declarations, 0..) |decl, idx| {
+                tvs[idx] = try env.pump.newBound(env.allocator);
+
+                if (env.findNameInScope(decl.IdDeclaration.name)) |_| {
+                    try env.appendError(try Errors.duplicateDeclarationError(env.sp.allocator, ast.locationRange, decl.IdDeclaration.name.slice()));
+                } else {
+                    try env.newName(decl.IdDeclaration.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = tvs[idx].incRefR() });
+                }
+            }
+
+            var params = std.ArrayList(AST.FunctionParam).init(env.allocator);
+            defer params.deinit();
+
+            try params.append(AST.FunctionParam{ .name = declaration.name.incRefR(), .default = null });
+            const newDeclarationExpr = try AST.Expression.create(
+                env.allocator,
+                AST.ExpressionKind{ .literalFunction = AST.LiteralFunction{ .params = try params.toOwnedSlice(), .restOfParams = null, .body = declaration.value.incRefR() } },
+                ast.locationRange,
+            );
+            newDeclarationExpr.assignType(tv, env.allocator);
+            defer newDeclarationExpr.decRef(env.allocator);
+
+            try env.newName(declaration.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = tv });
+
+            const t = try expression(declaration.value, env);
+
+            ast.assignType(t.incRefR(), env.allocator);
+
+            var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, env.allocator);
+            defer subst.deinit(env.allocator);
+
+            var state = ApplyASTState{ .subst = &subst, .env = env };
+            try applyExpression(ast, &state);
+
+            env.closeScope();
 
             if (env.findNameInScope(declaration.name)) |_| {
                 try env.appendError(try Errors.duplicateDeclarationError(env.sp.allocator, ast.locationRange, declaration.name.slice()));

@@ -70,7 +70,7 @@ pub const TestState = struct {
         }
     }
 
-    pub fn expectSchemeString(self: *TestState, source: []const u8, schemeString: []const u8) !void {
+    fn expectSchemeString(self: *TestState, source: []const u8, schemeString: []const u8) !void {
         _ = self.setup();
 
         const ast = try Parser.parse(&self.sp, "script.bendu", source, &self.errors);
