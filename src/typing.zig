@@ -576,7 +576,11 @@ fn unify(t1: *Type, t2: *Type, locationRange: Errors.LocationRange, errors: *Err
 
             try unify(t1range, t2range, locationRange, errors, subst);
         } else if (t1.kind == .Tuple and t2.kind == .Tuple) {
-            try unifyMany(t1.kind.Tuple.components, t2.kind.Tuple.components, locationRange, errors, subst);
+            if (t1.kind.Tuple.components.len != t2.kind.Tuple.components.len) {
+                try errors.append(try Errors.unificationError(subst.allocator, locationRange, t1, t2));
+            } else {
+                try unifyMany(t1.kind.Tuple.components, t2.kind.Tuple.components, locationRange, errors, subst);
+            }
         } else {
             try errors.append(try Errors.unificationError(subst.allocator, locationRange, t1, t2));
         }
