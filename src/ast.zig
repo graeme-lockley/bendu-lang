@@ -147,6 +147,7 @@ pub const ExpressionKind = union(enum) {
     literalRecord: []RecordEntry,
     literalSequence: []LiteralSequenceValue,
     literalString: *SP.String,
+    literalTuple: []*Expression,
     literalVoid: void,
     match: MatchExpression,
     notOp: NotOpExpression,
@@ -395,6 +396,12 @@ fn destroyExpr(allocator: std.mem.Allocator, expr: *Expression) void {
                 allocator.free(expr.kind.literalSequence);
             },
             .literalString => expr.kind.literalString.decRef(),
+            .literalTuple => {
+                for (expr.kind.literalTuple) |v| {
+                    destroyExpr(allocator, v);
+                }
+                allocator.free(expr.kind.literalTuple);
+            },
             .match => {
                 destroyExpr(allocator, expr.kind.match.value);
                 for (expr.kind.match.cases) |*c| {
