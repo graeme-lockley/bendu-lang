@@ -165,6 +165,19 @@ pub const Errors = struct {
     pub fn hasErrors(self: *Errors) bool {
         return self.items.items.len > 0;
     }
+
+    pub fn debugPrintErrors(self: *Errors) !void {
+        if (self.hasErrors()) {
+            std.debug.print("--- Errors ------------\n", .{});
+            for (self.items.items) |*err| {
+                const str = try err.toString(self.items.allocator);
+                defer self.items.allocator.free(str);
+
+                std.debug.print("{s}\n", .{str});
+            }
+            std.debug.print("-----------------------\n", .{});
+        }
+    }
 };
 
 pub const ErrorKind = enum {

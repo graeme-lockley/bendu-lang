@@ -86,6 +86,9 @@ pub const TestState = struct {
 
             try Static.package(a, &env);
 
+            try self.debugPrintErrors();
+            try std.testing.expect(!self.errors.hasErrors());
+
             const lastExpr = a.exprs[a.exprs.len - 1];
 
             switch (lastExpr.kind) {
@@ -103,16 +106,7 @@ pub const TestState = struct {
     pub fn debugPrintErrors(self: *TestState) !void {
         _ = self.setup();
 
-        if (self.errors.hasErrors()) {
-            std.debug.print("--- Errors ------------\n", .{});
-            for (self.errors.items.items) |*err| {
-                const str = try err.toString(self.allocator);
-                defer self.allocator.free(str);
-
-                std.debug.print("{s}\n", .{str});
-            }
-            std.debug.print("-----------------------\n", .{});
-        }
+        try self.errors.debugPrintErrors();
     }
 
     fn expectTypeString(self: *TestState, typ: *Typing.Type, name: []const u8) !void {
