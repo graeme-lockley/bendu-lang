@@ -4,10 +4,12 @@ const SP = @import("../lib/string_pool.zig");
 const Typing = @import("../typing.zig");
 
 pub const Subst = struct {
+    allocator: std.mem.Allocator,
     items: std.AutoHashMap(u64, *Typing.Type),
 
     pub fn init(allocator: std.mem.Allocator) Subst {
         return Subst{
+            .allocator = allocator,
             .items = std.AutoHashMap(u64, *Typing.Type).init(allocator),
         };
     }
@@ -47,7 +49,7 @@ pub const Subst = struct {
         return self.items.contains(key);
     }
 
-    pub fn put(self: *Subst, key: u64, value: *Typing.Type) !void {
+    fn put(self: *Subst, key: u64, value: *Typing.Type) !void {
         if (self.items.get(key)) |v| {
             v.decRef(self.items.allocator);
         }
@@ -55,20 +57,19 @@ pub const Subst = struct {
         try self.items.put(key, value.incRefR());
     }
 
-    pub fn compose(self: *Subst, other: *Subst) !void {
-        // const compose(s: Subst): Subst {
-        //   return new Subst(
-        //     Maps.union(Maps.map(s.items, (v) => v.apply(this)), this.items),
-        //   );
-        // }
+    pub fn add(self: *Subst, key: u64, value: *Typing.Type) !void {
+        var s = Subst.init(self.items.allocator);
+        defer s.deinit(self.items.allocator);
 
-        var iterator1 = other.items.iterator();
-        while (iterator1.next()) |item| {
-            const substValue = try item.value_ptr.*.apply(self);
-            defer substValue.decRef(self.items.allocator);
+        try s.put(key, value);
 
-            try self.put(item.key_ptr.*, substValue);
+        try self.applySubst(&s);
+
+        if (self.items.get(key)) |v| {
+            v.decRef(self.items.allocator);
         }
+
+        try self.items.put(key, value.incRefR());
     }
 
     pub fn debugPrint(self: *Subst) !void {
@@ -82,6 +83,16 @@ pub const Subst = struct {
             std.debug.print("'{d} -> {s}\n", .{ key, valueStr });
         }
         std.debug.print("----------------------\n", .{});
+    }
+
+    fn applySubst(self: *Subst, other: *Subst) !void {
+        var iterator1 = self.items.iterator();
+        while (iterator1.next()) |item| {
+            const substValue = try item.value_ptr.*.apply(other);
+            defer substValue.decRef(self.items.allocator);
+
+            try self.put(item.key_ptr.*, substValue);
+        }
     }
 };
 

@@ -169,7 +169,7 @@ pub fn package(ast: *AST.Package, env: *Env) !void {
         _ = try expression(expr, env);
 
         if (expr.kind != .declarations) {
-            var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, env.allocator);
+            var subst = try Typing.solver(&env.constraints, env.errors, env.allocator);
             defer subst.deinit(env.allocator);
 
             var state = ApplyASTState{ .subst = &subst, .env = env };
@@ -361,7 +361,7 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
 
             ast.assignType(t.incRefR(), env.allocator);
 
-            var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, env.allocator);
+            var subst = try Typing.solver(&env.constraints, env.errors, env.allocator);
             defer subst.deinit(env.allocator);
 
             var state = ApplyASTState{ .subst = &subst, .env = env };
