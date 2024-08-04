@@ -375,6 +375,78 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
                 try env.newName(declaration.name, try declaration.scheme.?.clone(env.allocator));
             }
         },
+
+        // .declarations => {
+        //     const tvs = try Typing.TupleType.new(env.allocator, try env.pump.newBoundN(env.allocator, ast.kind.declarations.len));
+        //     defer tvs.decRef(env.allocator);
+
+        //     try env.openScope();
+
+        //     var tupleItems = std.ArrayList(*AST.Expression).init(env.allocator);
+        //     defer tupleItems.deinit();
+        //     for (ast.kind.declarations, 0..) |decl, idx| {
+        //         if (env.findNameInScope(decl.IdDeclaration.name)) |_| {
+        //             try env.appendError(try Errors.duplicateDeclarationError(env.sp.allocator, ast.locationRange, decl.IdDeclaration.name.slice()));
+        //         } else {
+        //             try env.newName(decl.IdDeclaration.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = tvs.kind.Tuple.components[idx].incRefR() });
+        //         }
+
+        //         try tupleItems.append(decl.IdDeclaration.value.incRefR());
+        //     }
+
+        //     var params = std.ArrayList(AST.FunctionParam).init(env.allocator);
+        //     defer params.deinit();
+
+        //     try params.append(AST.FunctionParam{ .name = try env.sp.intern("_bob"), .default = null });
+
+        //     const newDeclarationExpr = try AST.Expression.create(
+        //         env.allocator,
+        //         AST.ExpressionKind{ .literalFunction = AST.LiteralFunction{
+        //             .params = try params.toOwnedSlice(),
+        //             .restOfParams = null,
+        //             .body = try AST.Expression.create(
+        //                 env.allocator,
+        //                 AST.ExpressionKind{ .literalTuple = try tupleItems.toOwnedSlice() },
+        //                 ast.locationRange,
+        //             ),
+        //         } },
+        //         ast.locationRange,
+        //     );
+        //     defer newDeclarationExpr.decRef(env.allocator);
+
+        //     const tv = try env.pump.newBound(env.allocator);
+        //     defer tv.decRef(env.allocator);
+
+        //     const tvSignature = try Typing.FunctionType.new(env.allocator, tv.incRefR(), tv.incRefR());
+        //     defer tvSignature.decRef(env.allocator);
+
+        //     const inferredType = try expression(newDeclarationExpr, env);
+
+        //     try env.addConstraint(tvSignature, inferredType, ast.locationRange);
+
+        //     try env.constraints.debugPrint();
+
+        //     var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, env.allocator);
+        //     defer subst.deinit(env.allocator);
+
+        //     try subst.debugPrint();
+
+        //     var state = ApplyASTState{ .subst = &subst, .env = env };
+        //     for (ast.kind.declarations, 0..) |*decl, idx| {
+        //         const t = try tvs.kind.Tuple.components[idx].apply(&subst);
+        //         tvs.kind.Tuple.components[idx].decRef(env.allocator);
+        //         tvs.kind.Tuple.components[idx] = t;
+
+        //         decl.IdDeclaration.scheme = try t.generalise(env.allocator, env.sp, &env.constraints);
+        //         try applyExpression(decl.IdDeclaration.value, &state);
+
+        //         try env.newName(decl.IdDeclaration.name, try decl.IdDeclaration.scheme.?.clone(env.allocator));
+        //     }
+
+        //     ast.assignType(newDeclarationExpr.kind.literalFunction.body.type.?.incRefR(), env.allocator);
+        //     env.closeScope();
+        // },
+
         // .dot => {
         //     _ = try expression(ast.kind.dot.record, env);
         // },
