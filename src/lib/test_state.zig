@@ -93,10 +93,22 @@ pub const TestState = struct {
 
             switch (lastExpr.kind) {
                 .declarations => {
-                    const s = try lastExpr.kind.declarations[0].IdDeclaration.scheme.?.toString(self.allocator);
-                    defer self.allocator.free(s);
+                    var buffer = std.ArrayList(u8).init(self.allocator);
+                    defer buffer.deinit();
 
-                    try std.testing.expectEqualStrings(schemeString, s);
+                    for (lastExpr.kind.declarations, 0..) |*d, idx| {
+                        if (idx > 0) {
+                            try buffer.append(';');
+                            try buffer.append(' ');
+                        }
+
+                        const s = try d.IdDeclaration.scheme.?.toString(self.allocator);
+                        defer self.allocator.free(s);
+
+                        try buffer.appendSlice(s);
+                    }
+
+                    try std.testing.expectEqualStrings(schemeString, buffer.items);
                 },
                 else => try self.expectTypeString(lastExpr.type.?, schemeString),
             }

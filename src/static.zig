@@ -379,6 +379,7 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             defer tvs.decRef(env.allocator);
 
             try env.openScope();
+            defer env.closeScope();
 
             var tupleItems = std.ArrayList(*AST.Expression).init(env.allocator);
             defer tupleItems.deinit();
@@ -419,22 +420,40 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             defer tvSignature.decRef(env.allocator);
 
             const inferredType = try expression(newDeclarationExpr, env);
+            if (env.errors.hasErrors()) {
+                ast.assignType(env.errorType.incRefR(), env.allocator);
+                return env.errorType;
+            }
 
-            try env.addConstraint(tvSignature, inferredType, ast.locationRange);
+            if (inferredType.kind == .Function and inferredType.kind.Function.domain.kind == .Tuple and inferredType.kind.Function.domain.kind.Tuple.components.len == 1) {
+                const newInferredType = try Typing.FunctionType.new(env.allocator, inferredType.kind.Function.domain.kind.Tuple.components[0].incRefR(), inferredType.kind.Function.range.incRefR());
+                defer newInferredType.decRef(env.allocator);
 
-            try env.constraints.debugPrint();
+                try env.addConstraint(tvSignature, newInferredType, ast.locationRange);
+            } else {
+                try env.addConstraint(tvSignature, inferredType, ast.locationRange);
+            }
+
+            for (ast.kind.declarations, 0..) |*decl, idx| {
+                try env.addConstraint(tvs.kind.Tuple.components[idx], decl.IdDeclaration.value.type.?, decl.IdDeclaration.value.locationRange);
+            }
+
+            // try env.constraints.debugPrint();
 
             var subst = try Typing.solver(&env.constraints, env.errors, env.allocator);
             defer subst.deinit(env.allocator);
 
-            try env.errors.debugPrintErrors();
-            try subst.debugPrint();
+            // try env.errors.debugPrintErrors();
+            // try subst.debugPrint();
 
             if (env.errors.hasErrors()) {
-                ast.assignType(env.errorType, env.allocator);
+                ast.assignType(env.errorType.incRefR(), env.allocator);
             } else {
                 var state = ApplyASTState{ .subst = &subst, .env = env };
                 for (ast.kind.declarations, 0..) |*decl, idx| {
+                    // const oldS = try tvs.kind.Tuple.components[idx].toString(env.allocator);
+                    // defer env.allocator.free(oldS);
+
                     const t = try tvs.kind.Tuple.components[idx].apply(&subst);
                     tvs.kind.Tuple.components[idx].decRef(env.allocator);
                     tvs.kind.Tuple.components[idx] = t;
@@ -442,88 +461,18 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
                     decl.IdDeclaration.scheme = try t.generalise(env.allocator, env.sp, &env.constraints);
                     try applyExpression(decl.IdDeclaration.value, &state);
 
-                    try env.newName(decl.IdDeclaration.name, try decl.IdDeclaration.scheme.?.clone(env.allocator));
+                    const scheme = try decl.IdDeclaration.scheme.?.clone(env.allocator);
+                    try env.newName(decl.IdDeclaration.name, scheme);
+
+                    // const s = try scheme.toString(env.allocator);
+                    // defer env.allocator.free(s);
+
+                    // std.debug.print("- {s}: {s} ({s})\n", .{ decl.IdDeclaration.name.slice(), s, oldS });
                 }
 
                 ast.assignType(newDeclarationExpr.kind.literalFunction.body.type.?.incRefR(), env.allocator);
             }
-            env.closeScope();
         },
-
-        // .declarations => {
-        //     const tvs = try Typing.TupleType.new(env.allocator, try env.pump.newBoundN(env.allocator, ast.kind.declarations.len));
-        //     defer tvs.decRef(env.allocator);
-
-        //     try env.openScope();
-
-        //     var tupleItems = std.ArrayList(*AST.Expression).init(env.allocator);
-        //     defer tupleItems.deinit();
-        //     for (ast.kind.declarations, 0..) |decl, idx| {
-        //         if (env.findNameInScope(decl.IdDeclaration.name)) |_| {
-        //             try env.appendError(try Errors.duplicateDeclarationError(env.sp.allocator, ast.locationRange, decl.IdDeclaration.name.slice()));
-        //         } else {
-        //             try env.newName(decl.IdDeclaration.name, Typing.Scheme{ .names = &[_]Typing.SchemeBinding{}, .type = tvs.kind.Tuple.components[idx].incRefR() });
-        //         }
-
-        //         try tupleItems.append(decl.IdDeclaration.value.incRefR());
-        //     }
-
-        //     var params = std.ArrayList(AST.FunctionParam).init(env.allocator);
-        //     defer params.deinit();
-
-        //     try params.append(AST.FunctionParam{ .name = try env.sp.intern("_bob"), .default = null });
-
-        //     const newDeclarationExpr = try AST.Expression.create(
-        //         env.allocator,
-        //         AST.ExpressionKind{ .literalFunction = AST.LiteralFunction{
-        //             .params = try params.toOwnedSlice(),
-        //             .restOfParams = null,
-        //             .body = try AST.Expression.create(
-        //                 env.allocator,
-        //                 AST.ExpressionKind{ .literalTuple = try tupleItems.toOwnedSlice() },
-        //                 ast.locationRange,
-        //             ),
-        //         } },
-        //         ast.locationRange,
-        //     );
-        //     defer newDeclarationExpr.decRef(env.allocator);
-
-        //     const tv = try env.pump.newBound(env.allocator);
-        //     defer tv.decRef(env.allocator);
-
-        //     const tvSignature = try Typing.FunctionType.new(env.allocator, tv.incRefR(), tv.incRefR());
-        //     defer tvSignature.decRef(env.allocator);
-
-        //     const inferredType = try expression(newDeclarationExpr, env);
-
-        //     try env.addConstraint(tvSignature, inferredType, ast.locationRange);
-
-        //     try env.constraints.debugPrint();
-
-        //     var subst = try Typing.solver(&env.constraints, &env.pump, env.errors, env.allocator);
-        //     defer subst.deinit(env.allocator);
-
-        //     try subst.debugPrint();
-
-        //     var state = ApplyASTState{ .subst = &subst, .env = env };
-        //     for (ast.kind.declarations, 0..) |*decl, idx| {
-        //         const t = try tvs.kind.Tuple.components[idx].apply(&subst);
-        //         tvs.kind.Tuple.components[idx].decRef(env.allocator);
-        //         tvs.kind.Tuple.components[idx] = t;
-
-        //         decl.IdDeclaration.scheme = try t.generalise(env.allocator, env.sp, &env.constraints);
-        //         try applyExpression(decl.IdDeclaration.value, &state);
-
-        //         try env.newName(decl.IdDeclaration.name, try decl.IdDeclaration.scheme.?.clone(env.allocator));
-        //     }
-
-        //     ast.assignType(newDeclarationExpr.kind.literalFunction.body.type.?.incRefR(), env.allocator);
-        //     env.closeScope();
-        // },
-
-        // .dot => {
-        //     _ = try expression(ast.kind.dot.record, env);
-        // },
         .exprs => {
             var last: *Typing.Type = env.errorType;
 
@@ -848,7 +797,7 @@ test "let factorial(n) = if n < 2 -> 1 | n * factorial(n - 1)" {
     try TestState.expectSchemeString("let factorial(n) = if n < 2 -> 1 | n * factorial(n - 1)", "(Int) -> Int");
 }
 
-// test "mutually recursive functions" {
-//     try TestState.expectSchemeString("let x = 1 and y = 2", "Int; Int");
-//     try TestState.expectSchemeString("let odd(n) = if n == 0 -> false | even(n - 1) and even(n) = if n == 0 -> true | odd(n - 1)", "(Int) -> Bool; (Int) -> Bool");
-// }
+test "mutually recursive functions" {
+    try TestState.expectSchemeString("let x = 1 and y = 2", "Int; Int");
+    try TestState.expectSchemeString("let odd(n) = if n == 0 -> False | even(n - 1) and even(n) = if n == 0 -> True | odd(n - 1)", "(Int) -> Bool; (Int) -> Bool");
+}
