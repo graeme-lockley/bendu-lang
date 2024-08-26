@@ -125,6 +125,26 @@ pub const Expression = struct {
 
         return this;
     }
+
+    pub fn schemeString(self: *Expression, allocator: std.mem.Allocator) ![]const u8 {
+        switch (self.kind) {
+            .declarations => {
+                var buffer = std.ArrayList(u8).init(allocator);
+                defer buffer.deinit();
+
+                for (self.kind.declarations, 0..) |*d, idx| {
+                    if (idx > 0) {
+                        try buffer.appendSlice("; ");
+                    }
+
+                    try d.IdDeclaration.scheme.?.append(&buffer);
+                }
+
+                return try buffer.toOwnedSlice();
+            },
+            else => return try self.type.?.toString(allocator),
+        }
+    }
 };
 
 pub const ExpressionKind = union(enum) {
