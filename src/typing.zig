@@ -76,13 +76,10 @@ pub const Scheme = struct {
         return try self.type.apply(&s);
     }
 
-    pub fn toString(self: *Scheme, allocator: std.mem.Allocator) ![]u8 {
+    pub fn append(self: *Scheme, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
         if (self.names.len == 0) {
-            return self.type.toString(allocator);
+            try self.type.append(buffer);
         } else {
-            var buffer = std.ArrayList(u8).init(allocator);
-            defer buffer.deinit();
-
             try buffer.append('[');
             for (self.names, 0..) |n, i| {
                 if (i > 0) {
@@ -91,24 +88,25 @@ pub const Scheme = struct {
                 try buffer.appendSlice(n.name.slice());
 
                 if (n.type) |t| {
-                    const ts = try t.toString(allocator);
-                    defer allocator.free(ts);
-
                     try buffer.append(':');
                     try buffer.append(' ');
-                    try buffer.appendSlice(ts);
+                    try t.append(buffer);
                 }
             }
             try buffer.append(']');
             try buffer.append(' ');
 
-            const typString = try self.type.toString(allocator);
-            defer allocator.free(typString);
-
-            try buffer.appendSlice(typString);
-
-            return buffer.toOwnedSlice();
+            try self.type.append(buffer);
         }
+    }
+
+    pub fn toString(self: *Scheme, allocator: std.mem.Allocator) ![]u8 {
+        var buffer = std.ArrayList(u8).init(allocator);
+        defer buffer.deinit();
+
+        try self.append(&buffer);
+
+        return buffer.toOwnedSlice();
     }
 };
 

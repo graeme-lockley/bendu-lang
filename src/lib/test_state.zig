@@ -98,14 +98,10 @@ pub const TestState = struct {
 
                     for (lastExpr.kind.declarations, 0..) |*d, idx| {
                         if (idx > 0) {
-                            try buffer.append(';');
-                            try buffer.append(' ');
+                            try buffer.appendSlice("; ");
                         }
 
-                        const s = try d.IdDeclaration.scheme.?.toString(self.allocator);
-                        defer self.allocator.free(s);
-
-                        try buffer.appendSlice(s);
+                        try d.IdDeclaration.scheme.?.append(&buffer);
                     }
 
                     try std.testing.expectEqualStrings(schemeString, buffer.items);
