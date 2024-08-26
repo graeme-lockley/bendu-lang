@@ -100,7 +100,8 @@ The following is the list of big features that need to be implemented.
 - [x] Change AST to accommodate multiple declarations with respect to ID and
       pattern declaration
 - [x] Change the parser to allow multiple ID declarations separated with `and`
-- [ ] Extend type inference to across mutually recursive functions
+- [x] Extend type inference to across mutually recursive functions
+- [ ] Embed the result of mutually recursive type inference into the test runner
 - [ ] AST execute in package, mutually recursive, non-higher order, private
       function without closure
 - [ ] Bytecode compile and execute in package, mutually recursive, non-higher
