@@ -461,32 +461,31 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             // try subst.debugPrint();
 
             if (env.errors.hasErrors()) {
-                // ast.assignType(env.errorType.incRefR(), env.allocator);
                 return env.errorType;
-            } else {
-                var state = ApplyASTState{ .subst = &subst, .env = env };
-                for (ast.kind.declarations, 0..) |*decl, idx| {
-                    // const oldS = try tvs.kind.Tuple.components[idx].toString(env.allocator);
-                    // defer env.allocator.free(oldS);
-
-                    const t = try tvs.kind.Tuple.components[idx].apply(&subst);
-                    tvs.kind.Tuple.components[idx].decRef(env.allocator);
-                    tvs.kind.Tuple.components[idx] = t;
-
-                    decl.IdDeclaration.scheme = try t.generalise(env.allocator, env.sp, &env.constraints);
-                    try applyExpression(decl.IdDeclaration.value, &state);
-
-                    const scheme = try decl.IdDeclaration.scheme.?.clone(env.allocator);
-                    try env.newName(decl.IdDeclaration.name, scheme);
-
-                    // const s = try scheme.toString(env.allocator);
-                    // defer env.allocator.free(s);
-
-                    // std.debug.print("- {s}: {s} ({s})\n", .{ decl.IdDeclaration.name.slice(), s, oldS });
-                }
-
-                ast.assignType(newDeclarationExpr.kind.literalFunction.body.type.?.incRefR(), env.allocator);
             }
+
+            var state = ApplyASTState{ .subst = &subst, .env = env };
+            for (ast.kind.declarations, 0..) |*decl, idx| {
+                // const oldS = try tvs.kind.Tuple.components[idx].toString(env.allocator);
+                // defer env.allocator.free(oldS);
+
+                const t = try tvs.kind.Tuple.components[idx].apply(&subst);
+                tvs.kind.Tuple.components[idx].decRef(env.allocator);
+                tvs.kind.Tuple.components[idx] = t;
+
+                decl.IdDeclaration.scheme = try t.generalise(env.allocator, env.sp, &env.constraints);
+                try applyExpression(decl.IdDeclaration.value, &state);
+
+                const scheme = try decl.IdDeclaration.scheme.?.clone(env.allocator);
+                try env.newName(decl.IdDeclaration.name, scheme);
+
+                // const s = try scheme.toString(env.allocator);
+                // defer env.allocator.free(s);
+
+                // std.debug.print("- {s}: {s} ({s})\n", .{ decl.IdDeclaration.name.slice(), s, oldS });
+            }
+
+            ast.assignType(newDeclarationExpr.kind.literalFunction.body.type.?.incRefR(), env.allocator);
         },
         .exprs => {
             var last: *Typing.Type = env.errorType;

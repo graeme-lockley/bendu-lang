@@ -76,7 +76,7 @@ pub const Scheme = struct {
         return try self.type.apply(&s);
     }
 
-    pub fn append(self: *Scheme, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
+    pub fn append(self: Scheme, buffer: *std.ArrayList(u8)) std.mem.Allocator.Error!void {
         if (self.names.len == 0) {
             try self.type.append(buffer);
         } else {
@@ -100,7 +100,7 @@ pub const Scheme = struct {
         }
     }
 
-    pub fn toString(self: *Scheme, allocator: std.mem.Allocator) ![]u8 {
+    pub fn toString(self: Scheme, allocator: std.mem.Allocator) ![]u8 {
         var buffer = std.ArrayList(u8).init(allocator);
         defer buffer.deinit();
 
