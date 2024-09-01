@@ -687,6 +687,9 @@ fn applyExpression(ast: *AST.Expression, state: *ApplyASTState) !void {
                     .IdDeclaration => {
                         try applyExpression(declaration.IdDeclaration.value, state);
 
+                        if (declaration.IdDeclaration.scheme) |scheme| {
+                            scheme.deinit(state.env.allocator);
+                        }
                         declaration.IdDeclaration.scheme = try ast.type.?.generalise(state.env.allocator, state.env.sp, &state.env.constraints);
                     },
                     .PatternDeclaration => {
