@@ -687,10 +687,12 @@ fn applyExpression(ast: *AST.Expression, state: *ApplyASTState) !void {
                     .IdDeclaration => {
                         try applyExpression(declaration.IdDeclaration.value, state);
 
+                        const newScheme = try ast.type.?.generalise(state.env.allocator, state.env.sp, &state.env.constraints);
+
                         if (declaration.IdDeclaration.scheme) |scheme| {
                             scheme.deinit(state.env.allocator);
                         }
-                        declaration.IdDeclaration.scheme = try ast.type.?.generalise(state.env.allocator, state.env.sp, &state.env.constraints);
+                        declaration.IdDeclaration.scheme = newScheme;
                     },
                     .PatternDeclaration => {
                         try applyPattern(declaration.PatternDeclaration.pattern, state);
