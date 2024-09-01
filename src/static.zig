@@ -178,6 +178,20 @@ pub fn package(ast: *AST.Package, env: *Env) !void {
     }
 }
 
+fn fix(ast: *AST.Expression, env: *Env) !*Typing.Type {
+    const inferredType = try expression(ast, env);
+
+    const tv = try env.pump.newBound(env.allocator);
+    defer tv.decRef(env.allocator);
+
+    const tvSignature = try Typing.FunctionType.new(env.allocator, tv.incRefR(), tv.incRefR());
+    defer tvSignature.decRef(env.allocator);
+
+    env.constraints.add(tvSignature, inferredType, ast.locationRange);
+
+    return tv;
+}
+
 fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
     switch (ast.kind) {
         .assignment => {
@@ -447,7 +461,8 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
             // try subst.debugPrint();
 
             if (env.errors.hasErrors()) {
-                ast.assignType(env.errorType.incRefR(), env.allocator);
+                // ast.assignType(env.errorType.incRefR(), env.allocator);
+                return env.errorType;
             } else {
                 var state = ApplyASTState{ .subst = &subst, .env = env };
                 for (ast.kind.declarations, 0..) |*decl, idx| {
