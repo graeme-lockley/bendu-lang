@@ -470,9 +470,9 @@ fn expression(ast: *AST.Expression, env: *Env) !*Typing.Type {
                 // defer env.allocator.free(oldS);
 
                 const t = try tvs.kind.Tuple.components[idx].apply(&subst);
-                tvs.kind.Tuple.components[idx].decRef(env.allocator);
-                tvs.kind.Tuple.components[idx] = t;
+                defer t.decRef(env.allocator);
 
+                decl.IdDeclaration.value.assignType(t.incRefR(), env.allocator);
                 decl.IdDeclaration.scheme = try t.generalise(env.allocator, env.sp, &env.constraints);
                 try applyExpression(decl.IdDeclaration.value, &state);
 
