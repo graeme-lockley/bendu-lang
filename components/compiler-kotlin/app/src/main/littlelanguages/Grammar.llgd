@@ -1,0 +1,19 @@
+uses "./Scanner.llld";
+
+Program
+    : {Statement [";"]}
+    ;
+
+Statement
+    : "let" LowerID "=" Expression
+    ;
+
+Expression
+    : Factor
+    ;
+
+Factor
+    : "(" Expression ")"
+    | LiteralInt
+    | LowerID
+    ;

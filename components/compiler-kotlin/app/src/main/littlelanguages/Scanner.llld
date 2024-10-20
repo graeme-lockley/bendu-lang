@@ -1,0 +1,15 @@
+tokens
+    LiteralInt = ['-'] digits;
+    LowerID = id {digit | id};
+
+comments
+   "--" {!cr};
+
+whitespace
+  chr(0)-' ';
+
+fragments
+  digit = '0'-'9';
+  digits = digit {digit};
+  id = 'A'-'Z' + 'a'-'z';
+  cr = chr(10);
