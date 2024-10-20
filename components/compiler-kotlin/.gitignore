@@ -5,4 +5,5 @@
 # Ignore Gradle build output directory
 build
 
-app/src/main/kotlin/io/littlelanguages
+app/src/main/kotlin/io/littlelanguages/data
+app/src/main/kotlin/io/littlelanguages/scanpiler
