@@ -18,7 +18,7 @@ complete:
 
 The following is the list of big features that need to be implemented.
 
-- [x] Basic types
+- [ ] Basic types
 - [ ] Functions
 - [ ] Mutable variables
 - [ ] Tuples
@@ -31,8 +31,8 @@ The following is the list of big features that need to be implemented.
 
 # Scaffolding
 
-- [x] Have lexical errors propagate through to main
-- [x] Have syntax errors propagate through to main
+- [ ] Have lexical errors propagate through to main
+- [ ] Have syntax errors propagate through to main
 
 # Language
 
@@ -44,63 +44,56 @@ The following is the list of big features that need to be implemented.
 
 ## if
 
-- [x] Implement the `if` expression in the AST interpreter
-- [x] Implement the `if` expression in the BC interpreter
-- [x] Enforce syntactically that there MUST be at least one branch without a
+- [ ] Implement the `if` expression in the BC interpreter
+- [ ] Enforce syntactically that there MUST be at least one branch without a
       guard
 
 ## while
 
-- [ ] Implement the `while` expression in the AST interpreter
 - [ ] Implement the `while` expression in the BC interpreter
 
 # Data Types
 
 ## Bool
 
-- [x] Add the `Bool` type to the language
-- [x] Infer `Bool` literal values
-- [x] Implement the `Bool` type in the AST interpreter
-- [x] Implement the `Bool` type in the BC interpreter
-- [x] Integrate into main so that the value can be viewed.
-- [x] Implement not
-- [x] Implement &&
-- [x] Implement ||
-- [x] Implement ==
-- [x] Implement !=
+- [ ] Add the `Bool` type to the language
+- [ ] Infer `Bool` literal values
+- [ ] Implement the `Bool` type in the BC interpreter
+- [ ] Integrate into main so that the value can be viewed.
+- [ ] Implement not
+- [ ] Implement &&
+- [ ] Implement ||
+- [ ] Implement ==
+- [ ] Implement !=
 
 ## Char
 
-- [x] Add the `Char` type to the language
-- [x] Infer `Char` literal values
-- [x] Implement the `Char` type in the AST interpreter
-- [x] Implement the `Char` type in the BC interpreter
-- [x] Integrate into main so that the value can be viewed.
-- [x] Implement +, -, *, **, /
-- [x] Implement ==, !=, <, <=, >, >=
+- [ ] Add the `Char` type to the language
+- [ ] Infer `Char` literal values
+- [ ] Implement the `Char` type in the BC interpreter
+- [ ] Integrate into main so that the value can be viewed.
+- [ ] Implement +, -, *, **, /
+- [ ] Implement ==, !=, <, <=, >, >=
 - [ ] Handle divide by zero
 
 ## Float
 
-- [x] Add the `Float` type to the language
-- [x] Infer `Float` literal values
-- [x] Implement the `Float` type in the AST interpreter
-- [x] Implement the `Float` type in the BC interpreter
-- [x] Integrate into main so that the value can be viewed.
-- [x] Implement +, -, *, **, /
-- [x] Implement ==, !=, <, <=, >, >=
+- [ ] Add the `Float` type to the language
+- [ ] Infer `Float` literal values
+- [ ] Implement the `Float` type in the BC interpreter
+- [ ] Integrate into main so that the value can be viewed.
+- [ ] Implement +, -, *, **, /
+- [ ] Implement ==, !=, <, <=, >, >=
 - [ ] Handle divide by zero
 
 ## Functions
 
-- [x] In package, non-recursive, non-higher order, private function without
+- [ ] In package, non-recursive, non-higher order, private function without
       closure
-- [x] In package, singular recursive, non-higher order, private function without
+- [ ] In package, singular recursive, non-higher order, private function without
       closure
-- [x] Change AST to accommodate multiple declarations with respect to ID and
-      pattern declaration
-- [x] Change the parser to allow multiple ID declarations separated with `and`
-- [x] Extend type inference to across mutually recursive functions
+- [ ] Change the parser to allow multiple ID declarations separated with `and`
+- [ ] Extend type inference to across mutually recursive functions
 - [ ] Embed the result of mutually recursive type inference into the test runner
 - [ ] AST execute in package, mutually recursive, non-higher order, private
       function without closure
@@ -111,11 +104,10 @@ The following is the list of big features that need to be implemented.
 
 - [x] Add the `Int` type to the language
 - [x] Infer `Int` literal values
-- [x] Implement the `Int` type in the AST interpreter
 - [x] Implement the `Int` type in the BC interpreter
-- [x] Integrate into main so that the value can be viewed.
-- [x] Implement +, -, *, /, %, **
-- [x] Implement ==, !=, <, <=, >, >=
+- [ ] Integrate into main so that the value can be viewed.
+- [ ] Implement +, -, *, /, %, **
+- [ ] Implement ==, !=, <, <=, >, >=
 - [ ] Verify that the 63-bit signed is correct in when reporting literal
       underflow and overflow
 - [ ] Verify that the 63-bit signed is correct in when encountering underflow
@@ -131,42 +123,40 @@ The following is the list of big features that need to be implemented.
 
 ## String
 
-- [x] Add the `String` type to the language
-- [x] Infer `String` literal values
-- [x] Implement the `String` type in the AST interpreter
-- [x] Implement the `String` type in the BC interpreter
-- [x] Integrate into main so that the value can be viewed.
-- [x] Implement +
-- [x] Implement ==, !=, <, <=, >, >=
+- [ ] Add the `String` type to the language
+- [ ] Infer `String` literal values
+- [ ] Implement the `String` type in the BC interpreter
+- [ ] Integrate into main so that the value can be viewed.
+- [ ] Implement +
+- [ ] Implement ==, !=, <, <=, >, >=
 
 ## Unit
 
-- [x] Implement the `Unit` type
-- [x] Implement the `Unit` type in the AST interpreter
-- [x] Implement the `Unit` type in the BC interpreter
-- [x] Integrate into main so that the value can be viewed.
-- [x] Implement ==, !=, <, <=, >, >=
+- [ ] Implement the `Unit` type
+- [ ] Implement the `Unit` type in the BC interpreter
+- [ ] Integrate into main so that the value can be viewed.
+- [ ] Implement ==, !=, <, <=, >, >=
 
 # Operators
 
-- [x] (+): [a: Char | Float | Int | String] a -> a -> a
-- [x] (-): [a: Int | Float | Char] a -> a -> a
-- [x] (*): [a: Int | Float | Char] a -> a -> a
-- [x] (**): [a: Int | Float | Char] a -> a -> a
-- [x] (/): [a: Int | Float | Char] a -> a -> a
-- [x] (%): Int -> Int -> Int
-- [x] (==): [a] a -> a -> Bool
-- [x] (!=): [a] a -> a -> Bool
-- [x] (<): [a: Bool | Char | Float | Int | String] a -> a -> a
-- [x] (<=): [a: Bool | Char | Float | Int | String] a -> a -> a
-- [x] (>): [a: Bool | Char | Float | Int | String] a -> a -> a
-- [x] (>=): [a: Bool | Char | Float | Int | String] a -> a -> a
+- [ ] (+): [a: Char | Float | Int | String] a -> a -> a
+- [ ] (-): [a: Int | Float | Char] a -> a -> a
+- [ ] (*): [a: Int | Float | Char] a -> a -> a
+- [ ] (**): [a: Int | Float | Char] a -> a -> a
+- [ ] (/): [a: Int | Float | Char] a -> a -> a
+- [ ] (%): Int -> Int -> Int
+- [ ] (==): [a] a -> a -> Bool
+- [ ] (!=): [a] a -> a -> Bool
+- [ ] (<): [a: Bool | Char | Float | Int | String] a -> a -> a
+- [ ] (<=): [a: Bool | Char | Float | Int | String] a -> a -> a
+- [ ] (>): [a: Bool | Char | Float | Int | String] a -> a -> a
+- [ ] (>=): [a: Bool | Char | Float | Int | String] a -> a -> a
 - [ ] (<<): [a] List a -> a -> List a
 - [ ] (<!): [a] List a -> a -> List a
 - [ ] (>>): [a] a -> List a -> List a
 - [ ] (>!): [a] a -> List a -> List a
 - [ ] (?): [a, b: a | Unit] b -> a -> a
-- [x] (!): Bool -> Bool
+- [ ] (!): Bool -> Bool
 - [ ] (&&): Bool -> Bool -> Bool
 - [ ] (||): Bool -> Bool -> Bool
 
