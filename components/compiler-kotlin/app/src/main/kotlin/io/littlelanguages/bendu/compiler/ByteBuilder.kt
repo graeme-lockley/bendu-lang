@@ -11,7 +11,7 @@ class ByteBuilder {
     }
 
     fun appendInstruction(op: Instructions): ByteBuilder =
-        append(op.op.toByte())
+        append(op.op)
 
     fun appendInt(value: Int): ByteBuilder {
         val bytes = ByteArray(4)
