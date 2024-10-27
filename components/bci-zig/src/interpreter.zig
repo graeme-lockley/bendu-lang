@@ -4,7 +4,9 @@ const Op = @import("op.zig").Op;
 const Pointer = @import("pointer.zig");
 const Runtime = @import("runtime.zig");
 
-const DEBUG = true;
+const DEBUG = false;
+
+const stdout = std.io.getStdOut().writer();
 
 pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
     var ip: usize = 0;
@@ -33,6 +35,21 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.push_i32_stack(index);
                 ip += 4;
             },
+            .print_i32 => {
+                const value = runtime.pop();
+
+                if (DEBUG) {
+                    std.debug.print("{d}: print_i32: value={d}\n", .{ ip - 1, Pointer.asInt(value) });
+                }
+
+                try stdout.print("{d}", .{Pointer.asInt(value)});
+            },
+            .println => {
+                if (DEBUG) {
+                    std.debug.print("{d}: println\n", .{ip - 1});
+                }
+                try stdout.print("\n", .{});
+            },
             // else => std.debug.panic("unknown op code: {d}\n", .{op}),
         }
     }
@@ -50,7 +67,7 @@ fn readi32(bc: []const u8, ip: usize) i32 {
 }
 
 test "push_i32_literal" {
-    const bc: [5]u8 = [_]u8{ 0, 0, 0, 0, 42 };
+    const bc: [5]u8 = [_]u8{ @intFromEnum(Op.push_i32_literal), 0, 0, 0, 42 };
     var runtime = Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
     try run(&bc, &runtime);
@@ -60,7 +77,7 @@ test "push_i32_literal" {
 }
 
 test "push_i32_stack" {
-    const bc: [5]u8 = [_]u8{ 1, 0, 0, 0, 0 };
+    const bc: [5]u8 = [_]u8{ @intFromEnum(Op.push_i32_stack), 0, 0, 0, 0 };
     var runtime = Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
     try runtime.push_i32_literal(100);
