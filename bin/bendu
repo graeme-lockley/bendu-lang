@@ -21,13 +21,17 @@ if !Str.endsWith?(fileName, ".bendu") -> {
 
 let targetName = Str.dropEnd(fileName, 6) + ".bc"
 
-if !fexists(targetName) || rebo.os.fstat(targetName).mtime < rebo.os.fstat(fileName).mtime -> {
-   println("Compiling ", fileName, " to ", targetName)
+if !fexists(targetName) || rebo.os.fstat(targetName).mtime < rebo.os.fstat(fileName).mtime -> {   
+   print(ansi.foreground.green, "Info: ", "\x27;[37m", "Compiling ", fileName, " to ", targetName)
+   let startTime = milliTimestamp()
 
    let result = rebo.os.exec(["java", "-jar", projectHome + "/components/compiler-kotlin/app/build/libs/app.jar", "--script", fileName])
+   let endTime = milliTimestamp()
+
+   println(" (", endTime - startTime, "ms)", ansi.control.reset)
 
    if result.code != 0 -> {
-      println("Error: ", result.stderr)
+      println(ansi.foreground.red, "Error: ", ansi.control.reset, result.stderr)
       exit(1)
    }
 }
