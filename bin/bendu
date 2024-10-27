@@ -1,0 +1,38 @@
+#!/usr/bin/env rebo
+
+rebo.lang["import.verbose"] := false
+
+let Path = import("path")
+let Str = import("str")
+
+let projectHome = (Path.join(cwd(), rebo.args[1]) |> Path.dir()) + "/.."
+
+if len(rebo.args) != 3 -> {
+   println("Usage: bendu <file>")
+   exit(1)
+}
+
+let fileName = rebo.args[2]
+
+if !Str.endsWith?(fileName, ".bendu") -> {
+    println("File \"", fileName, "\" must have a .bendu extension")
+    exit(1)
+}
+
+let targetName = Str.dropEnd(fileName, 6) + ".bc"
+
+if !fexists(targetName) || rebo.os.fstat(targetName).mtime < rebo.os.fstat(fileName).mtime -> {
+   println("Compiling ", fileName, " to ", targetName)
+
+   let result = rebo.os.exec(["java", "-jar", projectHome + "/components/compiler-kotlin/app/build/libs/app.jar", "--script", fileName])
+
+   if result.code != 0 -> {
+      println("Error: ", result.stderr)
+      exit(1)
+   }
+}
+
+let execResult = rebo.os.exec([projectHome + "/components/bci-zig/zig-out/bin/bci-zig", targetName])
+print(execResult.stdout + execResult.stderr)
+
+exit(execResult.code)
