@@ -108,9 +108,9 @@ The following is the list of big features that need to be implemented.
 - [ ] Integrate into main so that the value can be viewed.
 - [ ] Implement +, -, *, /, %, **
 - [ ] Implement ==, !=, <, <=, >, >=
-- [ ] Verify that the 63-bit signed is correct in when reporting literal
+- [ ] Verify that the 32-bit signed is correct in when reporting literal
       underflow and overflow
-- [ ] Verify that the 63-bit signed is correct in when encountering underflow
+- [ ] Verify that the 32-bit signed is correct in when encountering underflow
       and overflow during +, -, *, /, **, % operations
 - [ ] Handle divide by zero
 - [ ] Handle modulo zero
