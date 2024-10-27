@@ -1,0 +1,24 @@
+{
+  "instructions": [
+    {
+      "name": "PUSH_I32_LITERAL",
+      "args": [
+        {
+          "name": "literal_value",
+          "type": "i32"
+        }
+      ],
+      "description": "Pushes an integer onto the stack."
+    },
+    {
+      "name": "PUSH_I32_STACK",
+      "args": [
+        {
+          "name": "stack_index",
+          "type": "u32"
+        }
+      ],
+      "description": "Pushes an integer from the stack onto the stack."
+    }
+  ]
+}

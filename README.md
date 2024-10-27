@@ -26,9 +26,7 @@ Bendu has the following features:
 - Algebraic data types
 - Script based
 
-The tooling is written in Zig with ancillary tools written in Bendu.
-
-A final comment.  Bendu has multiple ways of executing code - it is AST based interpreted, bytecode compiled, WASM compiled and native compiled using LLVM.  The AST interpreter is used for testing and the other methods are used for production.  The AST interpreter is very fast and is used to execute the markdown tests.
+The compiler is bootstrapped using Kotlin and the bytecode runtime is written in Zig.
 
 ## Examples
 
@@ -49,13 +47,12 @@ let primes(n) =
   range(2, n)
     |> filter(prime?)
 
-println("The first 1000 prime numbers are: ", primes(1000))
+println("The first 1,000 prime numbers are: ", primes(1000))
 ```
 
 ## See also
 
 - [TODO](./TODO.md) is the implementation TODO list.
-- [Scenarios](./docs/scenarios.md) is the functional description of Bendu and is the definitive guide for the language's behavior.  It is also the automated test pack for the language and will exercise both the AST and BC implementation.
 - Where does the name "Bendu" come from?  I am an annoyingly big fan of Star Wars and [Bendu](https://starwars.fandom.com/wiki/Bendu) is a character in Star Wars Rebels.  The character is a force sensitive being that is neither Jedi nor Sith; a neutral force that is neither good nor evil.  I thought this was a good name for a language that is designed to be simple and easy to use, fast and efficient, supports a conversational style of testing and sits between functional, imperative and object styles as well as interpreted and compiled.
 - I have embedded [Zigline](https://github.com/alimpfard/zigline) into the interpreter to provide a REPL.  Using Zigline is a temporary solution, but it works for now. Until Zig stabilizes its package management and build tools, we'll have to rely on it.
 
