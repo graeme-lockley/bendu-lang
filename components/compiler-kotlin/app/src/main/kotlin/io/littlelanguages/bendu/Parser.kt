@@ -11,6 +11,8 @@ import java.io.StringReader
 sealed class Statement
 
 data class LetStatement(val id: StringLocation, val e: Expression) : Statement()
+data class PrintStatement(val es: List<Expression>) : Statement()
+data class PrintlnStatement(val es: List<Expression>) : Statement()
 
 sealed class Expression
 
@@ -21,29 +23,45 @@ data class IntLocation(val value: Int, val location: Location)
 data class StringLocation(val value: String, val location: Location)
 
 class ParserVisitor : Visitor<List<Statement>, Statement, Expression, Expression> {
-    override fun visitProgram(a: List<Tuple2<Statement, Token?>>): List<Statement> {
-        return a.map { it.a }
-    }
+    override fun visitProgram(a: List<Tuple2<Statement, Token?>>): List<Statement> =
+        a.map { it.a }
 
-    override fun visitStatement(a1: Token, a2: Token, a3: Token, a4: Expression): Statement {
-        return LetStatement(StringLocation(a2.lexeme, a2.location), a4)
-    }
+    override fun visitStatement1(a1: Token, a2: Token, a3: Token, a4: Expression): Statement =
+        LetStatement(StringLocation(a2.lexeme, a2.location), a4)
 
-    override fun visitExpression(a: Expression): Expression {
-        return a
-    }
+    override fun visitStatement2(
+        a1: Token,
+        a2: Token,
+        a3: Tuple2<Expression, List<Tuple2<Token, Expression>>>?,
+        a4: Token
+    ): Statement =
+        if (a3 == null)
+            PrintStatement(emptyList())
+        else
+            PrintStatement(listOf(a3.a, *a3.b.map { it.b }.toTypedArray()))
 
-    override fun visitFactor1(a1: Token, a2: Expression, a3: Token): Expression {
-        return a2
-    }
+    override fun visitStatement3(
+        a1: Token,
+        a2: Token,
+        a3: Tuple2<Expression, List<Tuple2<Token, Expression>>>?,
+        a4: Token
+    ): Statement =
+        if (a3 == null)
+            PrintlnStatement(emptyList())
+        else
+            PrintlnStatement(listOf(a3.a, *a3.b.map { it.b }.toTypedArray()))
 
-    override fun visitFactor2(a: Token): Expression {
-        return LiteralIntExpression(IntLocation(a.lexeme.toInt(), a.location))
-    }
+    override fun visitExpression(a: Expression): Expression =
+        a
 
-    override fun visitFactor3(a: Token): Expression {
-        return LowerIDExpression(StringLocation(a.lexeme, a.location))
-    }
+    override fun visitFactor1(a1: Token, a2: Expression, a3: Token): Expression =
+        a2
+
+    override fun visitFactor2(a: Token): Expression =
+        LiteralIntExpression(IntLocation(a.lexeme.toInt(), a.location))
+
+    override fun visitFactor3(a: Token): Expression =
+        LowerIDExpression(StringLocation(a.lexeme, a.location))
 }
 
 fun parse(scanner: Scanner): List<Statement> =

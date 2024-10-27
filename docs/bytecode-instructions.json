@@ -19,6 +19,16 @@
         }
       ],
       "description": "Pushes an integer from the stack onto the stack."
+    },
+    {
+      "name": "PRINT_I32",
+      "args": [ ],
+      "description": "Prints the integer on the top of stack and removes that item off of the stack."
+    },
+    {
+      "name": "PRINTLN",
+      "args": [ ],
+      "description": "Prints a newline and leaves the stack intact."
     }
   ]
 }

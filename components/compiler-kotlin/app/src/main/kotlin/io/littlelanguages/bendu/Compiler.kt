@@ -28,6 +28,21 @@ private class Compiler {
                     bindings.put(statement.id.value, offset)
                     offset += 1
                 }
+
+                is PrintStatement -> {
+                    statement.es.forEach { e ->
+                        compileExpression(e)
+                        byteBuilder.appendInstruction(Instructions.PRINT_I32)
+                    }
+                }
+
+                is PrintlnStatement -> {
+                    statement.es.forEach { e ->
+                        compileExpression(e)
+                        byteBuilder.appendInstruction(Instructions.PRINT_I32)
+                    }
+                    byteBuilder.appendInstruction(Instructions.PRINTLN)
+                }
             }
         }
     }
@@ -38,8 +53,10 @@ private class Compiler {
                 byteBuilder.appendInstruction(Instructions.PUSH_I32_LITERAL)
                 byteBuilder.appendInt(expression.v.value)
             }
+
             is LowerIDExpression -> {
-                val offset = bindings[expression.v.value] ?: throw IllegalArgumentException("${expression.v.value} referenced at ${expression.v.location} not found")
+                val offset = bindings[expression.v.value]
+                    ?: throw IllegalArgumentException("${expression.v.value} referenced at ${expression.v.location} not found")
 
                 byteBuilder.appendInstruction(Instructions.PUSH_I32_STACK)
                 byteBuilder.appendInt(offset)

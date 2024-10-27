@@ -6,6 +6,8 @@ Program
 
 Statement
     : "let" LowerID "=" Expression
+    | "print" "(" [Expression {"," Expression}] ")"
+    | "println" "(" [Expression {"," Expression}] ")"
     ;
 
 Expression

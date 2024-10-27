@@ -18,4 +18,62 @@ class CompilerTest {
 
         assertContentEquals(expected, bc)
     }
+
+    @Test
+    fun `print()`() {
+        val bc = compile(parse("print()"))
+
+        val expected = byteArrayOf()
+
+        assertContentEquals(expected, bc)
+    }
+
+
+    @Test
+    fun `print(1, 2, 3)`() {
+        val bc = compile(parse("print(1, 2, 3)"))
+
+        val expected = byteArrayOf(
+            Instructions.PUSH_I32_LITERAL.op,
+            0, 0, 0, 1, // 1
+            Instructions.PRINT_I32.op,
+            Instructions.PUSH_I32_LITERAL.op,
+            0, 0, 0, 2, // 2
+            Instructions.PRINT_I32.op,
+            Instructions.PUSH_I32_LITERAL.op,
+            0, 0, 0, 3, // 3
+            Instructions.PRINT_I32.op
+        )
+
+        assertContentEquals(expected, bc)
+    }
+
+    @Test
+    fun `println(1, 2, 3)`() {
+        val bc = compile(parse("println(1, 2, 3)"))
+
+        val expected = byteArrayOf(
+            Instructions.PUSH_I32_LITERAL.op,
+            0, 0, 0, 1, // 1
+            Instructions.PRINT_I32.op,
+            Instructions.PUSH_I32_LITERAL.op,
+            0, 0, 0, 2, // 2
+            Instructions.PRINT_I32.op,
+            Instructions.PUSH_I32_LITERAL.op,
+            0, 0, 0, 3, // 3
+            Instructions.PRINT_I32.op,
+            Instructions.PRINTLN.op
+        )
+
+        assertContentEquals(expected, bc)
+    }
+
+    @Test
+    fun `println()`() {
+        val bc = compile(parse("println()"))
+
+        val expected = byteArrayOf(Instructions.PRINTLN.op)
+
+        assertContentEquals(expected, bc)
+    }
 }
