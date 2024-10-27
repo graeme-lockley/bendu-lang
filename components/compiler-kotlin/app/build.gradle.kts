@@ -11,6 +11,9 @@ plugins {
 
     // Apply the application plugin to add support for building a CLI application in Java.
     application
+
+    // Apply the Shadow plugin to create a fat JAR.
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 repositories {
@@ -47,4 +50,9 @@ application {
 tasks.named<Test>("test") {
     // Use JUnit Platform for unit tests.
     useJUnitPlatform()
+}
+
+tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar> {
+    archiveClassifier.set("")
+    dependsOn(tasks.named("test"))
 }
