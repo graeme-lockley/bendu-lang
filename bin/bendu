@@ -23,8 +23,8 @@ let targetName = Str.dropEnd(fileName, 6) + ".bc"
 
 if !fexists(targetName) || rebo.os.fstat(targetName).mtime < rebo.os.fstat(fileName).mtime -> {   
    print(ansi.foreground.green, "Info: ", "\x27;[37m", "Compiling ", fileName, " to ", targetName)
-   let startTime = milliTimestamp()
 
+   let startTime = milliTimestamp()
    let result = rebo.os.exec(["java", "-jar", projectHome + "/components/compiler-kotlin/app/build/libs/app.jar", "--script", fileName])
    let endTime = milliTimestamp()
 
