@@ -31,6 +31,7 @@ The following is the list of big features that need to be implemented.
 
 # Scaffolding
 
+- [ ] Generate the Ops for the compiler and interpreter from the JSON description.
 - [ ] Have lexical errors propagate through to main
 - [ ] Have syntax errors propagate through to main
 
