@@ -49,6 +49,19 @@ private class Compiler {
 
     private fun compileExpression(expression: Expression) {
         when (expression) {
+            is BinaryExpression -> {
+                compileExpression(expression.e1)
+                compileExpression(expression.e2)
+
+                when (expression.op.op) {
+                    Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_I32)
+                    Op.Minus -> byteBuilder.appendInstruction(Instructions.SUB_I32)
+                    Op.Multiply -> byteBuilder.appendInstruction(Instructions.MUL_I32)
+                    Op.Divide -> byteBuilder.appendInstruction(Instructions.DIV_I32)
+                    Op.Modulo -> byteBuilder.appendInstruction(Instructions.MOD_I32)
+                    Op.Power -> byteBuilder.appendInstruction(Instructions.POW_I32)
+                }
+            }
             is LiteralIntExpression -> {
                 byteBuilder.appendInstruction(Instructions.PUSH_I32_LITERAL)
                 byteBuilder.appendInt(expression.v.value)
@@ -61,8 +74,6 @@ private class Compiler {
                 byteBuilder.appendInstruction(Instructions.PUSH_I32_STACK)
                 byteBuilder.appendInt(offset)
             }
-
-            else -> TODO()
         }
     }
 }

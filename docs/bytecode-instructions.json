@@ -21,6 +21,36 @@
       "description": "Pushes an integer from the stack onto the stack."
     },
     {
+      "name": "ADD_I32",
+      "args": [ ],
+      "description": "Pops the top two i32 values off of the stack and pushes the result of adding them back onto the stack."
+    },
+    {
+      "name": "SUB_I32",
+      "args": [ ],
+      "description": "Pops the top two i32 values off of the stack and pushes the result of subtracting them back onto the stack."
+    },
+    {
+      "name": "MUL_I32",
+      "args": [ ],
+      "description": "Pops the top two i32 values off of the stack and pushes the result of multiplying them back onto the stack."
+    },
+    {
+      "name": "DIV_I32",
+      "args": [ ],
+      "description": "Pops the top two i32 values off of the stack and pushes the result of dividing them back onto the stack."
+    },
+    {
+      "name": "MOD_I32",
+      "args": [ ],
+      "description": "Pops the top two i32 values off of the stack and pushes the modulus result back onto the stack."
+    },
+    {
+      "name": "POW_I32",
+      "args": [ ],
+      "description": "Pops the top two i32 values off of the stack and pushes the result of raising the first value to the power of the second back onto the stack."
+    },
+    {
       "name": "PRINT_I32",
       "args": [ ],
       "description": "Prints the integer on the top of stack and removes that item off of the stack."

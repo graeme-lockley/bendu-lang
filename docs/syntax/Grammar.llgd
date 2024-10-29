@@ -83,7 +83,11 @@ Additive
     ;
 
 Multiplicative
-    : NullDefault {["*" | "/" | "%"] NullDefault}
+    : Power {["*" | "/" | "%"] Power}
+    ;
+
+Power
+    : NullDefault {"**" NullDefault}
     ;
 
 NullDefault

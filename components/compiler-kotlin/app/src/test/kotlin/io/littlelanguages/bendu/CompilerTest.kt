@@ -76,4 +76,30 @@ class CompilerTest {
 
         assertContentEquals(expected, bc)
     }
+
+    @Test
+    fun `println(1 op 3)`() {
+        listOf(
+            Pair("print(1 + 2)", Instructions.ADD_I32),
+            Pair("print(1 - 2)", Instructions.SUB_I32),
+            Pair("print(1 * 2)", Instructions.MUL_I32),
+            Pair("print(1 / 2)", Instructions.DIV_I32),
+            Pair("print(1 % 2)", Instructions.MOD_I32),
+            Pair("print(1 ** 2)", Instructions.POW_I32),
+        ).forEach { input ->
+
+            val bc = compile(parse(input.first))
+
+            val expected = byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                input.second.op,
+                Instructions.PRINT_I32.op
+            )
+
+            assertContentEquals(expected, bc)
+        }
+    }
 }
