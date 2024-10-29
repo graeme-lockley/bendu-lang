@@ -30,4 +30,25 @@ class ParserTest {
             assertEquals(((statements[1] as LetStatement).e as LowerIDExpression).v.value, "x")
         }
     }
+
+    @Test
+    fun `binary op expressions`() {
+        listOf(
+            Pair("print(1 + 2)", Op.Plus),
+            Pair("print(1 - 2)", Op.Minus),
+            Pair("print(1 * 2)", Op.Multiply),
+            Pair("print(1 / 2)", Op.Divide),
+            Pair("print(1 % 2)", Op.Modulo),
+            Pair("print(1 ** 2)", Op.Power),
+        ).forEach { input ->
+            val statements = parse(input.first)
+
+            assertEquals(statements.size, 1)
+
+            assertIs<PrintStatement>(statements[0])
+            assertEquals((statements[0] as PrintStatement).es.size, 1)
+            assertIs<BinaryExpression>((statements[0] as PrintStatement).es[0])
+            assertEquals(((statements[0] as PrintStatement).es[0] as BinaryExpression).op.op, input.second)
+        }
+    }
 }

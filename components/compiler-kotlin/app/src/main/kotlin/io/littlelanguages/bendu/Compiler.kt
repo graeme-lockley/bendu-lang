@@ -61,6 +61,8 @@ private class Compiler {
                 byteBuilder.appendInstruction(Instructions.PUSH_I32_STACK)
                 byteBuilder.appendInt(offset)
             }
+
+            else -> TODO()
         }
     }
 }

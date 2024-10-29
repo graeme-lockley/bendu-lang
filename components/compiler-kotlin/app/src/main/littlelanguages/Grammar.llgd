@@ -11,7 +11,19 @@ Statement
     ;
 
 Expression
-    : Factor
+    : Additive
+    ;
+
+Additive
+    : Multiplicative {["+" | "-"] Multiplicative}
+    ;
+
+Multiplicative
+    : Power {["*" | "/" | "%"] Power}
+    ;
+
+Power
+    : Factor {"**" Factor}
     ;
 
 Factor
