@@ -18,11 +18,17 @@ data class TypeEnv(private val items: Map<String, Scheme>) {
     operator fun get(name: String): Scheme? = items[name]
 
     fun generalise(type: Type): Scheme {
+        val typeFtv = type.ftv()
+
+        if (typeFtv.isEmpty()) {
+            return Scheme(emptySet(), type)
+        }
+
         if (ftv == null) {
             ftv = items.toList().flatMap { it.second.ftv() }.toSet()
         }
 
-        return Scheme(type.ftv() - ftv!!, type)
+        return Scheme(typeFtv - ftv!!, type)
     }
 }
 
