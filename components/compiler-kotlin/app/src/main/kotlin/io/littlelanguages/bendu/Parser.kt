@@ -4,6 +4,7 @@ import io.littlelanguages.bendu.parser.Parser
 import io.littlelanguages.bendu.parser.Scanner
 import io.littlelanguages.bendu.parser.Token
 import io.littlelanguages.bendu.parser.Visitor
+import io.littlelanguages.bendu.typeinference.Type
 import io.littlelanguages.data.Tuple2
 import io.littlelanguages.data.Union2
 import io.littlelanguages.data.Union3
@@ -15,12 +16,18 @@ sealed class Statement
 data class LetStatement(val id: StringLocation, val e: Expression) : Statement()
 data class PrintStatement(val es: List<Expression>) : Statement()
 data class PrintlnStatement(val es: List<Expression>) : Statement()
+data class ExpressionStatement(val e: Expression) : Statement()
 
-sealed class Expression
+sealed class Expression(open var type: Type? = null)
 
-data class LiteralIntExpression(val v: IntLocation) : Expression()
-data class LowerIDExpression(val v: StringLocation) : Expression()
-data class BinaryExpression(val e1: Expression, val op: OpLocation, val e2: Expression) : Expression()
+data class LiteralIntExpression(val v: IntLocation, override var type: Type? = null) : Expression(type)
+data class LowerIDExpression(val v: StringLocation, override var type: Type? = null) : Expression(type)
+data class BinaryExpression(
+    val e1: Expression,
+    val op: OpLocation,
+    val e2: Expression,
+    override var type: Type? = null
+) : Expression(type)
 
 data class IntLocation(val value: Int, val location: Location)
 data class StringLocation(val value: String, val location: Location)
@@ -57,6 +64,9 @@ private class ParserVisitor :
             PrintlnStatement(emptyList())
         else
             PrintlnStatement(listOf(a3.a, *a3.b.map { it.b }.toTypedArray()))
+
+    override fun visitStatement4(a: Expression): Statement =
+        ExpressionStatement(a)
 
     override fun visitExpression(a: Expression): Expression =
         a
@@ -107,3 +117,6 @@ fun parse(scanner: Scanner): List<Statement> =
 
 fun parse(input: String): List<Statement> =
     parse(Scanner(StringReader(input)))
+
+fun parseExpression(input: String): Expression =
+    Parser(Scanner(StringReader(input)), ParserVisitor()).expression()

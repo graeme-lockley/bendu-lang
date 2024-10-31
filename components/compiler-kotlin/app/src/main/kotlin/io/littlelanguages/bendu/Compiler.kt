@@ -43,6 +43,10 @@ private class Compiler {
                     }
                     byteBuilder.appendInstruction(Instructions.PRINTLN)
                 }
+
+                is ExpressionStatement -> {
+                    compileExpression(statement.e)
+                }
             }
         }
     }
