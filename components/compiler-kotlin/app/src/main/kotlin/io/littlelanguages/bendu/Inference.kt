@@ -3,43 +3,46 @@ package io.littlelanguages.bendu
 import io.littlelanguages.bendu.typeinference.Pump
 import io.littlelanguages.bendu.typeinference.TypeEnv
 import io.littlelanguages.bendu.typeinference.emptyTypeEnv
+import io.littlelanguages.bendu.typeinference.typeError
 import io.littlelanguages.bendu.typeinference.typeInt
 
-fun infer(script: List<Statement>, typeEnv: TypeEnv = emptyTypeEnv, pump: Pump = Pump()) {
-    inferStatements(script, typeEnv, pump)
+fun infer(script: List<Statement>, typeEnv: TypeEnv = emptyTypeEnv, pump: Pump = Pump(), errors: Errors = Errors()) {
+    inferStatements(script, Environment(typeEnv, pump, errors))
 }
 
-fun inferStatements(statements: List<Statement>, typeEnv: TypeEnv, pump: Pump) {
+data class Environment(val typeEnv: TypeEnv, val pump: Pump, val errors: Errors)
+
+fun inferStatements(statements: List<Statement>, env: Environment) {
     statements.forEach { statement ->
         when (statement) {
             is ExpressionStatement -> {
-                inferExpression(statement.e, typeEnv, pump)
+                inferExpression(statement.e, env)
             }
 
             is LetStatement -> {
-                inferExpression(statement.e, typeEnv, pump)
+                inferExpression(statement.e, env)
             }
 
             is PrintStatement -> {
                 statement.es.forEach { e ->
-                    inferExpression(e, typeEnv, pump)
+                    inferExpression(e, env)
                 }
             }
 
             is PrintlnStatement -> {
                 statement.es.forEach { e ->
-                    inferExpression(e, typeEnv, pump)
+                    inferExpression(e, env)
                 }
             }
         }
     }
 }
 
-fun inferExpression(expression: Expression, typeEnv: TypeEnv, pump: Pump) {
+fun inferExpression(expression: Expression, env: Environment) {
     when (expression) {
         is BinaryExpression -> {
-            inferExpression(expression.e1, typeEnv, pump)
-            inferExpression(expression.e2, typeEnv, pump)
+            inferExpression(expression.e1, env)
+            inferExpression(expression.e2, env)
         }
 
         is LiteralIntExpression -> {
@@ -47,12 +50,13 @@ fun inferExpression(expression: Expression, typeEnv: TypeEnv, pump: Pump) {
         }
 
         is LowerIDExpression -> {
-            val scheme = typeEnv[expression.v.value]
+            val scheme = env.typeEnv[expression.v.value]
 
             if (scheme == null) {
-                throw IllegalArgumentException("Unknown identifier: ${expression.v.location}: ${expression.v.value}")
+                env.errors.addError(UnknownIdentifierError(expression.v))
+                expression.type = typeError
             } else {
-                expression.type = scheme.instantiate(pump)
+                expression.type = scheme.instantiate(env.pump)
             }
         }
     }
