@@ -3,6 +3,7 @@ package io.littlelanguages.bendu
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class ParserTest {
     @Test
@@ -15,9 +16,7 @@ class ParserTest {
             "let x = (1) let y = x",
             "let x = (((1))) let y = ((x))"
         ).forEach { input ->
-            val statements = parse(input)
-
-            assertEquals(statements.size, 2)
+            val statements = successfulParse(input, 2)
 
             assertIs<LetStatement>(statements[0])
             assertEquals((statements[0] as LetStatement).id.value, "x")
@@ -41,9 +40,7 @@ class ParserTest {
             Pair("print(1 % 2)", Op.Modulo),
             Pair("print(1 ** 2)", Op.Power),
         ).forEach { input ->
-            val statements = parse(input.first)
-
-            assertEquals(statements.size, 1)
+            val statements = successfulParse(input.first, 1)
 
             assertIs<PrintStatement>(statements[0])
             assertEquals((statements[0] as PrintStatement).es.size, 1)
@@ -51,4 +48,23 @@ class ParserTest {
             assertEquals(((statements[0] as PrintStatement).es[0] as BinaryExpression).op.op, input.second)
         }
     }
+
+    @Test
+    fun `parser error` () {
+        val input = "let x = (1; let y = z"
+        val errors = Errors()
+        parse(input, errors)
+
+        assertTrue(errors.hasErrors())
+        assertIs<ParsingError>(errors[0])
+    }
+}
+
+private fun successfulParse(input: String, numberOfStatements: Int): List<Statement> {
+    val errors = Errors()
+    val statements = parse(input, errors)
+    assertTrue(!errors.hasErrors())
+    assertEquals(statements.size, numberOfStatements)
+
+    return statements
 }

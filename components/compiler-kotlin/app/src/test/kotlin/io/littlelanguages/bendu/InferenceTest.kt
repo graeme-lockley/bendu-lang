@@ -36,7 +36,7 @@ private fun assertInferExpressionEquals(
     pump: Pump = Pump()
 ) {
     val errors = Errors()
-    val ast = parseExpression(expr)
+    val ast = parseExpression(expr, errors)
     inferExpression(ast, Environment(typeEnv, pump, errors))
 
     assertTrue(!errors.hasErrors())
@@ -45,7 +45,7 @@ private fun assertInferExpressionEquals(
 
 private fun inferErrorExpression(expr: String, typeEnv: TypeEnv): Errors {
     val errors = Errors()
-    val ast = parseExpression(expr)
+    val ast = parseExpression(expr, errors)
     inferExpression(ast, Environment(typeEnv, Pump(), errors))
 
     assertTrue(errors.hasErrors())

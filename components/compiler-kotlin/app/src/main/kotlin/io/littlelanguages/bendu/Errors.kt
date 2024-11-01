@@ -1,5 +1,8 @@
 package io.littlelanguages.bendu
 
+import io.littlelanguages.bendu.parser.TToken
+import io.littlelanguages.bendu.parser.Token
+
 class Errors {
     private val errors = mutableListOf<BenduError>()
 
@@ -22,4 +25,5 @@ class Errors {
 
 sealed class BenduError
 
+data class ParsingError(val found: Token, val expected: Set<TToken>) : BenduError()
 data class UnknownIdentifierError(val id: StringLocation) : BenduError()

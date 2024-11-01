@@ -1,6 +1,7 @@
 package io.littlelanguages.bendu
 
 import io.littlelanguages.bendu.parser.Parser
+import io.littlelanguages.bendu.parser.ParsingException
 import io.littlelanguages.bendu.parser.Scanner
 import io.littlelanguages.bendu.parser.Token
 import io.littlelanguages.bendu.parser.Visitor
@@ -9,6 +10,7 @@ import io.littlelanguages.data.Tuple2
 import io.littlelanguages.data.Union2
 import io.littlelanguages.data.Union3
 import io.littlelanguages.scanpiler.Location
+import io.littlelanguages.scanpiler.LocationCoordinate
 import java.io.StringReader
 
 sealed class Statement
@@ -112,11 +114,23 @@ private class ParserVisitor :
         LowerIDExpression(StringLocation(a.lexeme, a.location))
 }
 
-fun parse(scanner: Scanner): List<Statement> =
-    Parser(scanner, ParserVisitor()).program()
+fun parse(scanner: Scanner, errors: Errors): List<Statement> {
+    try {
+        return Parser(scanner, ParserVisitor()).program()
+    } catch (e: ParsingException) {
+        errors.addError(ParsingError(e.found, e.expected))
+        return emptyList()
+    }
+}
 
-fun parse(input: String): List<Statement> =
-    parse(Scanner(StringReader(input)))
+fun parse(input: String, errors: Errors): List<Statement> =
+    parse(Scanner(StringReader(input)), errors)
 
-fun parseExpression(input: String): Expression =
-    Parser(Scanner(StringReader(input)), ParserVisitor()).expression()
+fun parseExpression(input: String, errors: Errors): Expression {
+    try {
+        return Parser(Scanner(StringReader(input)), ParserVisitor()).expression()
+    } catch (e: ParsingException) {
+        errors.addError(ParsingError(e.found, e.expected))
+        return LiteralIntExpression(IntLocation(0, LocationCoordinate(0, 0, 0)))
+    }
+}

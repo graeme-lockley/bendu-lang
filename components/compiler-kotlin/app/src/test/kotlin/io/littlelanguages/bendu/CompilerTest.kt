@@ -3,11 +3,12 @@ package io.littlelanguages.bendu
 import io.littlelanguages.bendu.compiler.Instructions
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
+import kotlin.test.assertTrue
 
 class CompilerTest {
     @Test
     fun `let x = 1 let y = x`() {
-        val bc = compile(parse("let x = 1 ; let y = x"))
+        val bc = successfulCompile("let x = 1 ; let y = x")
 
         val expected = byteArrayOf(
             Instructions.PUSH_I32_LITERAL.op,
@@ -21,7 +22,7 @@ class CompilerTest {
 
     @Test
     fun `print()`() {
-        val bc = compile(parse("print()"))
+        val bc = successfulCompile("print()")
 
         val expected = byteArrayOf()
 
@@ -31,7 +32,7 @@ class CompilerTest {
 
     @Test
     fun `print(1, 2, 3)`() {
-        val bc = compile(parse("print(1, 2, 3)"))
+        val bc = successfulCompile("print(1, 2, 3)")
 
         val expected = byteArrayOf(
             Instructions.PUSH_I32_LITERAL.op,
@@ -50,7 +51,7 @@ class CompilerTest {
 
     @Test
     fun `println(1, 2, 3)`() {
-        val bc = compile(parse("println(1, 2, 3)"))
+        val bc = successfulCompile("println(1, 2, 3)")
 
         val expected = byteArrayOf(
             Instructions.PUSH_I32_LITERAL.op,
@@ -70,7 +71,7 @@ class CompilerTest {
 
     @Test
     fun `println()`() {
-        val bc = compile(parse("println()"))
+        val bc = successfulCompile("println()")
 
         val expected = byteArrayOf(Instructions.PRINTLN.op)
 
@@ -87,8 +88,7 @@ class CompilerTest {
             Pair("print(1 % 2)", Instructions.MOD_I32),
             Pair("print(1 ** 2)", Instructions.POW_I32),
         ).forEach { input ->
-
-            val bc = compile(parse(input.first))
+            val bc = successfulCompile(input.first)
 
             val expected = byteArrayOf(
                 Instructions.PUSH_I32_LITERAL.op,
@@ -102,4 +102,13 @@ class CompilerTest {
             assertContentEquals(expected, bc)
         }
     }
+}
+
+private fun successfulCompile(input: String): ByteArray {
+    val errors = Errors()
+    val statements = parse(input, errors)
+
+    assertTrue(!errors.hasErrors())
+
+    return compile(statements)
 }

@@ -24,15 +24,27 @@ fun main(args: Array<String>) {
 }
 
 private fun compileExpression(expression: String, outputName: String) {
-    val script = io.littlelanguages.bendu.parse(expression)
+    val errors = io.littlelanguages.bendu.Errors()
+    val script = io.littlelanguages.bendu.parse(expression, errors)
     val bc = io.littlelanguages.bendu.compile(script)
+
+    if (errors.hasErrors()) {
+        println("Errors")
+        return
+    }
 
     File(outputName).writeBytes(bc)
 }
 
 private fun compileScript(scriptName: String, outputName: String) {
-    val script = io.littlelanguages.bendu.parse(File(scriptName).readText())
+    val errors = io.littlelanguages.bendu.Errors()
+    val script = io.littlelanguages.bendu.parse(File(scriptName).readText(), errors)
     val bc = io.littlelanguages.bendu.compile(script)
+
+    if (errors.hasErrors()) {
+        println("Errors")
+        return
+    }
 
     File(outputName).writeBytes(bc)
 }
