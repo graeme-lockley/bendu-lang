@@ -14,6 +14,10 @@ class Errors {
         return errors.isNotEmpty()
     }
 
+    fun hasNoErrors(): Boolean {
+        return errors.isEmpty()
+    }
+
     fun size(): Int {
         return errors.size
     }

@@ -63,7 +63,7 @@ class ParserTest {
 private fun successfulParse(input: String, numberOfStatements: Int): List<Statement> {
     val errors = Errors()
     val statements = parse(input, errors)
-    assertTrue(!errors.hasErrors())
+    assertTrue(errors.hasNoErrors())
     assertEquals(statements.size, numberOfStatements)
 
     return statements

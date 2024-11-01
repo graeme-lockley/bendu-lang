@@ -108,7 +108,7 @@ private fun successfulCompile(input: String): ByteArray {
     val errors = Errors()
     val statements = parse(input, errors)
 
-    assertTrue(!errors.hasErrors())
+    assertTrue(errors.hasNoErrors())
 
     return compile(statements)
 }
