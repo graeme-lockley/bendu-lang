@@ -3,3 +3,5 @@ zig-out/
 
 components/compiler-kotlin/*.bc
 components/compiler-kotlin/*.bendu
+
+settings.json
