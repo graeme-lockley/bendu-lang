@@ -108,6 +108,8 @@ private fun inferExpression(expression: Expression, env: Environment) {
                 expression.type = scheme.instantiate(env.pump).withLocation(expression.location())
             }
         }
+
+        else -> TODO()
     }
 }
 

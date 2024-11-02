@@ -12,7 +12,28 @@ Statement
     ;
 
 Expression
-    : Additive
+    : Or
+    ;
+
+Or
+    : And {"||" And}
+    ;
+
+And
+    : Equality {"&&" Equality}
+    ;
+
+Equality
+    : Additive [RelOp Additive]
+    ;
+
+RelOp
+    : "=="
+    | "!="
+    | "<"
+    | "<="
+    | ">"
+    | ">="
     ;
 
 Additive
@@ -33,4 +54,5 @@ Factor
     | LiteralInt
     | "True"
     | "False"
+    | "!" Factor
     ;

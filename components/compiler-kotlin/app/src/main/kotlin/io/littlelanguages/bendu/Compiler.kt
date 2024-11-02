@@ -81,6 +81,7 @@ private class Compiler(val errors: Errors) {
                         Op.Divide -> byteBuilder.appendInstruction(Instructions.DIV_I32)
                         Op.Modulo -> byteBuilder.appendInstruction(Instructions.MOD_I32)
                         Op.Power -> byteBuilder.appendInstruction(Instructions.POW_I32)
+                        else -> TODO()
                     }
                 } else {
                     errors.addError(OperatorOperandTypeError(expression.op.op, expression.e1.type!!, setOf(typeInt), expression.e1.location()))
@@ -106,6 +107,8 @@ private class Compiler(val errors: Errors) {
                 byteBuilder.appendInstruction(Instructions.PUSH_I32_STACK)
                 byteBuilder.appendInt(offset)
             }
+
+            else -> TODO()
         }
     }
 }

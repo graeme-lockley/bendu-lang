@@ -12,6 +12,7 @@ import io.littlelanguages.data.Union2
 import io.littlelanguages.data.Union3
 import io.littlelanguages.scanpiler.Location
 import java.io.StringReader
+import kotlin.collections.fold
 
 sealed class Statement
 
@@ -59,15 +60,31 @@ data class BinaryExpression(
         e1.location() + e2.location()
 }
 
+data class UnaryExpression(
+    val op: UnaryOpLocation,
+    val e: Expression,
+    override var type: Type? = null
+) : Expression(type) {
+    override fun apply(s: Subst) {
+        super.apply(s)
+        e.apply(s)
+    }
+
+    override fun location(): Location =
+        op.location + e.location()
+}
+
 data class BoolLocation(val value: Boolean, val location: Location)
 data class IntLocation(val value: Int, val location: Location)
 data class StringLocation(val value: String, val location: Location)
 data class OpLocation(val op: Op, val location: Location)
+data class UnaryOpLocation(val op: UnaryOp, val location: Location)
 
-enum class Op { Plus, Minus, Multiply, Divide, Modulo, Power }
+enum class Op { Or, And, Plus, Minus, Multiply, Divide, Modulo, Power, EqualEqual, NotEqual, LessThan, LessEqual, GreaterThan, GreaterEqual }
+enum class UnaryOp { Not }
 
 private class ParserVisitor :
-    Visitor<List<Statement>, Statement, Expression, Expression, Expression, Expression, Expression> {
+    Visitor<List<Statement>, Statement, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression> {
     override fun visitProgram(a: List<Tuple2<Statement, Token?>>): List<Statement> =
         a.map { it.a }
 
@@ -101,6 +118,42 @@ private class ParserVisitor :
 
     override fun visitExpression(a: Expression): Expression =
         a
+
+    override fun visitOr(
+        a1: Expression,
+        a2: List<Tuple2<Token, Expression>>
+    ): Expression =
+        a2.fold(a1) { acc, e -> BinaryExpression(acc, OpLocation(Op.Or, e.a.location), e.b) }
+
+    override fun visitAnd(
+        a1: Expression,
+        a2: List<Tuple2<Token, Expression>>
+    ): Expression =
+        a2.fold(a1) { acc, e -> BinaryExpression(acc, OpLocation(Op.And, e.a.location), e.b) }
+
+    override fun visitEquality(
+        a1: Expression,
+        a2: Tuple2<OpLocation, Expression>?
+    ): Expression =
+        if (a2 == null) a1 else BinaryExpression(a1, a2.a, a2.b)
+
+    override fun visitRelOp1(a: Token): OpLocation =
+        OpLocation(Op.EqualEqual, a.location)
+
+    override fun visitRelOp2(a: Token): OpLocation =
+        OpLocation(Op.NotEqual, a.location)
+
+    override fun visitRelOp3(a: Token): OpLocation =
+        OpLocation(Op.LessThan, a.location)
+
+    override fun visitRelOp4(a: Token): OpLocation =
+        OpLocation(Op.LessEqual, a.location)
+
+    override fun visitRelOp5(a: Token): OpLocation =
+        OpLocation(Op.GreaterThan, a.location)
+
+    override fun visitRelOp6(a: Token): OpLocation =
+        OpLocation(Op.GreaterEqual, a.location)
 
     override fun visitAdditive(
         a1: Expression,
@@ -147,6 +200,9 @@ private class ParserVisitor :
 
     override fun visitFactor5(a: Token): Expression =
         LiteralBoolExpression(BoolLocation(false, a.location))
+
+    override fun visitFactor6(a1: Token, a2: Expression): Expression =
+        UnaryExpression(UnaryOpLocation(UnaryOp.Not, a1.location), a2)
 }
 
 fun parse(scanner: Scanner, errors: Errors): List<Statement> {
