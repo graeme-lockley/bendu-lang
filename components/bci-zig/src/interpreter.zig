@@ -13,6 +13,22 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
         ip += 1;
         switch (op) {
+            .push_bool_true => {
+                if (DEBUG) {
+                    std.debug.print("{d}: push_bool_true\n", .{ip - 1});
+                }
+
+                try runtime.push_bool_true();
+            },
+
+            .push_bool_false => {
+                if (DEBUG) {
+                    std.debug.print("{d}: push_bool_false\n", .{ip - 1});
+                }
+
+                try runtime.push_bool_false();
+            },
+
             .push_i32_literal => {
                 const value = readi32(bc, ip);
 
@@ -104,6 +120,26 @@ fn readi32(bc: []const u8, ip: usize) i32 {
         (@as(u32, bc[ip]) << 24));
 
     return v;
+}
+
+test "push_bool_true" {
+    const bc: [1]u8 = [_]u8{@intFromEnum(Op.push_bool_true)};
+    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+    try run(&bc, &runtime);
+
+    try std.testing.expectEqual(runtime.stack.items.len, 1);
+    try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
+}
+
+test "push_bool_false" {
+    const bc: [1]u8 = [_]u8{@intFromEnum(Op.push_bool_false)};
+    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+    try run(&bc, &runtime);
+
+    try std.testing.expectEqual(runtime.stack.items.len, 1);
+    try std.testing.expectEqual(Pointer.asBool(runtime.pop()), false);
 }
 
 test "push_i32_literal" {

@@ -1,6 +1,16 @@
 {
   "instructions": [
     {
+      "name": "PUSH_BOOL_TRUE",
+      "args": [ ],
+      "description": "Pushes a boolean true onto the stack."
+    },
+    {
+      "name": "PUSH_BOOL_FALSE",
+      "args": [ ],
+      "description": "Pushes a boolean false onto the stack."
+    },
+    {
       "name": "PUSH_I32_LITERAL",
       "args": [
         {

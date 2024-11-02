@@ -28,6 +28,10 @@ pub inline fn asInt(value: Pointer) i32 {
     return @intCast(@as(i32, @bitCast(@as(u32, @intCast(value >> 1)))));
 }
 
+pub inline fn fromBool(value: bool) Pointer {
+    return if (value) fromInt(1) else fromInt(0);
+}
+
 pub inline fn fromInt(value: i32) Pointer {
     return (@as(Pointer, @intCast(@as(u32, @bitCast(value)))) << 1) | 1;
 }
@@ -46,4 +50,10 @@ test "Pointer" {
     try std.testing.expectEqual(fromInt(-1), p);
 
     try std.testing.expectEqual(asInt(fromInt(-1)) * asInt(fromInt(100)), -100);
+
+    try std.testing.expectEqual(fromBool(true), fromInt(1));
+    try std.testing.expectEqual(fromBool(false), fromInt(0));
+
+    try std.testing.expectEqual(asBool(fromBool(true)), true);
+    try std.testing.expectEqual(asBool(fromBool(false)), false);
 }
