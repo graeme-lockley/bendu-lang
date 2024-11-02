@@ -56,9 +56,9 @@ The following is the list of big features that need to be implemented.
 
 ## Bool
 
-- [ ] Add the `Bool` type to the language
-- [ ] Infer `Bool` literal values
-- [ ] Implement the `Bool` type in the BC interpreter
+- [x] Add the `Bool` type to the language
+- [x] Infer `Bool` literal values
+- [x] Implement the `Bool` type in the BC interpreter
 - [ ] Integrate into main so that the value can be viewed.
 - [ ] Implement not
 - [ ] Implement &&
@@ -105,7 +105,7 @@ The following is the list of big features that need to be implemented.
 - [x] Add the `Int` type to the language
 - [x] Infer `Int` literal values
 - [x] Implement the `Int` type in the BC interpreter
-      - [x] Implement +, -, *, /, %, **
+- [x] Implement +, -, *, /, %, **
 - [ ] Implement ==, !=, <, <=, >, >=
 - [ ] Verify that the 32-bit signed is correct in when reporting literal
       underflow and overflow
