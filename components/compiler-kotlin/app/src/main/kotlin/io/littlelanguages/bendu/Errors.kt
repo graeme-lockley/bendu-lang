@@ -40,4 +40,6 @@ data class OperatorOperandTypeError(
 
 data class ParsingError(val found: Token, val expected: Set<TToken>) : BenduError()
 data class UnificationError(val found: Type, val expected: Set<Type>) : BenduError()
+data class SingleUnificationError(val e1: Type, val e2: Type) : BenduError()
+data class MultipleUnificationError(val e1: List<Type>, val e2: List<Type>) : BenduError()
 data class UnknownIdentifierError(val id: StringLocation) : BenduError()

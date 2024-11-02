@@ -41,13 +41,13 @@ private fun inferStatement(statement: Statement, env: Environment) {
         is ExpressionStatement -> {
             inferExpression(statement.e, env)
 
-            statement.e.apply(env.constraints.solve())
+            statement.e.apply(env.constraints.solve(env.errors))
         }
 
         is LetStatement -> {
             inferExpression(statement.e, env)
 
-            statement.e.apply(env.constraints.solve())
+            statement.e.apply(env.constraints.solve(env.errors))
 
             env.bind(statement.id.value, statement.e.type!!)
         }
@@ -57,7 +57,7 @@ private fun inferStatement(statement: Statement, env: Environment) {
                 inferExpression(e, env)
             }
 
-            val s = env.constraints.solve()
+            val s = env.constraints.solve(env.errors)
 
             statement.es.forEach { e ->
                 e.apply(s)
@@ -68,7 +68,7 @@ private fun inferStatement(statement: Statement, env: Environment) {
             statement.es.forEach { e ->
                 inferExpression(e, env)
             }
-            val s = env.constraints.solve()
+            val s = env.constraints.solve(env.errors)
 
             statement.es.forEach { e ->
                 e.apply(s)
@@ -109,17 +109,41 @@ private fun inferExpression(expression: Expression, env: Environment) {
             }
         }
 
-        else -> TODO()
+        is UnaryExpression -> {
+            inferExpression(expression.e, env)
+
+            val tv = env.pump.next()
+            expression.type = tv
+
+            val u1 = TArr(expression.e.type!!, tv)
+            val u2 = (unaryOperatorSignatures[expression.op.op] ?: Scheme(setOf(), typeError)).instantiate(env.pump)
+
+            env.constraints.add(u1, u2)
+        }
     }
 }
 
 private val operatorSignatures = mapOf(
+    Pair(Op.And, Scheme(setOf(), TArr(typeBool, TArr(typeBool, typeBool)))),
+    Pair(Op.Or, Scheme(setOf(), TArr(typeBool, TArr(typeBool, typeBool)))),
+
+    Pair(Op.EqualEqual, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), typeBool)))),
+    Pair(Op.NotEqual, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), typeBool)))),
+    Pair(Op.LessThan, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), typeBool)))),
+    Pair(Op.LessEqual, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), typeBool)))),
+    Pair(Op.GreaterThan, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), typeBool)))),
+    Pair(Op.GreaterEqual, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), typeBool)))),
+
     Pair(Op.Plus, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), TVar(0))))),
     Pair(Op.Minus, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), TVar(0))))),
     Pair(Op.Multiply, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), TVar(0))))),
     Pair(Op.Divide, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), TVar(0))))),
     Pair(Op.Modulo, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), TVar(0))))),
     Pair(Op.Power, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), TVar(0)))))
+)
+
+private val unaryOperatorSignatures = mapOf(
+    Pair(UnaryOp.Not, Scheme(setOf(), TArr(typeBool, typeBool)))
 )
 
 data class Environment(var typeEnv: TypeEnv, val pump: Pump, val errors: Errors, val constraints: Constraints) {

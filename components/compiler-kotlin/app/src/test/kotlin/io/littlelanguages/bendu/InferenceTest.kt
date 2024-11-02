@@ -39,6 +39,47 @@ class InferenceTest {
         ).forEach { expr ->
             assertInferExpressionEquals(expr, "Int")
         }
+
+        listOf(
+            "True && True",
+            "True || True",
+            "1 == 1",
+            "1 != 1",
+            "1 < 1",
+            "1 <= 1",
+            "1 > 1",
+            "1 >= 1",
+        ).forEach { expr ->
+            assertInferExpressionEquals(expr, "Bool")
+        }
+
+        listOf(
+            "1 && 1",
+            "1 || 1",
+            "1 == True",
+            "1 != False",
+            "1 < True",
+            "1 <= False",
+            "1 > True",
+            "1 >= False",
+        ).forEach { expr ->
+            inferErrorExpression(expr)
+        }
+    }
+
+    @Test
+    fun `infer unary operator`() {
+        listOf(
+            "!True",
+        ).forEach { expr ->
+            assertInferExpressionEquals(expr, "Bool")
+        }
+
+        listOf(
+            "!1",
+        ).forEach { expr ->
+            inferErrorExpression(expr)
+        }
     }
 }
 
@@ -51,7 +92,7 @@ private fun assertInferExpressionEquals(expr: String, expected: String, typeEnv:
     assertEquals(expected, (ast[0] as ExpressionStatement).e.type.toString())
 }
 
-private fun inferErrorExpression(expr: String, typeEnv: TypeEnv): Errors {
+private fun inferErrorExpression(expr: String, typeEnv: TypeEnv = emptyTypeEnv): Errors {
     val errors = Errors()
 
     infer(expr, typeEnv = typeEnv, errors = errors)
