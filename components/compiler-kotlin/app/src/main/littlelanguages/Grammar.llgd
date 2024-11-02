@@ -29,6 +29,8 @@ Power
 
 Factor
     : "(" Expression ")"
-    | LiteralInt
     | LowerID
+    | LiteralInt
+    | "True"
+    | "False"
     ;

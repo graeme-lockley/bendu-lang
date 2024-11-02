@@ -27,6 +27,7 @@ sealed class Expression(open var type: Type? = null) {
     }
 }
 
+data class LiteralBoolExpression(val v: BoolLocation, override var type: Type? = null) : Expression(type)
 data class LiteralIntExpression(val v: IntLocation, override var type: Type? = null) : Expression(type)
 data class LowerIDExpression(val v: StringLocation, override var type: Type? = null) : Expression(type)
 
@@ -43,6 +44,7 @@ data class BinaryExpression(
     }
 }
 
+data class BoolLocation(val value: Boolean, val location: Location)
 data class IntLocation(val value: Int, val location: Location)
 data class StringLocation(val value: String, val location: Location)
 data class OpLocation(val op: Op, val location: Location)
@@ -120,10 +122,16 @@ private class ParserVisitor :
         a2
 
     override fun visitFactor2(a: Token): Expression =
-        LiteralIntExpression(IntLocation(a.lexeme.toInt(), a.location))
+        LowerIDExpression(StringLocation(a.lexeme, a.location))
 
     override fun visitFactor3(a: Token): Expression =
-        LowerIDExpression(StringLocation(a.lexeme, a.location))
+        LiteralIntExpression(IntLocation(a.lexeme.toInt(), a.location))
+
+    override fun visitFactor4(a: Token): Expression =
+        LiteralBoolExpression(BoolLocation(true, a.location))
+
+    override fun visitFactor5(a: Token): Expression =
+        LiteralBoolExpression(BoolLocation(false, a.location))
 }
 
 fun parse(scanner: Scanner, errors: Errors): List<Statement> {

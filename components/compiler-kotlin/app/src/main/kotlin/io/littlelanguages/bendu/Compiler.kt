@@ -66,6 +66,14 @@ private class Compiler {
                     Op.Power -> byteBuilder.appendInstruction(Instructions.POW_I32)
                 }
             }
+
+            is LiteralBoolExpression -> {
+                if (expression.v.value)
+                    byteBuilder.appendInstruction(Instructions.PUSH_BOOL_TRUE)
+                else
+                    byteBuilder.appendInstruction(Instructions.PUSH_BOOL_FALSE)
+            }
+
             is LiteralIntExpression -> {
                 byteBuilder.appendInstruction(Instructions.PUSH_I32_LITERAL)
                 byteBuilder.appendInt(expression.v.value)

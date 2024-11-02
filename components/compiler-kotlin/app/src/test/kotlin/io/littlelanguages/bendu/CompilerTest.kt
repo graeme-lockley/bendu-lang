@@ -7,75 +7,76 @@ import kotlin.test.assertTrue
 
 class CompilerTest {
     @Test
+    fun `literal bool`() {
+        assertCompiledBC(
+            byteArrayOf(Instructions.PUSH_BOOL_TRUE.op),
+            "True"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(Instructions.PUSH_BOOL_FALSE.op),
+            "False"
+        )
+    }
+
+    @Test
     fun `let x = 1 let y = x`() {
-        val bc = successfulCompile("let x = 1 ; let y = x")
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_STACK.op,
+                0, 0, 0, 0 // x
+            ),
+            "let x = 1 ; let y = x"
+        )
+    }
 
-        val expected = byteArrayOf(
-            Instructions.PUSH_I32_LITERAL.op,
-            0, 0, 0, 1, // 1
-            Instructions.PUSH_I32_STACK.op, // PUSH_I32_STACK
-            0, 0, 0, 0 // x
+    @Test
+    fun `print( dotdotdot )`() {
+        assertCompiledBC(
+            byteArrayOf(),
+            "print()"
         )
 
-        assertContentEquals(expected, bc)
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PRINT_I32.op,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.PRINT_I32.op,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 3, // 3
+                Instructions.PRINT_I32.op
+            ),
+            "print(1, 2, 3)"
+        )
     }
 
     @Test
-    fun `print()`() {
-        val bc = successfulCompile("print()")
-
-        val expected = byteArrayOf()
-
-        assertContentEquals(expected, bc)
-    }
-
-
-    @Test
-    fun `print(1, 2, 3)`() {
-        val bc = successfulCompile("print(1, 2, 3)")
-
-        val expected = byteArrayOf(
-            Instructions.PUSH_I32_LITERAL.op,
-            0, 0, 0, 1, // 1
-            Instructions.PRINT_I32.op,
-            Instructions.PUSH_I32_LITERAL.op,
-            0, 0, 0, 2, // 2
-            Instructions.PRINT_I32.op,
-            Instructions.PUSH_I32_LITERAL.op,
-            0, 0, 0, 3, // 3
-            Instructions.PRINT_I32.op
+    fun `println( dotdotdot )`() {
+        assertCompiledBC(
+            byteArrayOf(Instructions.PRINTLN.op),
+            "println()"
         )
 
-        assertContentEquals(expected, bc)
-    }
-
-    @Test
-    fun `println(1, 2, 3)`() {
-        val bc = successfulCompile("println(1, 2, 3)")
-
-        val expected = byteArrayOf(
-            Instructions.PUSH_I32_LITERAL.op,
-            0, 0, 0, 1, // 1
-            Instructions.PRINT_I32.op,
-            Instructions.PUSH_I32_LITERAL.op,
-            0, 0, 0, 2, // 2
-            Instructions.PRINT_I32.op,
-            Instructions.PUSH_I32_LITERAL.op,
-            0, 0, 0, 3, // 3
-            Instructions.PRINT_I32.op,
-            Instructions.PRINTLN.op
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PRINT_I32.op,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.PRINT_I32.op,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 3, // 3
+                Instructions.PRINT_I32.op,
+                Instructions.PRINTLN.op
+            ),
+            "println(1, 2, 3)"
         )
-
-        assertContentEquals(expected, bc)
-    }
-
-    @Test
-    fun `println()`() {
-        val bc = successfulCompile("println()")
-
-        val expected = byteArrayOf(Instructions.PRINTLN.op)
-
-        assertContentEquals(expected, bc)
     }
 
     @Test
@@ -88,18 +89,17 @@ class CompilerTest {
             Pair("print(1 % 2)", Instructions.MOD_I32),
             Pair("print(1 ** 2)", Instructions.POW_I32),
         ).forEach { input ->
-            val bc = successfulCompile(input.first)
-
-            val expected = byteArrayOf(
-                Instructions.PUSH_I32_LITERAL.op,
-                0, 0, 0, 1, // 1
-                Instructions.PUSH_I32_LITERAL.op,
-                0, 0, 0, 2, // 2
-                input.second.op,
-                Instructions.PRINT_I32.op
+            assertCompiledBC(
+                byteArrayOf(
+                    Instructions.PUSH_I32_LITERAL.op,
+                    0, 0, 0, 1, // 1
+                    Instructions.PUSH_I32_LITERAL.op,
+                    0, 0, 0, 2, // 2
+                    input.second.op,
+                    Instructions.PRINT_I32.op
+                ),
+                input.first
             )
-
-            assertContentEquals(expected, bc)
         }
     }
 }
@@ -111,4 +111,8 @@ private fun successfulCompile(input: String): ByteArray {
     assertTrue(errors.hasNoErrors())
 
     return compile(statements)
+}
+
+private fun assertCompiledBC(expected: ByteArray, input: String) {
+    assertContentEquals(expected, successfulCompile(input))
 }

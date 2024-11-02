@@ -7,6 +7,7 @@ import io.littlelanguages.bendu.typeinference.TArr
 import io.littlelanguages.bendu.typeinference.TVar
 import io.littlelanguages.bendu.typeinference.TypeEnv
 import io.littlelanguages.bendu.typeinference.emptyTypeEnv
+import io.littlelanguages.bendu.typeinference.typeBool
 import io.littlelanguages.bendu.typeinference.typeError
 import io.littlelanguages.bendu.typeinference.typeInt
 
@@ -25,25 +26,21 @@ data class Environment(val typeEnv: TypeEnv, val pump: Pump, val errors: Errors,
 fun inferStatements(statements: List<Statement>, env: Environment) {
     statements.forEach { statement ->
         when (statement) {
-            is ExpressionStatement -> {
+            is ExpressionStatement ->
                 inferExpression(statement.e, env)
-            }
 
-            is LetStatement -> {
+            is LetStatement ->
                 inferExpression(statement.e, env)
-            }
 
-            is PrintStatement -> {
+            is PrintStatement ->
                 statement.es.forEach { e ->
                     inferExpression(e, env)
                 }
-            }
 
-            is PrintlnStatement -> {
+            is PrintlnStatement ->
                 statement.es.forEach { e ->
                     inferExpression(e, env)
                 }
-            }
         }
     }
 }
@@ -63,9 +60,11 @@ fun inferExpression(expression: Expression, env: Environment) {
             env.constraints.add(u1, u2)
         }
 
-        is LiteralIntExpression -> {
+        is LiteralBoolExpression ->
+            expression.type = typeBool
+
+        is LiteralIntExpression ->
             expression.type = typeInt
-        }
 
         is LowerIDExpression -> {
             val scheme = env.typeEnv[expression.v.value]
