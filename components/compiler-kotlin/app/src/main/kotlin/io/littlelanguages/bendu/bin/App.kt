@@ -26,7 +26,7 @@ fun main(args: Array<String>) {
 private fun compileExpression(expression: String, outputName: String) {
     val errors = io.littlelanguages.bendu.Errors()
     val script = io.littlelanguages.bendu.infer(expression, errors = errors)
-    val bc = io.littlelanguages.bendu.compile(script)
+    val bc = io.littlelanguages.bendu.compile(script, errors)
 
     if (errors.hasErrors()) {
         print("Errors: ")
@@ -40,7 +40,7 @@ private fun compileExpression(expression: String, outputName: String) {
 private fun compileScript(scriptName: String, outputName: String) {
     val errors = io.littlelanguages.bendu.Errors()
     val script = io.littlelanguages.bendu.infer(File(scriptName).readText(), errors = errors)
-    val bc = io.littlelanguages.bendu.compile(script)
+    val bc = io.littlelanguages.bendu.compile(script, errors)
 
     if (errors.hasErrors()) {
         print("Errors: ")

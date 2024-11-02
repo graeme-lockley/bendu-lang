@@ -12,7 +12,8 @@ data class Constraints(private val constraints: MutableList<Constraint> = mutabl
 
     override fun toString(): String = constraints.joinToString(", ") { "${it.first} ~ ${it.second}" }
 
-    fun clone(): Constraints = Constraints(constraints.toMutableList())
+//    fun clone(): Constraints =
+//        Constraints(constraints.toMutableList())
 
     fun reset() {
         constraints.clear()
@@ -29,6 +30,7 @@ private fun bind(name: Var, type: Type): Unifier =
 private fun unifies(t1: Type, t2: Type): Unifier =
     when {
         t1 == t2 -> emptyUnifier
+        t1.isSimilar(t2) -> emptyUnifier
         t1 is TVar -> bind(t1.name, t2)
         t2 is TVar -> bind(t2.name, t1)
         t1 is TArr && t2 is TArr -> unifyMany(listOf(t1.domain, t1.range), listOf(t2.domain, t2.range))

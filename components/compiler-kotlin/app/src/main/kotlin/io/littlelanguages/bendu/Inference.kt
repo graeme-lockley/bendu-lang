@@ -93,19 +93,19 @@ private fun inferExpression(expression: Expression, env: Environment) {
         }
 
         is LiteralBoolExpression ->
-            expression.type = typeBool
+            expression.type = typeBool.withLocation(expression.location())
 
         is LiteralIntExpression ->
-            expression.type = typeInt
+            expression.type = typeInt.withLocation(expression.location())
 
         is LowerIDExpression -> {
             val scheme = env.typeEnv[expression.v.value]
 
             if (scheme == null) {
                 env.errors.addError(UnknownIdentifierError(expression.v))
-                expression.type = typeError
+                expression.type = typeError.withLocation(expression.location())
             } else {
-                expression.type = scheme.instantiate(env.pump)
+                expression.type = scheme.instantiate(env.pump).withLocation(expression.location())
             }
         }
     }

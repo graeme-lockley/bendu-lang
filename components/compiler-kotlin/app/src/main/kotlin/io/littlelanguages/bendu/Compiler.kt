@@ -2,22 +2,26 @@ package io.littlelanguages.bendu
 
 import io.littlelanguages.bendu.compiler.ByteBuilder
 import io.littlelanguages.bendu.compiler.Instructions
+import io.littlelanguages.bendu.typeinference.typeBool
+import io.littlelanguages.bendu.typeinference.typeInt
 import java.lang.IllegalArgumentException
 
-fun compile(script: List<Statement>): ByteArray {
-    val compiler = Compiler()
+fun compile(script: List<Statement>, errors: Errors): ByteArray {
+    val compiler = Compiler(errors)
     compiler.compile(script)
 
     return compiler.byteBuilder.toByteArray()
 }
 
-private class Compiler {
+private class Compiler(val errors: Errors) {
     val byteBuilder = ByteBuilder()
     val bindings = mutableMapOf<String, Int>()
     var offset = 0
 
     fun compile(script: List<Statement>) {
-        compileStatements(script)
+        if (errors.hasNoErrors()) {
+            compileStatements(script)
+        }
     }
 
     private fun compileStatements(statements: List<Statement>) {
@@ -38,7 +42,7 @@ private class Compiler {
                         else if (e.type!!.isInt())
                             byteBuilder.appendInstruction(Instructions.PRINT_I32)
                         else
-                            throw IllegalArgumentException("Unknown type ${e.type}")
+                            errors.addError(UnificationError(e.type!!, setOf(typeBool, typeInt)))
                     }
                 }
 
@@ -51,7 +55,7 @@ private class Compiler {
                         else if (e.type!!.isInt())
                             byteBuilder.appendInstruction(Instructions.PRINT_I32)
                         else
-                            throw IllegalArgumentException("Unknown type ${e.type}")
+                            errors.addError(UnificationError(e.type!!, setOf(typeBool, typeInt)))
                     }
                     byteBuilder.appendInstruction(Instructions.PRINTLN)
                 }
@@ -69,13 +73,17 @@ private class Compiler {
                 compileExpression(expression.e1)
                 compileExpression(expression.e2)
 
-                when (expression.op.op) {
-                    Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_I32)
-                    Op.Minus -> byteBuilder.appendInstruction(Instructions.SUB_I32)
-                    Op.Multiply -> byteBuilder.appendInstruction(Instructions.MUL_I32)
-                    Op.Divide -> byteBuilder.appendInstruction(Instructions.DIV_I32)
-                    Op.Modulo -> byteBuilder.appendInstruction(Instructions.MOD_I32)
-                    Op.Power -> byteBuilder.appendInstruction(Instructions.POW_I32)
+                if (expression.e1.type!!.isInt()) {
+                    when (expression.op.op) {
+                        Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_I32)
+                        Op.Minus -> byteBuilder.appendInstruction(Instructions.SUB_I32)
+                        Op.Multiply -> byteBuilder.appendInstruction(Instructions.MUL_I32)
+                        Op.Divide -> byteBuilder.appendInstruction(Instructions.DIV_I32)
+                        Op.Modulo -> byteBuilder.appendInstruction(Instructions.MOD_I32)
+                        Op.Power -> byteBuilder.appendInstruction(Instructions.POW_I32)
+                    }
+                } else {
+                    errors.addError(OperatorOperandTypeError(expression.op.op, expression.e1.type!!, setOf(typeInt), expression.e1.location()))
                 }
             }
 

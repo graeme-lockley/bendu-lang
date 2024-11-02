@@ -11,7 +11,6 @@ import io.littlelanguages.data.Tuple2
 import io.littlelanguages.data.Union2
 import io.littlelanguages.data.Union3
 import io.littlelanguages.scanpiler.Location
-import io.littlelanguages.scanpiler.LocationCoordinate
 import java.io.StringReader
 
 sealed class Statement
@@ -25,11 +24,24 @@ sealed class Expression(open var type: Type? = null) {
     open fun apply(s: Subst) {
         type = type!!.apply(s)
     }
+
+    abstract fun location(): Location
 }
 
-data class LiteralBoolExpression(val v: BoolLocation, override var type: Type? = null) : Expression(type)
-data class LiteralIntExpression(val v: IntLocation, override var type: Type? = null) : Expression(type)
-data class LowerIDExpression(val v: StringLocation, override var type: Type? = null) : Expression(type)
+data class LiteralBoolExpression(val v: BoolLocation, override var type: Type? = null) : Expression(type) {
+    override fun location(): Location =
+        v.location
+}
+
+data class LiteralIntExpression(val v: IntLocation, override var type: Type? = null) : Expression(type) {
+    override fun location(): Location =
+        v.location
+}
+
+data class LowerIDExpression(val v: StringLocation, override var type: Type? = null) : Expression(type) {
+    override fun location(): Location =
+        v.location
+}
 
 data class BinaryExpression(
     val e1: Expression,
@@ -42,6 +54,9 @@ data class BinaryExpression(
         e1.apply(s)
         e2.apply(s)
     }
+
+    override fun location(): Location =
+        e1.location() + e2.location()
 }
 
 data class BoolLocation(val value: Boolean, val location: Location)
@@ -145,12 +160,3 @@ fun parse(scanner: Scanner, errors: Errors): List<Statement> {
 
 fun parse(input: String, errors: Errors): List<Statement> =
     parse(Scanner(StringReader(input)), errors)
-
-fun parseExpression(input: String, errors: Errors): Expression {
-    try {
-        return Parser(Scanner(StringReader(input)), ParserVisitor()).expression()
-    } catch (e: ParsingException) {
-        errors.addError(ParsingError(e.found, e.expected))
-        return LiteralIntExpression(IntLocation(0, LocationCoordinate(0, 0, 0)))
-    }
-}

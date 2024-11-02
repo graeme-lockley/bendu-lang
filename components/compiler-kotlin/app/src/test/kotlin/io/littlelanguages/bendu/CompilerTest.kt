@@ -78,14 +78,14 @@ class CompilerTest {
     }
 
     @Test
-    fun `println(1 op 3)`() {
+    fun `v op v`() {
         listOf(
-            Pair("print(1 + 2)", Instructions.ADD_I32),
-            Pair("print(1 - 2)", Instructions.SUB_I32),
-            Pair("print(1 * 2)", Instructions.MUL_I32),
-            Pair("print(1 / 2)", Instructions.DIV_I32),
-            Pair("print(1 % 2)", Instructions.MOD_I32),
-            Pair("print(1 ** 2)", Instructions.POW_I32),
+            Pair("1 + 2", Instructions.ADD_I32),
+            Pair("1 - 2", Instructions.SUB_I32),
+            Pair("1 * 2", Instructions.MUL_I32),
+            Pair("1 / 2", Instructions.DIV_I32),
+            Pair("1 % 2", Instructions.MOD_I32),
+            Pair("1 ** 2", Instructions.POW_I32),
         ).forEach { input ->
             assertCompiledBC(
                 byteArrayOf(
@@ -94,10 +94,15 @@ class CompilerTest {
                     Instructions.PUSH_I32_LITERAL.op,
                     0, 0, 0, 2, // 2
                     input.second.op,
-                    Instructions.PRINT_I32.op
                 ),
                 input.first
             )
+        }
+
+        listOf(
+            "True + False",
+        ).forEach { input ->
+            unsuccessfulCompile(input)
         }
     }
 }
@@ -106,9 +111,19 @@ private fun successfulCompile(input: String): ByteArray {
     val errors = Errors()
     val statements = infer(input, errors = errors)
 
+    val result = compile(statements, errors)
+
     assertTrue(errors.hasNoErrors())
 
-    return compile(statements)
+    return result
+}
+
+private fun unsuccessfulCompile(input: String) {
+    val errors = Errors()
+    val statements = infer(input, errors = errors)
+    compile(statements, errors)
+
+    assertTrue(errors.hasErrors())
 }
 
 private fun assertCompiledBC(expected: ByteArray, input: String) {
