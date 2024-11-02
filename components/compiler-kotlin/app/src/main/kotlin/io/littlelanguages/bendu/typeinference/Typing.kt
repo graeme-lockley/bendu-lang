@@ -17,7 +17,7 @@ data class TVar(val name: Var) : Type() {
     override fun toString(): String = "'$name"
 }
 
-data class TCon(private val name: String, val args: List<Type> = emptyList()) : Type() {
+data class TCon(val name: String, val args: List<Type> = emptyList()) : Type() {
     override fun apply(s: Subst): Type =
         if (args.isEmpty()) this else TCon(name, args.map { it.apply(s) })
 

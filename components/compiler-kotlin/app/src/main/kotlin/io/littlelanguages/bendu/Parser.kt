@@ -5,6 +5,7 @@ import io.littlelanguages.bendu.parser.ParsingException
 import io.littlelanguages.bendu.parser.Scanner
 import io.littlelanguages.bendu.parser.Token
 import io.littlelanguages.bendu.parser.Visitor
+import io.littlelanguages.bendu.typeinference.Subst
 import io.littlelanguages.bendu.typeinference.Type
 import io.littlelanguages.data.Tuple2
 import io.littlelanguages.data.Union2
@@ -20,16 +21,27 @@ data class PrintStatement(val es: List<Expression>) : Statement()
 data class PrintlnStatement(val es: List<Expression>) : Statement()
 data class ExpressionStatement(val e: Expression) : Statement()
 
-sealed class Expression(open var type: Type? = null)
+sealed class Expression(open var type: Type? = null) {
+    open fun apply(s: Subst) {
+        type = type!!.apply(s)
+    }
+}
 
 data class LiteralIntExpression(val v: IntLocation, override var type: Type? = null) : Expression(type)
 data class LowerIDExpression(val v: StringLocation, override var type: Type? = null) : Expression(type)
+
 data class BinaryExpression(
     val e1: Expression,
     val op: OpLocation,
     val e2: Expression,
     override var type: Type? = null
-) : Expression(type)
+) : Expression(type) {
+    override fun apply(s: Subst) {
+        super.apply(s)
+        e1.apply(s)
+        e2.apply(s)
+    }
+}
 
 data class IntLocation(val value: Int, val location: Location)
 data class StringLocation(val value: String, val location: Location)
