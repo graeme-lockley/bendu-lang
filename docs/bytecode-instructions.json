@@ -61,14 +61,19 @@
       "description": "Pops the top two i32 values off of the stack and pushes the result of raising the first value to the power of the second back onto the stack."
     },
     {
-      "name": "PRINT_I32",
-      "args": [ ],
-      "description": "Prints the integer on the top of stack and removes that item off of the stack."
-    },
-    {
       "name": "PRINTLN",
       "args": [ ],
       "description": "Prints a newline and leaves the stack intact."
+    },
+    {
+      "name": "PRINT_BOOL",
+      "args": [ ],
+      "description": "Prints the bool on the top of stack and removes that item off of the stack."
+    },
+    {
+      "name": "PRINT_I32",
+      "args": [ ],
+      "description": "Prints the integer on the top of stack and removes that item off of the stack."
     }
   ]
 }

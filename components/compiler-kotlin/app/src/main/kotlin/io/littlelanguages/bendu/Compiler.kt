@@ -32,14 +32,26 @@ private class Compiler {
                 is PrintStatement -> {
                     statement.es.forEach { e ->
                         compileExpression(e)
-                        byteBuilder.appendInstruction(Instructions.PRINT_I32)
+
+                        if (e.type!!.isBool())
+                            byteBuilder.appendInstruction(Instructions.PRINT_BOOL)
+                        else if (e.type!!.isInt())
+                            byteBuilder.appendInstruction(Instructions.PRINT_I32)
+                        else
+                            throw IllegalArgumentException("Unknown type ${e.type}")
                     }
                 }
 
                 is PrintlnStatement -> {
                     statement.es.forEach { e ->
                         compileExpression(e)
-                        byteBuilder.appendInstruction(Instructions.PRINT_I32)
+
+                        if (e.type!!.isBool())
+                            byteBuilder.appendInstruction(Instructions.PRINT_BOOL)
+                        else if (e.type!!.isInt())
+                            byteBuilder.appendInstruction(Instructions.PRINT_I32)
+                        else
+                            throw IllegalArgumentException("Unknown type ${e.type}")
                     }
                     byteBuilder.appendInstruction(Instructions.PRINTLN)
                 }

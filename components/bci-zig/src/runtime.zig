@@ -76,15 +76,21 @@ pub const Runtime = struct {
         try self.stack.append(Pointer.fromInt(std.math.pow(i32, a, b)));
     }
 
-    pub inline fn print_i32(self: *Runtime) !void {
-        const value = Pointer.asInt(self.pop());
-
-        try stdout.print("{d}", .{value});
-    }
-
     pub inline fn println(self: *Runtime) !void {
         _ = self;
 
         try stdout.print("\n", .{});
+    }
+
+    pub inline fn print_bool(self: *Runtime) !void {
+        const value = Pointer.asBool(self.pop());
+
+        try stdout.print("{s}", .{if (value) "True" else "False"});
+    }
+
+    pub inline fn print_i32(self: *Runtime) !void {
+        const value = Pointer.asInt(self.pop());
+
+        try stdout.print("{d}", .{value});
     }
 };

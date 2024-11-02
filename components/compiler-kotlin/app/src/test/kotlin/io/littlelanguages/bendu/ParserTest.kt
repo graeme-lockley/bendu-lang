@@ -50,7 +50,7 @@ class ParserTest {
     }
 
     @Test
-    fun `parser error` () {
+    fun `parser error`() {
         val input = "let x = (1; let y = z"
         val errors = Errors()
         parse(input, errors)

@@ -5,6 +5,7 @@ import io.littlelanguages.bendu.typeinference.Pump
 import io.littlelanguages.bendu.typeinference.Scheme
 import io.littlelanguages.bendu.typeinference.TArr
 import io.littlelanguages.bendu.typeinference.TVar
+import io.littlelanguages.bendu.typeinference.Type
 import io.littlelanguages.bendu.typeinference.TypeEnv
 import io.littlelanguages.bendu.typeinference.emptyTypeEnv
 import io.littlelanguages.bendu.typeinference.typeBool
@@ -12,40 +13,71 @@ import io.littlelanguages.bendu.typeinference.typeError
 import io.littlelanguages.bendu.typeinference.typeInt
 
 fun infer(
-    script: List<Statement>,
+    script: String,
     typeEnv: TypeEnv = emptyTypeEnv,
     pump: Pump = Pump(),
     errors: Errors = Errors(),
     constraints: Constraints = Constraints()
-) {
-    inferStatements(script, Environment(typeEnv, pump, errors, constraints))
+): List<Statement> {
+    val ast = parse(script, errors)
+
+    if (errors.hasErrors()) {
+        return emptyList()
+    }
+
+    inferStatements(ast, Environment(typeEnv, pump, errors, constraints))
+
+    return ast
 }
 
-data class Environment(val typeEnv: TypeEnv, val pump: Pump, val errors: Errors, val constraints: Constraints)
 
-fun inferStatements(statements: List<Statement>, env: Environment) {
-    statements.forEach { statement ->
-        when (statement) {
-            is ExpressionStatement ->
-                inferExpression(statement.e, env)
+private fun inferStatements(statements: List<Statement>, env: Environment) =
+    statements.forEach { statement -> inferStatement(statement, env) }
 
-            is LetStatement ->
-                inferExpression(statement.e, env)
+private fun inferStatement(statement: Statement, env: Environment) {
+    env.constraints.reset()
 
-            is PrintStatement ->
-                statement.es.forEach { e ->
-                    inferExpression(e, env)
-                }
+    when (statement) {
+        is ExpressionStatement -> {
+            inferExpression(statement.e, env)
 
-            is PrintlnStatement ->
-                statement.es.forEach { e ->
-                    inferExpression(e, env)
-                }
+            statement.e.apply(env.constraints.solve())
+        }
+
+        is LetStatement -> {
+            inferExpression(statement.e, env)
+
+            statement.e.apply(env.constraints.solve())
+
+            env.bind(statement.id.value, statement.e.type!!)
+        }
+
+        is PrintStatement -> {
+            statement.es.forEach { e ->
+                inferExpression(e, env)
+            }
+
+            val s = env.constraints.solve()
+
+            statement.es.forEach { e ->
+                e.apply(s)
+            }
+        }
+
+        is PrintlnStatement -> {
+            statement.es.forEach { e ->
+                inferExpression(e, env)
+            }
+            val s = env.constraints.solve()
+
+            statement.es.forEach { e ->
+                e.apply(s)
+            }
         }
     }
 }
 
-fun inferExpression(expression: Expression, env: Environment) {
+private fun inferExpression(expression: Expression, env: Environment) {
     when (expression) {
         is BinaryExpression -> {
             inferExpression(expression.e1, env)
@@ -87,3 +119,10 @@ private val operatorSignatures = mapOf(
     Pair(Op.Modulo, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), TVar(0))))),
     Pair(Op.Power, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), TVar(0)))))
 )
+
+data class Environment(var typeEnv: TypeEnv, val pump: Pump, val errors: Errors, val constraints: Constraints) {
+    fun bind(name: String, type: Type) {
+        typeEnv = typeEnv + (name to typeEnv.generalise(type))
+    }
+}
+

@@ -9,6 +9,7 @@ pub const Op = enum(u8) {
     div_i32,
     mod_i32,
     pow_i32,
-    print_i32,
     println,
+    print_bool,
+    print_i32,
 };

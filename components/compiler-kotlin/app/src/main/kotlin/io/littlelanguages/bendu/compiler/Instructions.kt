@@ -11,6 +11,7 @@ enum class Instructions(val op: Byte) {
     DIV_I32(7),
     MOD_I32(8),
     POW_I32(9),
-    PRINT_I32(10),
-    PRINTLN(11),
+    PRINTLN(10),
+    PRINT_BOOL(11),
+    PRINT_I32(12),
 }

@@ -44,14 +44,13 @@ class CompilerTest {
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 1, // 1
                 Instructions.PRINT_I32.op,
-                Instructions.PUSH_I32_LITERAL.op,
-                0, 0, 0, 2, // 2
-                Instructions.PRINT_I32.op,
+                Instructions.PUSH_BOOL_TRUE.op,
+                Instructions.PRINT_BOOL.op,
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 3, // 3
                 Instructions.PRINT_I32.op
             ),
-            "print(1, 2, 3)"
+            "print(1, True, 3)"
         )
     }
 
@@ -67,15 +66,14 @@ class CompilerTest {
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 1, // 1
                 Instructions.PRINT_I32.op,
-                Instructions.PUSH_I32_LITERAL.op,
-                0, 0, 0, 2, // 2
-                Instructions.PRINT_I32.op,
+                Instructions.PUSH_BOOL_FALSE.op,
+                Instructions.PRINT_BOOL.op,
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 3, // 3
                 Instructions.PRINT_I32.op,
                 Instructions.PRINTLN.op
             ),
-            "println(1, 2, 3)"
+            "println(1, False, 3)"
         )
     }
 
@@ -106,7 +104,7 @@ class CompilerTest {
 
 private fun successfulCompile(input: String): ByteArray {
     val errors = Errors()
-    val statements = parse(input, errors)
+    val statements = infer(input, errors = errors)
 
     assertTrue(errors.hasNoErrors())
 

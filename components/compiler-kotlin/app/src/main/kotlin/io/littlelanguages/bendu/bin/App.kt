@@ -25,11 +25,12 @@ fun main(args: Array<String>) {
 
 private fun compileExpression(expression: String, outputName: String) {
     val errors = io.littlelanguages.bendu.Errors()
-    val script = io.littlelanguages.bendu.parse(expression, errors)
+    val script = io.littlelanguages.bendu.infer(expression, errors = errors)
     val bc = io.littlelanguages.bendu.compile(script)
 
     if (errors.hasErrors()) {
-        println("Errors")
+        print("Errors: ")
+        println(errors)
         return
     }
 
@@ -38,11 +39,12 @@ private fun compileExpression(expression: String, outputName: String) {
 
 private fun compileScript(scriptName: String, outputName: String) {
     val errors = io.littlelanguages.bendu.Errors()
-    val script = io.littlelanguages.bendu.parse(File(scriptName).readText(), errors)
+    val script = io.littlelanguages.bendu.infer(File(scriptName).readText(), errors = errors)
     val bc = io.littlelanguages.bendu.compile(script)
 
     if (errors.hasErrors()) {
-        println("Errors")
+        print("Errors: ")
+        println(errors)
         return
     }
 

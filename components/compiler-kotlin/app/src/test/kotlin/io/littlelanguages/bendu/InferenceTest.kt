@@ -1,7 +1,5 @@
 package io.littlelanguages.bendu
 
-import io.littlelanguages.bendu.typeinference.Constraints
-import io.littlelanguages.bendu.typeinference.Pump
 import io.littlelanguages.bendu.typeinference.TypeEnv
 import io.littlelanguages.bendu.typeinference.emptyTypeEnv
 import io.littlelanguages.bendu.typeinference.typeInt
@@ -44,30 +42,19 @@ class InferenceTest {
     }
 }
 
-private fun assertInferExpressionEquals(
-    expr: String,
-    expected: String,
-    typeEnv: TypeEnv = emptyTypeEnv,
-    pump: Pump = Pump()
-) {
+private fun assertInferExpressionEquals(expr: String, expected: String, typeEnv: TypeEnv = emptyTypeEnv) {
     val errors = Errors()
-    val constraints = Constraints()
-    val ast = parseExpression(expr, errors)
-    inferExpression(ast, Environment(typeEnv, pump, errors, constraints))
-
-    val subst = constraints.solve()
-    ast.apply(subst)
+    val ast = infer(expr, errors = errors, typeEnv = typeEnv)
 
     assertTrue(errors.hasNoErrors())
-    assertEquals(expected, ast.type!!.toString())
+    assertIs<ExpressionStatement>(ast[0])
+    assertEquals(expected, (ast[0] as ExpressionStatement).e.type.toString())
 }
 
 private fun inferErrorExpression(expr: String, typeEnv: TypeEnv): Errors {
     val errors = Errors()
-    val constraints = Constraints()
-    val ast = parseExpression(expr, errors)
-    assertTrue(errors.hasNoErrors())
-    inferExpression(ast, Environment(typeEnv, Pump(), errors, constraints))
+
+    infer(expr, typeEnv = typeEnv, errors = errors)
 
     assertTrue(errors.hasErrors())
 
