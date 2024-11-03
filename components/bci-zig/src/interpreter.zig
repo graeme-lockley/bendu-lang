@@ -49,6 +49,43 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.push_i32_stack(index);
                 ip += 4;
             },
+            .discard => {
+                if (DEBUG) {
+                    std.debug.print("{d}: discard\n", .{ip - 1});
+                }
+
+                _ = runtime.pop();
+            },
+
+            .jmp_dup_false => {
+                const offset = readi32(bc, ip);
+
+                if (DEBUG) {
+                    std.debug.print("{d}: jmp_dup_false: offset={d}\n", .{ ip - 1, offset });
+                }
+
+                const value = runtime.peek();
+                if (Pointer.asBool(value)) {
+                    ip += 4;
+                } else {
+                    ip = @intCast(offset);
+                }
+            },
+            .jmp_dup_true => {
+                const offset = readi32(bc, ip);
+
+                if (DEBUG) {
+                    std.debug.print("{d}: jmp_dup_true: offset={d}\n", .{ ip - 1, offset });
+                }
+
+                const value = runtime.peek();
+                if (Pointer.asBool(value)) {
+                    ip = @intCast(offset);
+                } else {
+                    ip += 4;
+                }
+            },
+
             .add_i32 => {
                 if (DEBUG) {
                     std.debug.print("{d}: add_i32\n", .{ip - 1});

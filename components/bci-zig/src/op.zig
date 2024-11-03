@@ -3,6 +3,11 @@ pub const Op = enum(u8) {
     push_bool_false,
     push_i32_literal,
     push_i32_stack,
+    discard,
+
+    jmp_dup_false,
+    jmp_dup_true,
+
     add_i32,
     sub_i32,
     mul_i32,

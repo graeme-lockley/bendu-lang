@@ -22,6 +22,9 @@ pub const Runtime = struct {
     pub inline fn pop(self: *Runtime) Pointer.Pointer {
         return self.stack.pop();
     }
+    pub inline fn peek(self: *Runtime) Pointer.Pointer {
+        return self.stack.items[self.stack.items.len - 1];
+    }
 
     pub inline fn push_bool_true(self: *Runtime) !void {
         try self.stack.append(Pointer.fromInt(1));

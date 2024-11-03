@@ -119,14 +119,27 @@ class CompilerTest {
             )
         }
 
-//        assertCompiledBC(
-//            byteArrayOf(
-//                Instructions.PUSH_BOOL_TRUE.op,
-//                Instructions.PUSH_BOOL_TRUE.op,
-//                Instructions.EQ_I32.op
-//            ),
-//            "True || True"
-//        )
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_BOOL_TRUE.op,
+                Instructions.JMP_DUP_FALSE.op,
+                0, 0, 0, 8,
+                Instructions.DISCARD.op,
+                Instructions.PUSH_BOOL_TRUE.op,
+            ),
+            "True && True"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_BOOL_TRUE.op,
+                Instructions.JMP_DUP_TRUE.op,
+                0, 0, 0, 8,
+                Instructions.DISCARD.op,
+                Instructions.PUSH_BOOL_TRUE.op,
+            ),
+            "True || True"
+        )
 
         listOf(
             "True + False",

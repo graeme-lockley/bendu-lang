@@ -48,4 +48,18 @@ class ByteBuilder {
         outputStream.write(byteArray)
         return this
     }
+
+    fun writeIntAtPosition(position: Int, value:Int): ByteBuilder {
+        val byteArray = outputStream.toByteArray()
+        if (position < 0 || position + 4 >= byteArray.size) {
+            throw IndexOutOfBoundsException("Position $position is out of bounds")
+        }
+        byteArray[position] = (value shr 24).toByte()
+        byteArray[position + 1] = (value shr 16).toByte()
+        byteArray[position + 2] = (value shr 8).toByte()
+        byteArray[position + 3] = value.toByte()
+        outputStream.reset()
+        outputStream.write(byteArray)
+        return this
+    }
 }

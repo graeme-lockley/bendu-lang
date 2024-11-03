@@ -70,24 +70,64 @@ private class Compiler(val errors: Errors) {
     private fun compileExpression(expression: Expression) {
         when (expression) {
             is BinaryExpression -> {
-                compileExpression(expression.e1)
-                compileExpression(expression.e2)
+                if (expression.op.op == Op.And) {
+                    compileExpression(expression.e1)
+                    byteBuilder.appendInstruction(Instructions.JMP_DUP_FALSE)
+                    val jmpFalse = byteBuilder.size()
+                    byteBuilder.appendInt(0)
+                    byteBuilder.appendInstruction(Instructions.DISCARD)
+                    compileExpression(expression.e2)
+                    byteBuilder.writeIntAtPosition(jmpFalse, byteBuilder.size())
+                } else if (expression.op.op == Op.Or) {
+                    compileExpression(expression.e1)
+                    byteBuilder.appendInstruction(Instructions.JMP_DUP_TRUE)
+                    val jmpFalse = byteBuilder.size()
+                    byteBuilder.appendInt(0)
+                    byteBuilder.appendInstruction(Instructions.DISCARD)
+                    compileExpression(expression.e2)
+                    byteBuilder.writeIntAtPosition(jmpFalse, byteBuilder.size())
+                } else {
+                    compileExpression(expression.e1)
+                    compileExpression(expression.e2)
 
-                if (expression.e1.type!!.isInt()) {
-                    when (expression.op.op) {
-                        Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_I32)
-                        Op.Minus -> byteBuilder.appendInstruction(Instructions.SUB_I32)
-                        Op.Multiply -> byteBuilder.appendInstruction(Instructions.MUL_I32)
-                        Op.Divide -> byteBuilder.appendInstruction(Instructions.DIV_I32)
-                        Op.Modulo -> byteBuilder.appendInstruction(Instructions.MOD_I32)
-                        Op.Power -> byteBuilder.appendInstruction(Instructions.POW_I32)
-                        Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_I32)
-                        Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_I32)
-                        Op.LessThan -> byteBuilder.appendInstruction(Instructions.LT_I32)
-                        Op.LessEqual -> byteBuilder.appendInstruction(Instructions.LE_I32)
-                        Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.GT_I32)
-                        Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.GE_I32)
-                        else -> errors.addError(
+                    if (expression.e1.type!!.isInt()) {
+                        when (expression.op.op) {
+                            Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_I32)
+                            Op.Minus -> byteBuilder.appendInstruction(Instructions.SUB_I32)
+                            Op.Multiply -> byteBuilder.appendInstruction(Instructions.MUL_I32)
+                            Op.Divide -> byteBuilder.appendInstruction(Instructions.DIV_I32)
+                            Op.Modulo -> byteBuilder.appendInstruction(Instructions.MOD_I32)
+                            Op.Power -> byteBuilder.appendInstruction(Instructions.POW_I32)
+                            Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_I32)
+                            Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_I32)
+                            Op.LessThan -> byteBuilder.appendInstruction(Instructions.LT_I32)
+                            Op.LessEqual -> byteBuilder.appendInstruction(Instructions.LE_I32)
+                            Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.GT_I32)
+                            Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.GE_I32)
+                            else -> errors.addError(
+                                OperatorOperandTypeError(
+                                    expression.op.op,
+                                    expression.e1.type!!,
+                                    setOf(typeInt),
+                                    expression.e1.location()
+                                )
+                            )
+                        }
+                    } else if (expression.e1.type!!.isBool()) {
+                        when (expression.op.op) {
+                            Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_BOOL)
+                            Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_BOOL)
+                            else -> errors.addError(
+                                OperatorOperandTypeError(
+                                    expression.op.op,
+                                    expression.e1.type!!,
+                                    setOf(typeBool),
+                                    expression.e1.location()
+                                )
+                            )
+                        }
+                    } else {
+                        errors.addError(
                             OperatorOperandTypeError(
                                 expression.op.op,
                                 expression.e1.type!!,
@@ -96,28 +136,6 @@ private class Compiler(val errors: Errors) {
                             )
                         )
                     }
-                } else if (expression.e1.type!!.isBool()) {
-                    when (expression.op.op) {
-                        Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_BOOL)
-                        Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_BOOL)
-                        else -> errors.addError(
-                            OperatorOperandTypeError(
-                                expression.op.op,
-                                expression.e1.type!!,
-                                setOf(typeBool),
-                                expression.e1.location()
-                            )
-                        )
-                    }
-                } else {
-                    errors.addError(
-                        OperatorOperandTypeError(
-                            expression.op.op,
-                            expression.e1.type!!,
-                            setOf(typeInt),
-                            expression.e1.location()
-                        )
-                    )
                 }
             }
 

@@ -30,6 +30,36 @@
       ],
       "description": "Pushes an integer from the stack onto the stack."
     },
+
+    {
+      "name": "DISCARD",
+      "args": [ ],
+      "description": "Discards the top item on the stack."
+    },
+
+
+    {
+      "name": "JMP_DUP_FALSE",
+      "args": [
+        {
+          "name": "offset",
+          "type": "u32"
+        }
+      ],
+      "description": "Jumps to the instruction at the given offset if the top of the stack is false. Leaves the stack intact."
+    },
+    {
+      "name": "JMP_DUP_TRUE",
+      "args": [
+        {
+          "name": "offset",
+          "type": "u32"
+        }
+      ],
+      "description": "Jumps to the instruction at the given offset if the top of the stack is true. Leaves the stack intact."
+    },
+
+
     {
       "name": "ADD_I32",
       "args": [ ],
