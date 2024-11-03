@@ -83,7 +83,7 @@ data class UnaryOpLocation(val op: UnaryOp, val location: Location)
 enum class Op { Or, And, Plus, Minus, Multiply, Divide, Modulo, Power, EqualEqual, NotEqual, LessThan, LessEqual, GreaterThan, GreaterEqual }
 enum class UnaryOp { Not }
 
-private class ParserVisitor :
+private class ParserVisitor(val errors: Errors = Errors()) :
     Visitor<List<Statement>, Statement, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression> {
     override fun visitProgram(a: List<Tuple2<Statement, Token?>>): List<Statement> =
         a.map { it.a }
@@ -193,7 +193,12 @@ private class ParserVisitor :
         LowerIDExpression(StringLocation(a.lexeme, a.location))
 
     override fun visitFactor3(a: Token): Expression =
-        LiteralIntExpression(IntLocation(a.lexeme.toInt(), a.location))
+        try {
+            LiteralIntExpression(IntLocation(a.lexeme.toInt(), a.location))
+        } catch (_: NumberFormatException) {
+            errors.addError(InvalidLiteralError(a.lexeme, a.location))
+            LiteralIntExpression(IntLocation(Int.MAX_VALUE, a.location))
+        }
 
     override fun visitFactor4(a: Token): Expression =
         LiteralBoolExpression(BoolLocation(true, a.location))
@@ -207,7 +212,7 @@ private class ParserVisitor :
 
 fun parse(scanner: Scanner, errors: Errors): List<Statement> {
     try {
-        return Parser(scanner, ParserVisitor()).program()
+        return Parser(scanner, ParserVisitor(errors)).program()
     } catch (e: ParsingException) {
         errors.addError(ParsingError(e.found, e.expected))
         return emptyList()

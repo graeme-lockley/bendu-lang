@@ -38,6 +38,7 @@ data class OperatorOperandTypeError(
     val location: Location
 ) : BenduError()
 
+data class InvalidLiteralError(val value: String, val location: Location) : BenduError()
 data class ParsingError(val found: Token, val expected: Set<TToken>) : BenduError()
 data class UnificationError(val found: Type, val expected: Set<Type>) : BenduError()
 data class SingleUnificationError(val e1: Type, val e2: Type) : BenduError()

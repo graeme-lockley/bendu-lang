@@ -58,6 +58,19 @@ class ParserTest {
         assertTrue(errors.hasErrors())
         assertIs<ParsingError>(errors[0])
     }
+
+    @Test
+    fun `literal over and under flows`() {
+        listOf(
+            "2147483648",
+            "-2147483649"
+        ).forEach { input ->
+            val errors = Errors()
+            parse(input, errors)
+            assertTrue(errors.hasErrors())
+            assertIs<InvalidLiteralError>(errors[0])
+        }
+    }
 }
 
 private fun successfulParse(input: String, numberOfStatements: Int): List<Statement> {

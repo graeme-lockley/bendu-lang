@@ -34,29 +34,11 @@ private class Compiler(val errors: Errors) {
                 }
 
                 is PrintStatement -> {
-                    statement.es.forEach { e ->
-                        compileExpression(e)
-
-                        if (e.type!!.isBool())
-                            byteBuilder.appendInstruction(Instructions.PRINT_BOOL)
-                        else if (e.type!!.isInt())
-                            byteBuilder.appendInstruction(Instructions.PRINT_I32)
-                        else
-                            errors.addError(UnificationError(e.type!!, setOf(typeBool, typeInt)))
-                    }
+                    compilePrintExpressions(statement.es)
                 }
 
                 is PrintlnStatement -> {
-                    statement.es.forEach { e ->
-                        compileExpression(e)
-
-                        if (e.type!!.isBool())
-                            byteBuilder.appendInstruction(Instructions.PRINT_BOOL)
-                        else if (e.type!!.isInt())
-                            byteBuilder.appendInstruction(Instructions.PRINT_I32)
-                        else
-                            errors.addError(UnificationError(e.type!!, setOf(typeBool, typeInt)))
-                    }
+                    compilePrintExpressions(statement.es)
                     byteBuilder.appendInstruction(Instructions.PRINTLN)
                 }
 
@@ -64,6 +46,19 @@ private class Compiler(val errors: Errors) {
                     compileExpression(statement.e)
                 }
             }
+        }
+    }
+
+    private fun compilePrintExpressions(es: List<Expression>) {
+        es.forEach { e ->
+            compileExpression(e)
+
+            if (e.type!!.isBool())
+                byteBuilder.appendInstruction(Instructions.PRINT_BOOL)
+            else if (e.type!!.isInt())
+                byteBuilder.appendInstruction(Instructions.PRINT_I32)
+            else
+                errors.addError(UnificationError(e.type!!, setOf(typeBool, typeInt)))
         }
     }
 

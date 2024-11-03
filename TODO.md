@@ -19,7 +19,9 @@ complete:
 The following is the list of big features that need to be implemented.
 
 - [ ] Basic types
+- [ ] Control flow
 - [ ] Functions
+- [ ] Type annotation
 - [ ] Mutable variables
 - [ ] Tuples
 - [ ] Arrays
@@ -104,12 +106,10 @@ The following is the list of big features that need to be implemented.
 - [x] Implement the `Int` type in the BC interpreter
 - [x] Implement +, -, *, /, %, **
 - [x] Implement ==, !=, <, <=, >, >=
-- [ ] Verify that the 32-bit signed is correct in when reporting literal
+- [x] Verify that the 32-bit signed is correct in when reporting literal
       underflow and overflow
-- [ ] Verify that the 32-bit signed is correct in when encountering underflow
-      and overflow during +, -, *, /, **, % operations
-- [ ] Handle divide by zero
-- [ ] Handle modulo zero
+- [ ] Gracefully handle divide by zero
+- [ ] Gracefully handle modulo zero
 
 ## Record
 
