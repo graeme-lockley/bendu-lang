@@ -59,7 +59,7 @@ The following is the list of big features that need to be implemented.
 - [x] Add the `Bool` type to the language
 - [x] Infer `Bool` literal values
 - [x] Implement the `Bool` type in the BC interpreter
-- [ ] Implement not
+- [x] Implement not
 - [x] Implement &&
 - [x] Implement ||
 - [x] Implement ==

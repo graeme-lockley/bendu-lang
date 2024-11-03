@@ -86,6 +86,14 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 }
             },
 
+            .not_bool => {
+                if (DEBUG) {
+                    std.debug.print("{d}: not_bool\n", .{ip - 1});
+                }
+
+                try runtime.not_bool();
+            },
+
             .add_i32 => {
                 if (DEBUG) {
                     std.debug.print("{d}: add_i32\n", .{ip - 1});
@@ -262,6 +270,16 @@ test "push_i32_stack" {
     try runtime.push_i32_literal(100);
     try run(&bc, &runtime);
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 100);
+}
+
+test "not_bool" {
+    const bc: [1]u8 = [_]u8{@intFromEnum(Op.not_bool)};
+    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+    try runtime.push_bool_true();
+    try run(&bc, &runtime);
+
+    try std.testing.expectEqual(Pointer.asBool(runtime.pop()), false);
 }
 
 test "add_i32" {

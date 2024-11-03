@@ -148,6 +148,18 @@ class CompilerTest {
             unsuccessfulCompile(input)
         }
     }
+
+    @Test
+    fun `op v`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_BOOL_TRUE.op,
+                Instructions.NOT_BOOL.op,
+            ),
+            "!True"
+        )
+
+    }
 }
 
 private fun successfulCompile(input: String): ByteArray {

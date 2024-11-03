@@ -8,6 +8,8 @@ pub const Op = enum(u8) {
     jmp_dup_false,
     jmp_dup_true,
 
+    not_bool,
+
     add_i32,
     sub_i32,
     mul_i32,

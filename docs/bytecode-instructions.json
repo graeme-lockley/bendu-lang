@@ -59,7 +59,12 @@
       "description": "Jumps to the instruction at the given offset if the top of the stack is true. Leaves the stack intact."
     },
 
-
+    {
+      "name": "NOT_BOOL",
+      "args": [ ],
+      "description": "Pops the top bool value off of the stack and pushes the negation of it back onto the stack."
+    },
+  
     {
       "name": "ADD_I32",
       "args": [ ],

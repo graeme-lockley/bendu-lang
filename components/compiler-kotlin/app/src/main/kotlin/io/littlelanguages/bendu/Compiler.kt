@@ -159,7 +159,10 @@ private class Compiler(val errors: Errors) {
                 byteBuilder.appendInt(offset)
             }
 
-            else -> TODO()
+            is UnaryExpression -> {
+                compileExpression(expression.e)
+                byteBuilder.appendInstruction(Instructions.NOT_BOOL)
+            }
         }
     }
 }

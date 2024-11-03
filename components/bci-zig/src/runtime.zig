@@ -43,6 +43,11 @@ pub const Runtime = struct {
         try self.stack.append(value);
     }
 
+    pub inline fn not_bool(self: *Runtime) !void {
+        const value = Pointer.asBool(self.pop());
+        try self.stack.append(Pointer.fromBool(!value));
+    }
+
     pub inline fn add_i32(self: *Runtime) !void {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
