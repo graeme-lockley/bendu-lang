@@ -59,19 +59,17 @@ The following is the list of big features that need to be implemented.
 - [x] Add the `Bool` type to the language
 - [x] Infer `Bool` literal values
 - [x] Implement the `Bool` type in the BC interpreter
-- [ ] Integrate into main so that the value can be viewed.
 - [ ] Implement not
-- [ ] Implement &&
-- [ ] Implement ||
-- [ ] Implement ==
-- [ ] Implement !=
+- [x] Implement &&
+- [x] Implement ||
+- [x] Implement ==
+- [x] Implement !=
 
 ## Char
 
 - [ ] Add the `Char` type to the language
 - [ ] Infer `Char` literal values
 - [ ] Implement the `Char` type in the BC interpreter
-- [ ] Integrate into main so that the value can be viewed.
 - [ ] Implement +, -, *, **, /
 - [ ] Implement ==, !=, <, <=, >, >=
 - [ ] Handle divide by zero
@@ -81,7 +79,6 @@ The following is the list of big features that need to be implemented.
 - [ ] Add the `Float` type to the language
 - [ ] Infer `Float` literal values
 - [ ] Implement the `Float` type in the BC interpreter
-- [ ] Integrate into main so that the value can be viewed.
 - [ ] Implement +, -, *, **, /
 - [ ] Implement ==, !=, <, <=, >, >=
 - [ ] Handle divide by zero
@@ -106,7 +103,7 @@ The following is the list of big features that need to be implemented.
 - [x] Infer `Int` literal values
 - [x] Implement the `Int` type in the BC interpreter
 - [x] Implement +, -, *, /, %, **
-- [ ] Implement ==, !=, <, <=, >, >=
+- [x] Implement ==, !=, <, <=, >, >=
 - [ ] Verify that the 32-bit signed is correct in when reporting literal
       underflow and overflow
 - [ ] Verify that the 32-bit signed is correct in when encountering underflow
