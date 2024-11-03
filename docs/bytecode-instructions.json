@@ -3,12 +3,12 @@
     {
       "name": "PUSH_BOOL_TRUE",
       "args": [ ],
-      "description": "Pushes a boolean true onto the stack."
+      "description": "Places the value 'true' onto the stack."
     },
     {
       "name": "PUSH_BOOL_FALSE",
       "args": [ ],
-      "description": "Pushes a boolean false onto the stack."
+      "description": "Places the value 'false' onto the stack."
     },
     {
       "name": "PUSH_I32_LITERAL",
@@ -18,7 +18,7 @@
           "type": "i32"
         }
       ],
-      "description": "Pushes an integer onto the stack."
+      "description": "Adds a specified integer to the stack."
     },
     {
       "name": "PUSH_I32_STACK",
@@ -28,16 +28,13 @@
           "type": "u32"
         }
       ],
-      "description": "Pushes an integer from the stack onto the stack."
+      "description": "Pushes an integer from a specific position in the stack onto the top."
     },
-
     {
       "name": "DISCARD",
       "args": [ ],
-      "description": "Discards the top item on the stack."
+      "description": "Removes the top element from the stack."
     },
-
-
     {
       "name": "JMP_DUP_FALSE",
       "args": [
@@ -46,7 +43,7 @@
           "type": "u32"
         }
       ],
-      "description": "Jumps to the instruction at the given offset if the top of the stack is false. Leaves the stack intact."
+      "description": "Jumps to a given instruction offset if the top value of the stack is 'false', without modifying the stack."
     },
     {
       "name": "JMP_DUP_TRUE",
@@ -56,101 +53,97 @@
           "type": "u32"
         }
       ],
-      "description": "Jumps to the instruction at the given offset if the top of the stack is true. Leaves the stack intact."
+      "description": "Jumps to a given instruction offset if the top value of the stack is 'true', without modifying the stack."
     },
-
     {
       "name": "NOT_BOOL",
       "args": [ ],
-      "description": "Pops the top bool value off of the stack and pushes the negation of it back onto the stack."
+      "description": "Removes the top boolean from the stack, negates it, and pushes the result back onto the stack."
     },
-  
     {
       "name": "ADD_I32",
       "args": [ ],
-      "description": "Pops the top two i32 values off of the stack and pushes the result of adding them back onto the stack."
+      "description": "Removes the top two integers from the stack, adds them, and pushes the result onto the stack."
     },
     {
       "name": "SUB_I32",
       "args": [ ],
-      "description": "Pops the top two i32 values off of the stack and pushes the result of subtracting them back onto the stack."
+      "description": "Removes the top two integers from the stack, subtracts the second from the first, and pushes the result onto the stack."
     },
     {
       "name": "MUL_I32",
       "args": [ ],
-      "description": "Pops the top two i32 values off of the stack and pushes the result of multiplying them back onto the stack."
+      "description": "Removes the top two integers from the stack, multiplies them, and pushes the result onto the stack."
     },
     {
       "name": "DIV_I32",
       "args": [ ],
-      "description": "Pops the top two i32 values off of the stack and pushes the result of dividing them back onto the stack."
+      "description": "Removes the top two integers from the stack, divides the first by the second, and pushes the result onto the stack."
     },
     {
       "name": "MOD_I32",
       "args": [ ],
-      "description": "Pops the top two i32 values off of the stack and pushes the modulus result back onto the stack."
+      "description": "Removes the top two integers from the stack, computes the modulus, and pushes the result onto the stack."
     },
     {
       "name": "POW_I32",
       "args": [ ],
-      "description": "Pops the top two i32 values off of the stack and pushes the result of raising the first value to the power of the second back onto the stack."
+      "description": "Removes the top two integers from the stack, raises the first to the power of the second, and pushes the result onto the stack."
     },
-
     {
       "name": "EQ_BOOL",
       "args": [ ],
-      "description": "Pops the top two bool values off of the stack and pushes the result of of whether they are equal back onto the stack."
+      "description": "Removes the top two boolean values from the stack, checks if they are equal, and pushes the result onto the stack."
     },
     {
       "name": "EQ_I32",
       "args": [ ],
-      "description": "Pops the top two i32 values off of the stack and pushes the result of of whether they are equal back onto the stack."
+      "description": "Removes the top two integers from the stack, checks if they are equal, and pushes the result onto the stack."
     },
     {
       "name": "NEQ_BOOL",
       "args": [ ],
-      "description": "Pops the top two bool values off of the stack and pushes the result of of whether they are not equal back onto the stack."
+      "description": "Removes the top two boolean values from the stack, checks if they are not equal, and pushes the result onto the stack."
     },
     {
       "name": "NEQ_I32",
       "args": [ ],
-      "description": "Pops the top two i32 values off of the stack and pushes the result of of whether they are not equal back onto the stack."
+      "description": "Removes the top two integers from the stack, checks if they are not equal, and pushes the result onto the stack."
     },
     {
       "name": "LT_I32",
       "args": [ ],
-      "description": "Pops the top two i32 values off of the stack and pushes the result of of whether the first value is less than the second back onto the stack."
+      "description": "Removes the top two integers from the stack, checks if the first is less than the second, and pushes the result onto the stack."
     },
     {
       "name": "LE_I32",
       "args": [ ],
-      "description": "Pops the top two i32 values off of the stack and pushes the result of of whether the first value is less than or equal the second back onto the stack."
+      "description": "Removes the top two integers from the stack, checks if the first is less than or equal to the second, and pushes the result onto the stack."
     },
     {
       "name": "GT_I32",
       "args": [ ],
-      "description": "Pops the top two i32 values off of the stack and pushes the result of of whether the first value is greater than the second back onto the stack."
+      "description": "Removes the top two integers from the stack, checks if the first is greater than the second, and pushes the result onto the stack."
     },
     {
       "name": "GE_I32",
       "args": [ ],
-      "description": "Pops the top two i32 values off of the stack and pushes the result of of whether the first value is greater or equal the second back onto the stack."
+      "description": "Removes the top two integers from the stack, checks if the first is greater than or equal to the second, and pushes the result onto the stack."
     },
-
     {
       "name": "PRINTLN",
       "args": [ ],
-      "description": "Prints a newline and leaves the stack intact."
+      "description": "Outputs a newline while leaving the stack unchanged."
     },
     {
       "name": "PRINT_BOOL",
       "args": [ ],
-      "description": "Prints the bool on the top of stack and removes that item off of the stack."
+      "description": "Outputs the boolean value at the top of the stack and removes it from the stack."
     },
     {
       "name": "PRINT_I32",
       "args": [ ],
-      "description": "Prints the integer on the top of stack and removes that item off of the stack."
+      "description": "Outputs the integer value at the top of the stack and removes it from the stack."
     }
   ]
 }
