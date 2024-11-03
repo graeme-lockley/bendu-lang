@@ -106,7 +106,31 @@ class CompilerTest {
         }
 
         listOf(
+            Pair("True == False", Instructions.EQ_BOOL),
+            Pair("True != False", Instructions.NEQ_BOOL),
+        ).forEach { input ->
+            assertCompiledBC(
+                byteArrayOf(
+                    Instructions.PUSH_BOOL_TRUE.op,
+                    Instructions.PUSH_BOOL_FALSE.op,
+                    input.second.op,
+                ),
+                input.first
+            )
+        }
+
+//        assertCompiledBC(
+//            byteArrayOf(
+//                Instructions.PUSH_BOOL_TRUE.op,
+//                Instructions.PUSH_BOOL_TRUE.op,
+//                Instructions.EQ_I32.op
+//            ),
+//            "True || True"
+//        )
+
+        listOf(
             "True + False",
+            "False < True"
         ).forEach { input ->
             unsuccessfulCompile(input)
         }

@@ -76,10 +76,20 @@ pub const Runtime = struct {
         try self.stack.append(Pointer.fromInt(std.math.pow(i32, a, b)));
     }
 
+    pub inline fn eq_bool(self: *Runtime) !void {
+        const b = Pointer.asBool(self.pop());
+        const a = Pointer.asBool(self.pop());
+        try self.stack.append(Pointer.fromBool(a == b));
+    }
     pub inline fn eq_i32(self: *Runtime) !void {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromBool(a == b));
+    }
+    pub inline fn neq_bool(self: *Runtime) !void {
+        const b = Pointer.asBool(self.pop());
+        const a = Pointer.asBool(self.pop());
+        try self.stack.append(Pointer.fromBool(a != b));
     }
     pub inline fn neq_i32(self: *Runtime) !void {
         const b = Pointer.asInt(self.pop());

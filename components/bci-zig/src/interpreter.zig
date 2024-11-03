@@ -92,12 +92,26 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.pow_i32();
             },
 
+            .eq_bool => {
+                if (DEBUG) {
+                    std.debug.print("{d}: eq_bool\n", .{ip - 1});
+                }
+
+                try runtime.eq_bool();
+            },
             .eq_i32 => {
                 if (DEBUG) {
                     std.debug.print("{d}: eq_i32\n", .{ip - 1});
                 }
 
                 try runtime.eq_i32();
+            },
+            .neq_bool => {
+                if (DEBUG) {
+                    std.debug.print("{d}: neq_bool\n", .{ip - 1});
+                }
+
+                try runtime.neq_bool();
             },
             .neq_i32 => {
                 if (DEBUG) {
@@ -285,6 +299,18 @@ test "pow_i32" {
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 65536);
 }
 
+test "eq_bool" {
+    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+
+    const bc: [1]u8 = [_]u8{@intFromEnum(Op.eq_bool)};
+    try runtime.push_bool_true();
+    try runtime.push_bool_false();
+    try run(&bc, &runtime);
+
+    try std.testing.expectEqual(Pointer.asBool(runtime.pop()), false);
+}
+
 test "eq_i32" {
     var runtime = Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
@@ -292,6 +318,18 @@ test "eq_i32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.eq_i32)};
     try runtime.push_i32_literal(100);
     try runtime.push_i32_literal(100);
+    try run(&bc, &runtime);
+
+    try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
+}
+
+test "neq_bool" {
+    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+
+    const bc: [1]u8 = [_]u8{@intFromEnum(Op.neq_bool)};
+    try runtime.push_bool_true();
+    try runtime.push_bool_false();
     try run(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);

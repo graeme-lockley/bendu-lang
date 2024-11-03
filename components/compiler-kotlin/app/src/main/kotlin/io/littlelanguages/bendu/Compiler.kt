@@ -87,10 +87,37 @@ private class Compiler(val errors: Errors) {
                         Op.LessEqual -> byteBuilder.appendInstruction(Instructions.LE_I32)
                         Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.GT_I32)
                         Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.GE_I32)
-                        else -> TODO()
+                        else -> errors.addError(
+                            OperatorOperandTypeError(
+                                expression.op.op,
+                                expression.e1.type!!,
+                                setOf(typeInt),
+                                expression.e1.location()
+                            )
+                        )
+                    }
+                } else if (expression.e1.type!!.isBool()) {
+                    when (expression.op.op) {
+                        Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_BOOL)
+                        Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_BOOL)
+                        else -> errors.addError(
+                            OperatorOperandTypeError(
+                                expression.op.op,
+                                expression.e1.type!!,
+                                setOf(typeBool),
+                                expression.e1.location()
+                            )
+                        )
                     }
                 } else {
-                    errors.addError(OperatorOperandTypeError(expression.op.op, expression.e1.type!!, setOf(typeInt), expression.e1.location()))
+                    errors.addError(
+                        OperatorOperandTypeError(
+                            expression.op.op,
+                            expression.e1.type!!,
+                            setOf(typeInt),
+                            expression.e1.location()
+                        )
+                    )
                 }
             }
 

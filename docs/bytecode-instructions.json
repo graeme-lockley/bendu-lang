@@ -62,9 +62,19 @@
     },
 
     {
+      "name": "EQ_BOOL",
+      "args": [ ],
+      "description": "Pops the top two bool values off of the stack and pushes the result of of whether they are equal back onto the stack."
+    },
+    {
       "name": "EQ_I32",
       "args": [ ],
       "description": "Pops the top two i32 values off of the stack and pushes the result of of whether they are equal back onto the stack."
+    },
+    {
+      "name": "NEQ_BOOL",
+      "args": [ ],
+      "description": "Pops the top two bool values off of the stack and pushes the result of of whether they are not equal back onto the stack."
     },
     {
       "name": "NEQ_I32",
