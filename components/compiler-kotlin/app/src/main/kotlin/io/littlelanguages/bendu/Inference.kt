@@ -87,7 +87,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             expression.type = tv
 
             val u1 = TArr(expression.e1.type!!, TArr(expression.e2.type!!, tv))
-            val u2 = (operatorSignatures[expression.op.op] ?: Scheme(setOf(), typeError)).instantiate(env.pump)
+            val u2 = (binaryOperatorSignatures[expression.op.op] ?: Scheme(setOf(), typeError)).instantiate(env.pump)
 
             env.constraints.add(u1, u2)
         }
@@ -123,7 +123,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
     }
 }
 
-private val operatorSignatures = mapOf(
+private val binaryOperatorSignatures = mapOf(
     Pair(Op.And, Scheme(setOf(), TArr(typeBool, TArr(typeBool, typeBool)))),
     Pair(Op.Or, Scheme(setOf(), TArr(typeBool, TArr(typeBool, typeBool)))),
 
