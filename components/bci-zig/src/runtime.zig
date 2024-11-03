@@ -76,6 +76,37 @@ pub const Runtime = struct {
         try self.stack.append(Pointer.fromInt(std.math.pow(i32, a, b)));
     }
 
+    pub inline fn eq_i32(self: *Runtime) !void {
+        const b = Pointer.asInt(self.pop());
+        const a = Pointer.asInt(self.pop());
+        try self.stack.append(Pointer.fromBool(a == b));
+    }
+    pub inline fn neq_i32(self: *Runtime) !void {
+        const b = Pointer.asInt(self.pop());
+        const a = Pointer.asInt(self.pop());
+        try self.stack.append(Pointer.fromBool(a != b));
+    }
+    pub inline fn lt_i32(self: *Runtime) !void {
+        const b = Pointer.asInt(self.pop());
+        const a = Pointer.asInt(self.pop());
+        try self.stack.append(Pointer.fromBool(a < b));
+    }
+    pub inline fn le_i32(self: *Runtime) !void {
+        const b = Pointer.asInt(self.pop());
+        const a = Pointer.asInt(self.pop());
+        try self.stack.append(Pointer.fromBool(a <= b));
+    }
+    pub inline fn gt_i32(self: *Runtime) !void {
+        const b = Pointer.asInt(self.pop());
+        const a = Pointer.asInt(self.pop());
+        try self.stack.append(Pointer.fromBool(a > b));
+    }
+    pub inline fn ge_i32(self: *Runtime) !void {
+        const b = Pointer.asInt(self.pop());
+        const a = Pointer.asInt(self.pop());
+        try self.stack.append(Pointer.fromBool(a >= b));
+    }
+
     pub inline fn println(self: *Runtime) !void {
         _ = self;
 

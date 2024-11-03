@@ -80,6 +80,12 @@ class CompilerTest {
     @Test
     fun `v op v`() {
         listOf(
+            Pair("1 == 2", Instructions.EQ_I32),
+            Pair("1 != 2", Instructions.NEQ_I32),
+            Pair("1 < 2", Instructions.LT_I32),
+            Pair("1 <= 2", Instructions.LE_I32),
+            Pair("1 > 2", Instructions.GT_I32),
+            Pair("1 >= 2", Instructions.GE_I32),
             Pair("1 + 2", Instructions.ADD_I32),
             Pair("1 - 2", Instructions.SUB_I32),
             Pair("1 * 2", Instructions.MUL_I32),

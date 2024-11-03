@@ -60,6 +60,38 @@
       "args": [ ],
       "description": "Pops the top two i32 values off of the stack and pushes the result of raising the first value to the power of the second back onto the stack."
     },
+
+    {
+      "name": "EQ_I32",
+      "args": [ ],
+      "description": "Pops the top two i32 values off of the stack and pushes the result of of whether they are equal back onto the stack."
+    },
+    {
+      "name": "NEQ_I32",
+      "args": [ ],
+      "description": "Pops the top two i32 values off of the stack and pushes the result of of whether they are not equal back onto the stack."
+    },
+    {
+      "name": "LT_I32",
+      "args": [ ],
+      "description": "Pops the top two i32 values off of the stack and pushes the result of of whether the first value is less than the second back onto the stack."
+    },
+    {
+      "name": "LE_I32",
+      "args": [ ],
+      "description": "Pops the top two i32 values off of the stack and pushes the result of of whether the first value is less than or equal the second back onto the stack."
+    },
+    {
+      "name": "GT_I32",
+      "args": [ ],
+      "description": "Pops the top two i32 values off of the stack and pushes the result of of whether the first value is greater than the second back onto the stack."
+    },
+    {
+      "name": "GE_I32",
+      "args": [ ],
+      "description": "Pops the top two i32 values off of the stack and pushes the result of of whether the first value is greater or equal the second back onto the stack."
+    },
+
     {
       "name": "PRINTLN",
       "args": [ ],

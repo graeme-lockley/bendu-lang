@@ -81,6 +81,12 @@ private class Compiler(val errors: Errors) {
                         Op.Divide -> byteBuilder.appendInstruction(Instructions.DIV_I32)
                         Op.Modulo -> byteBuilder.appendInstruction(Instructions.MOD_I32)
                         Op.Power -> byteBuilder.appendInstruction(Instructions.POW_I32)
+                        Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_I32)
+                        Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_I32)
+                        Op.LessThan -> byteBuilder.appendInstruction(Instructions.LT_I32)
+                        Op.LessEqual -> byteBuilder.appendInstruction(Instructions.LE_I32)
+                        Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.GT_I32)
+                        Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.GE_I32)
                         else -> TODO()
                     }
                 } else {
