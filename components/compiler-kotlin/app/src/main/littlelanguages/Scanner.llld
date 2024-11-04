@@ -1,6 +1,12 @@
 tokens
+    LiteralChar = chr(39) (char | '\' ('\' | 'n' | chr(39))) chr(39);
+
+    LiteralFloat = ['-'] digits '.' digits [('e' | 'E') ['-'] digits];
     LiteralInt = ['-'] digits;
-    LowerID = id {digit | id};
+    LiteralString = '"' {char | '\' ('n' | '"' | ("x" digits ';'))} '"';
+
+    LowerID = lowerID {digit | id};
+    UpperID = upperID {digit | id};
 
 comments
    "--" {!cr};
@@ -9,7 +15,10 @@ whitespace
   chr(0)-' ';
 
 fragments
+  char = chr(32)-chr(38) + chr(40)-chr(91) + chr(93)-chr(255);
   digit = '0'-'9';
   digits = digit {digit};
   id = 'A'-'Z' + 'a'-'z';
+  lowerID = 'a'-'z';
+  upperID = 'A'-'Z';
   cr = chr(10);

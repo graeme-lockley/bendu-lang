@@ -30,7 +30,7 @@ if !fexists(targetName) || rebo.os.fstat(targetName).mtime < rebo.os.fstat(fileN
 
    println(" (", endTime - startTime, "ms)", ansi.control.reset)
 
-   if result.code != 0 -> {
+   if result.code != 0 || result.stderr != "" -> {
       println(ansi.foreground.red, "Error: ", ansi.control.reset, result.stderr)
       exit(1)
    }
