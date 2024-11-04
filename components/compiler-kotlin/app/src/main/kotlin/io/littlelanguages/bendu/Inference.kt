@@ -41,13 +41,13 @@ private fun inferStatement(statement: Statement, env: Environment) {
         is ExpressionStatement -> {
             inferExpression(statement.e, env)
 
-            statement.e.apply(env.constraints.solve(env.errors))
+            statement.e.apply(env.constraints.solve(env.errors), env.errors)
         }
 
         is LetStatement -> {
             inferExpression(statement.e, env)
 
-            statement.e.apply(env.constraints.solve(env.errors))
+            statement.e.apply(env.constraints.solve(env.errors), env.errors)
 
             env.bind(statement.id.value, statement.e.type!!)
         }
@@ -60,7 +60,7 @@ private fun inferStatement(statement: Statement, env: Environment) {
             val s = env.constraints.solve(env.errors)
 
             statement.es.forEach { e ->
-                e.apply(s)
+                e.apply(s, env.errors)
             }
         }
 
@@ -71,7 +71,7 @@ private fun inferStatement(statement: Statement, env: Environment) {
             val s = env.constraints.solve(env.errors)
 
             statement.es.forEach { e ->
-                e.apply(s)
+                e.apply(s, env.errors)
             }
         }
     }

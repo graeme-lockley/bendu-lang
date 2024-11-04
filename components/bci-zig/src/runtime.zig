@@ -69,12 +69,24 @@ pub const Runtime = struct {
     pub inline fn div_i32(self: *Runtime) !void {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
+
+        if (b == 0) {
+            try stdout.print("Error: Attempt to divide by zero\n", .{});
+            std.posix.exit(1);
+        }
+
         try self.stack.append(Pointer.fromInt(@divTrunc(a, b)));
     }
 
     pub inline fn mod_i32(self: *Runtime) !void {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
+
+        if (b == 0) {
+            try stdout.print("Error: Attempt to divide by zero\n", .{});
+            std.posix.exit(1);
+        }
+
         try self.stack.append(Pointer.fromInt(@mod(a, b)));
     }
 

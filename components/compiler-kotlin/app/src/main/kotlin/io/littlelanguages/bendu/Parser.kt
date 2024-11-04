@@ -22,7 +22,7 @@ data class PrintlnStatement(val es: List<Expression>) : Statement()
 data class ExpressionStatement(val e: Expression) : Statement()
 
 sealed class Expression(open var type: Type? = null) {
-    open fun apply(s: Subst) {
+    open fun apply(s: Subst, errors: Errors) {
         type = type!!.apply(s)
     }
 
@@ -50,10 +50,10 @@ data class BinaryExpression(
     val e2: Expression,
     override var type: Type? = null
 ) : Expression(type) {
-    override fun apply(s: Subst) {
-        super.apply(s)
-        e1.apply(s)
-        e2.apply(s)
+    override fun apply(s: Subst, errors: Errors) {
+        super.apply(s, errors)
+        e1.apply(s, errors)
+        e2.apply(s, errors)
     }
 
     override fun location(): Location =
@@ -65,9 +65,9 @@ data class UnaryExpression(
     val e: Expression,
     override var type: Type? = null
 ) : Expression(type) {
-    override fun apply(s: Subst) {
-        super.apply(s)
-        e.apply(s)
+    override fun apply(s: Subst, errors: Errors) {
+        super.apply(s, errors)
+        e.apply(s, errors)
     }
 
     override fun location(): Location =

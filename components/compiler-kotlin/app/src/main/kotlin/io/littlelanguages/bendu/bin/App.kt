@@ -4,6 +4,7 @@ import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
 import java.io.File
+import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
     val parser = ArgParser("bendu-compiler")
@@ -23,31 +24,20 @@ fun main(args: Array<String>) {
     }
 }
 
+private fun compileScript(scriptName: String, outputName: String) =
+    compileExpression(File(scriptName).readText(), outputName)
+
 private fun compileExpression(expression: String, outputName: String) {
     val errors = io.littlelanguages.bendu.Errors()
     val script = io.littlelanguages.bendu.infer(expression, errors = errors)
     val bc = io.littlelanguages.bendu.compile(script, errors)
 
     if (errors.hasErrors()) {
-        print("Errors: ")
-        println(errors)
-        return
+        for (e in errors) {
+            e.printError()
+        }
+        exitProcess(1)
     }
 
     File(outputName).writeBytes(bc)
 }
-
-private fun compileScript(scriptName: String, outputName: String) {
-    val errors = io.littlelanguages.bendu.Errors()
-    val script = io.littlelanguages.bendu.infer(File(scriptName).readText(), errors = errors)
-    val bc = io.littlelanguages.bendu.compile(script, errors)
-
-    if (errors.hasErrors()) {
-        print("Errors: ")
-        println(errors)
-        return
-    }
-
-    File(outputName).writeBytes(bc)
-}
-
