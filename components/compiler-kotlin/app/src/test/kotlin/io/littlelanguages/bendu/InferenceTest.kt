@@ -15,6 +15,11 @@ class InferenceTest {
     }
 
     @Test
+    fun `infer literal char`() {
+        assertInferExpressionEquals("'x'", "Char")
+    }
+
+    @Test
     fun `infer known lower ID`() {
         assertInferExpressionEquals("a", "Int", emptyTypeEnv + ("a" to emptyTypeEnv.generalise(typeInt)))
     }

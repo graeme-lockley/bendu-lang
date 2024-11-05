@@ -69,12 +69,13 @@ The following is the list of big features that need to be implemented.
 
 ## Char
 
-- [ ] Add the `Char` type to the language
-- [ ] Infer `Char` literal values
+- [x] Add the `Char` type to the language
+- [x] Infer `Char` literal values
 - [ ] Implement the `Char` type in the BC interpreter
 - [ ] Implement +, -, *, **, /
 - [ ] Implement ==, !=, <, <=, >, >=
 - [ ] Handle divide by zero
+- [ ] Add support for \x escape sequence
 
 ## Float
 

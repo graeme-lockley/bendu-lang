@@ -9,6 +9,7 @@ import io.littlelanguages.bendu.typeinference.Type
 import io.littlelanguages.bendu.typeinference.TypeEnv
 import io.littlelanguages.bendu.typeinference.emptyTypeEnv
 import io.littlelanguages.bendu.typeinference.typeBool
+import io.littlelanguages.bendu.typeinference.typeChar
 import io.littlelanguages.bendu.typeinference.typeError
 import io.littlelanguages.bendu.typeinference.typeInt
 
@@ -94,6 +95,9 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
         is LiteralBoolExpression ->
             expression.type = typeBool.withLocation(expression.location())
+
+        is LiteralCharExpression ->
+            expression.type = typeChar.withLocation(expression.location())
 
         is LiteralIntExpression ->
             expression.type = typeInt.withLocation(expression.location())
