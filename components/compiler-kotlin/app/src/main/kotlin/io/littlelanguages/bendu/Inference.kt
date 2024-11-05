@@ -120,6 +120,8 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
             env.constraints.add(u1, u2)
         }
+
+        else -> TODO()
     }
 }
 

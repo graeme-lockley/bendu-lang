@@ -51,7 +51,10 @@ Power
 Factor
     : "(" Expression ")"
     | LowerID
+    | LiteralChar
+    | LiteralFloat
     | LiteralInt
+    | LiteralString
     | "True"
     | "False"
     | "!" Factor

@@ -34,7 +34,22 @@ data class LiteralBoolExpression(val v: BoolLocation, override var type: Type? =
         v.location
 }
 
+data class LiteralCharExpression(val v: CharLocation, override var type: Type? = null) : Expression(type) {
+    override fun location(): Location =
+        v.location
+}
+
 data class LiteralIntExpression(val v: IntLocation, override var type: Type? = null) : Expression(type) {
+    override fun location(): Location =
+        v.location
+}
+
+data class LiteralFloatExpression(val v: FloatLocation, override var type: Type? = null) : Expression(type) {
+    override fun location(): Location =
+        v.location
+}
+
+data class LiteralStringExpression(val v: StringLocation, override var type: Type? = null) : Expression(type) {
     override fun location(): Location =
         v.location
 }
@@ -75,6 +90,8 @@ data class UnaryExpression(
 }
 
 data class BoolLocation(val value: Boolean, val location: Location)
+data class CharLocation(val value: Char, val location: Location)
+data class FloatLocation(val value: Float, val location: Location)
 data class IntLocation(val value: Int, val location: Location)
 data class StringLocation(val value: String, val location: Location)
 data class OpLocation(val op: Op, val location: Location)
@@ -192,7 +209,15 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     override fun visitFactor2(a: Token): Expression =
         LowerIDExpression(StringLocation(a.lexeme, a.location))
 
-    override fun visitFactor3(a: Token): Expression =
+    override fun visitFactor3(a: Token): Expression {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitFactor4(a: Token): Expression {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitFactor5(a: Token): Expression =
         try {
             LiteralIntExpression(IntLocation(a.lexeme.toInt(), a.location))
         } catch (_: NumberFormatException) {
@@ -200,13 +225,17 @@ private class ParserVisitor(val errors: Errors = Errors()) :
             LiteralIntExpression(IntLocation(Int.MAX_VALUE, a.location))
         }
 
-    override fun visitFactor4(a: Token): Expression =
+    override fun visitFactor6(a: Token): Expression {
+        TODO("Not yet implemented")
+    }
+
+    override fun visitFactor7(a: Token): Expression =
         LiteralBoolExpression(BoolLocation(true, a.location))
 
-    override fun visitFactor5(a: Token): Expression =
+    override fun visitFactor8(a: Token): Expression =
         LiteralBoolExpression(BoolLocation(false, a.location))
 
-    override fun visitFactor6(a1: Token, a2: Expression): Expression =
+    override fun visitFactor9(a1: Token, a2: Expression): Expression =
         UnaryExpression(UnaryOpLocation(UnaryOp.Not, a1.location), a2)
 }
 

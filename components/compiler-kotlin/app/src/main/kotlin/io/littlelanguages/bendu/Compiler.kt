@@ -158,6 +158,8 @@ private class Compiler(val errors: Errors) {
                 compileExpression(expression.e)
                 byteBuilder.appendInstruction(Instructions.NOT_BOOL)
             }
+
+            else -> TODO()
         }
     }
 }
