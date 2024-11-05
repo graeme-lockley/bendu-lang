@@ -71,6 +71,22 @@ class ParserTest {
             assertIs<InvalidLiteralError>(errors[0])
         }
     }
+
+    @Test
+    fun `literal char`() {
+        listOf(
+            Pair("'x'", 'x'),
+            Pair("'\\n'", '\n'),
+            Pair("'\\\\'", '\\'),
+            Pair("'\\''", '\''),
+        ).forEach { input ->
+            val statements = successfulParse(input.first, 1)
+
+            assertIs<ExpressionStatement>(statements[0])
+            assertIs<LiteralCharExpression>((statements[0] as ExpressionStatement).e)
+            assertEquals(((statements[0] as ExpressionStatement).e as LiteralCharExpression).v.value, input.second)
+        }
+    }
 }
 
 private fun successfulParse(input: String, numberOfStatements: Int): List<Statement> {

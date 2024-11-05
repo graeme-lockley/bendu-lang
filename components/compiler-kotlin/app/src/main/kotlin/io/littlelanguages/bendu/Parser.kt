@@ -210,7 +210,15 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         LowerIDExpression(StringLocation(a.lexeme, a.location))
 
     override fun visitFactor3(a: Token): Expression {
-        TODO("Not yet implemented")
+        if (a.lexeme.length == 3) {
+            return LiteralCharExpression(CharLocation(a.lexeme[1], a.location))
+        } else if (a.lexeme == "'\\n'") {
+            return LiteralCharExpression(CharLocation('\n', a.location))
+        } else if (a.lexeme == "'\\\\'") {
+            return LiteralCharExpression(CharLocation('\\', a.location))
+        } else {
+            return LiteralCharExpression(CharLocation('\'', a.location))
+        }
     }
 
     override fun visitFactor4(a: Token): Expression {
