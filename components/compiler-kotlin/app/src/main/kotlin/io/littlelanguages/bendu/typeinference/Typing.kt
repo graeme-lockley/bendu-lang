@@ -92,4 +92,6 @@ data class TArr(val domain: Type, val range: Type, override val location: Locati
 val typeError = TCon("Error")
 val typeBool = TCon("Bool")
 val typeChar = TCon("Char")
+val typeFloat = TCon("Float")
 val typeInt = TCon("Int")
+val typeString = TCon("String")

@@ -10,13 +10,23 @@ import kotlin.test.assertTrue
 
 class InferenceTest {
     @Test
+    fun `infer literal char`() {
+        assertInferExpressionEquals("'x'", "Char")
+    }
+
+    @Test
+    fun `infer literal float`() {
+        assertInferExpressionEquals("1.2", "Float")
+    }
+
+    @Test
     fun `infer literal int`() {
         assertInferExpressionEquals("1", "Int")
     }
 
     @Test
-    fun `infer literal char`() {
-        assertInferExpressionEquals("'x'", "Char")
+    fun `infer literal string`() {
+        assertInferExpressionEquals("\"Hello\"", "String")
     }
 
     @Test

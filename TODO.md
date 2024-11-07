@@ -79,8 +79,8 @@ The following is the list of big features that need to be implemented.
 
 ## Float
 
-- [ ] Add the `Float` type to the language
-- [ ] Infer `Float` literal values
+- [x] Add the `Float` type to the language
+- [x] Infer `Float` literal values
 - [ ] Implement the `Float` type in the BC interpreter
 - [ ] Implement +, -, *, **, /
 - [ ] Implement ==, !=, <, <=, >, >=
@@ -120,10 +120,9 @@ The following is the list of big features that need to be implemented.
 
 ## String
 
-- [ ] Add the `String` type to the language
-- [ ] Infer `String` literal values
+- [x] Add the `String` type to the language
+- [x] Infer `String` literal values
 - [ ] Implement the `String` type in the BC interpreter
-- [ ] Integrate into main so that the value can be viewed.
 - [ ] Implement +
 - [ ] Implement ==, !=, <, <=, >, >=
 
