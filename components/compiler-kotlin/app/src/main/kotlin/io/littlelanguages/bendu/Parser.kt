@@ -221,9 +221,13 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         }
     }
 
-    override fun visitFactor4(a: Token): Expression {
-        TODO("Not yet implemented")
-    }
+    override fun visitFactor4(a: Token): Expression =
+        try {
+            LiteralFloatExpression(FloatLocation(a.lexeme.toFloat(), a.location))
+        } catch (_: NumberFormatException) {
+            errors.addError(InvalidLiteralError(a.lexeme, a.location))
+            LiteralFloatExpression(FloatLocation(Float.MAX_VALUE, a.location))
+        }
 
     override fun visitFactor5(a: Token): Expression =
         try {
@@ -234,7 +238,40 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         }
 
     override fun visitFactor6(a: Token): Expression {
-        TODO("Not yet implemented")
+        val sb = StringBuilder()
+
+        var lp = 1
+        while (true) {
+            val c = a.lexeme[lp]
+            if (c == '"') {
+                break
+            } else if (c == '\\') {
+                val nc = a.lexeme[lp + 1]
+
+                if (nc == 'x') {
+                    lp += 2
+                    val start = lp
+                    while (a.lexeme[lp] != ';') {
+                        lp += 1
+                    }
+                    val code = a.lexeme.substring(start, lp)
+                    sb.append(code.toInt().toChar())
+                    lp += 1
+                } else {
+                    when (nc) {
+                        'n' -> sb.append('\n')
+                        '\\' -> sb.append('\\')
+                        '\'' -> sb.append('\'')
+                        '"' -> sb.append('"')
+                    }
+                    lp += 2
+                }
+            } else {
+                sb.append(c)
+                lp += 1
+            }
+        }
+        return LiteralStringExpression(StringLocation(sb.toString(), a.location))
     }
 
     override fun visitFactor7(a: Token): Expression =

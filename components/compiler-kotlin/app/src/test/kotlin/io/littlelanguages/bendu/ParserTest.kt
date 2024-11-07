@@ -87,6 +87,41 @@ class ParserTest {
             assertEquals(((statements[0] as ExpressionStatement).e as LiteralCharExpression).v.value, input.second)
         }
     }
+
+    @Test
+    fun `literal float`() {
+        listOf(
+            Pair("1.0", 1.0.toFloat()),
+            Pair("1.0e5", 100000.0.toFloat()),
+            Pair("1.0e-5", 0.00001.toFloat()),
+            Pair("-3.14159265", (-3.14159265).toFloat()),
+        ).forEach { input ->
+            val statements = successfulParse(input.first, 1)
+
+            assertIs<ExpressionStatement>(statements[0])
+            assertIs<LiteralFloatExpression>((statements[0] as ExpressionStatement).e)
+            assertEquals(((statements[0] as ExpressionStatement).e as LiteralFloatExpression).v.value, input.second)
+        }
+    }
+
+    @Test
+    fun `literal string`() {
+        listOf(
+            Pair("\"\"", ""),
+            Pair("\"hello world\"", "hello world"),
+            Pair("\"[\\n]\"", "[\n]"),
+            Pair("\"[\\\\]\"", "[\\]"),
+            Pair("\"[\\\"]\"", "[\"]"),
+            Pair("\"[\\x32;]\"", "[ ]"),
+        ).forEach { input ->
+            val statements = successfulParse(input.first, 1)
+
+            assertIs<ExpressionStatement>(statements[0])
+            assertIs<LiteralStringExpression>((statements[0] as ExpressionStatement).e)
+            assertEquals(((statements[0] as ExpressionStatement).e as LiteralStringExpression).v.value, input.second)
+        }
+
+    }
 }
 
 private fun successfulParse(input: String, numberOfStatements: Int): List<Statement> {
