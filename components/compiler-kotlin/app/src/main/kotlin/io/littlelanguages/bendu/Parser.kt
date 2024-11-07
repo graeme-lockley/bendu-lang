@@ -261,7 +261,6 @@ private class ParserVisitor(val errors: Errors = Errors()) :
                     when (nc) {
                         'n' -> sb.append('\n')
                         '\\' -> sb.append('\\')
-                        '\'' -> sb.append('\'')
                         '"' -> sb.append('"')
                     }
                     lp += 2
