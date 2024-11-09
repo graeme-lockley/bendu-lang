@@ -34,11 +34,19 @@ pub const Runtime = struct {
         try self.stack.append(Pointer.fromInt(0));
     }
 
+    pub inline fn push_f32_literal(self: *Runtime, value: f32) !void {
+        try self.stack.append(Pointer.fromFloat(value));
+    }
+
     pub inline fn push_i32_literal(self: *Runtime, value: i32) !void {
         try self.stack.append(Pointer.fromInt(value));
     }
 
-    pub inline fn push_i32_stack(self: *Runtime, index: i32) !void {
+    pub inline fn push_u8_literal(self: *Runtime, value: u8) !void {
+        try self.stack.append(Pointer.fromChar(value));
+    }
+
+    pub inline fn push_stack(self: *Runtime, index: i32) !void {
         const value = self.stack.items[@intCast(index)];
         try self.stack.append(value);
     }

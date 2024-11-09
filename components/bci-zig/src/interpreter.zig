@@ -28,7 +28,16 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
                 try runtime.push_bool_false();
             },
+            .push_f32_literal => {
+                const value = readf32(bc, ip);
 
+                if (DEBUG) {
+                    std.debug.print("{d}: push_f32_literal: value={d}\n", .{ ip - 1, value });
+                }
+
+                try runtime.push_f32_literal(value);
+                ip += 4;
+            },
             .push_i32_literal => {
                 const value = readi32(bc, ip);
 
@@ -39,14 +48,24 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.push_i32_literal(value);
                 ip += 4;
             },
-            .push_i32_stack => {
+            .push_u8_literal => {
+                const value = bc[ip];
+
+                if (DEBUG) {
+                    std.debug.print("{d}: push_u8_literal: value={d}\n", .{ ip - 1, value });
+                }
+
+                try runtime.push_u8_literal(value);
+                ip += 1;
+            },
+            .push_stack => {
                 const index = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d}: push_i32_stack: offset={d}, value={d}\n", .{ ip - 1, index, Pointer.asInt(runtime.stack.items[@intCast(index)]) });
+                    std.debug.print("{d}: push_stack: offset={d}\n", .{ ip - 1, index });
                 }
 
-                try runtime.push_i32_stack(index);
+                try runtime.push_stack(index);
                 ip += 4;
             },
             .discard => {
@@ -217,7 +236,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
                 try runtime.print_i32();
             },
-            // else => std.debug.panic("unknown op code: {d}\n", .{op}),
+            // else => std.debug.panic("unknown op code\n", .{}),
         }
     }
 }
@@ -226,6 +245,15 @@ fn readi32(bc: []const u8, ip: usize) i32 {
     // std.io.getStdOut().writer().print("readInt: bc.len={d}, ip={d}\n", .{ bc.len, ip }) catch {};
 
     const v: i32 = @bitCast(@as(u32, (bc[ip + 3])) |
+        (@as(u32, bc[ip + 2]) << 8) |
+        (@as(u32, bc[ip + 1]) << 16) |
+        (@as(u32, bc[ip]) << 24));
+
+    return v;
+}
+
+fn readf32(bc: []const u8, ip: usize) f32 {
+    const v: f32 = @bitCast(@as(u32, (bc[ip + 3])) |
         (@as(u32, bc[ip + 2]) << 8) |
         (@as(u32, bc[ip + 1]) << 16) |
         (@as(u32, bc[ip]) << 24));
@@ -253,6 +281,16 @@ test "push_bool_false" {
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), false);
 }
 
+test "push_f32_literal" {
+    const bc: [5]u8 = [_]u8{ @intFromEnum(Op.push_f32_literal), 0, 1, 0, 0 };
+    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+    try run(&bc, &runtime);
+
+    try std.testing.expectEqual(runtime.stack.items.len, 1);
+    try std.testing.expectEqual(Pointer.asFloat(runtime.pop()), 9.1835e-41);
+}
+
 test "push_i32_literal" {
     const bc: [5]u8 = [_]u8{ @intFromEnum(Op.push_i32_literal), 0, 0, 0, 42 };
     var runtime = Runtime.Runtime.init(std.testing.allocator);
@@ -263,8 +301,18 @@ test "push_i32_literal" {
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 42);
 }
 
-test "push_i32_stack" {
-    const bc: [5]u8 = [_]u8{ @intFromEnum(Op.push_i32_stack), 0, 0, 0, 0 };
+test "push_u8_literal" {
+    const bc: [2]u8 = [_]u8{ @intFromEnum(Op.push_u8_literal), 42 };
+    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+    try run(&bc, &runtime);
+
+    try std.testing.expectEqual(runtime.stack.items.len, 1);
+    try std.testing.expectEqual(Pointer.asChar(runtime.pop()), 42);
+}
+
+test "push_stack" {
+    const bc: [5]u8 = [_]u8{ @intFromEnum(Op.push_stack), 0, 0, 0, 0 };
     var runtime = Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
     try runtime.push_i32_literal(100);

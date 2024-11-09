@@ -25,7 +25,7 @@ class CompilerTest {
             byteArrayOf(
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 1, // 1
-                Instructions.PUSH_I32_STACK.op,
+                Instructions.PUSH_STACK.op,
                 0, 0, 0, 0 // x
             ),
             "let x = 1 ; let y = x"

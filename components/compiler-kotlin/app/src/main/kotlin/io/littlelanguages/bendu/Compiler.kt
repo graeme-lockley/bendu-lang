@@ -150,7 +150,7 @@ private class Compiler(val errors: Errors) {
                 val offset = bindings[expression.v.value]
                     ?: throw IllegalArgumentException("${expression.v.value} referenced at ${expression.v.location} not found")
 
-                byteBuilder.appendInstruction(Instructions.PUSH_I32_STACK)
+                byteBuilder.appendInstruction(Instructions.PUSH_STACK)
                 byteBuilder.appendInt(offset)
             }
 

@@ -41,34 +41,14 @@
       "description": "Adds a specified char to the stack."
     },
     {
-      "name": "PUSH_F32_STACK",
-      "args": [
-        {
-          "name": "stack_index",
-          "type": "f32"
-        }
-      ],
-      "description": "Pushes an integer from a specific position in the stack onto the top."
-    },
-    {
-      "name": "PUSH_I32_STACK",
+      "name": "PUSH_STACK",
       "args": [
         {
           "name": "stack_index",
           "type": "u32"
         }
       ],
-      "description": "Pushes an integer from a specific position in the stack onto the top."
-    },
-    {
-      "name": "PUSH_U8_STACK",
-      "args": [
-        {
-          "name": "stack_index",
-          "type": "u8"
-        }
-      ],
-      "description": "Pushes an char from a specific position in the stack onto the top."
+      "description": "Pushes a value from a specific position in the stack onto the top."
     },
     {
       "name": "DISCARD",
