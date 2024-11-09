@@ -11,6 +11,16 @@
       "description": "Places the value 'false' onto the stack."
     },
     {
+      "name": "PUSH_F32_LITERAL",
+      "args": [
+        {
+          "name": "literal_value",
+          "type": "f32"
+        }
+      ],
+      "description": "Adds a specified float to the stack."
+    },
+    {
       "name": "PUSH_I32_LITERAL",
       "args": [
         {
@@ -21,6 +31,26 @@
       "description": "Adds a specified integer to the stack."
     },
     {
+      "name": "PUSH_U8_LITERAL",
+      "args": [
+        {
+          "name": "literal_value",
+          "type": "u8"
+        }
+      ],
+      "description": "Adds a specified char to the stack."
+    },
+    {
+      "name": "PUSH_F32_STACK",
+      "args": [
+        {
+          "name": "stack_index",
+          "type": "f32"
+        }
+      ],
+      "description": "Pushes an integer from a specific position in the stack onto the top."
+    },
+    {
       "name": "PUSH_I32_STACK",
       "args": [
         {
@@ -29,6 +59,16 @@
         }
       ],
       "description": "Pushes an integer from a specific position in the stack onto the top."
+    },
+    {
+      "name": "PUSH_U8_STACK",
+      "args": [
+        {
+          "name": "stack_index",
+          "type": "u8"
+        }
+      ],
+      "description": "Pushes an char from a specific position in the stack onto the top."
     },
     {
       "name": "DISCARD",

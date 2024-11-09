@@ -1,0 +1,30 @@
+#!/usr/bin/env rebo
+
+rebo.lang["import.verbose"] := false
+
+let FS = import("fs")
+let JSON = import("json")
+let Path = import("path")
+let Str = import("str")
+
+let projectHome = (Path.join(cwd(), rebo.args[1]) |> Path.dir()) + "/.."
+
+let instructions = FS.readFile(Path.join(projectHome, "docs/bytecode-instructions.json")) |> JSON.parse()
+
+let zigOut = ["pub const Op = enum(u8) {"]
+each(instructions.instructions, fn (instruction) zigOut <! "    " + Str.lower(instruction.name) + ",")
+zigOut <! "};"
+
+println("Writing to components/bci-zig/src/op.zig")
+FS.writeFile(Path.join(projectHome, "components/bci-zig/src/op.zig"), zigOut |> join("\n"))
+
+let kotlinOut = [
+    "package io.littlelanguages.bendu.compiler",
+    "",
+    "enum class Instructions(val op: Byte) {"
+]
+each(instructions.instructions, fn (instruction, idx) kotlinOut <! "    " + Str.upper(instruction.name) + "(" + str(idx) + "),")
+kotlinOut <! "}"
+
+println("Writing to components/compiler-kotlin/app/src/main/kotlin/io/littlelanguages/bendu/compiler/Instructions.kt")
+FS.writeFile(Path.join(projectHome, "components/compiler-kotlin/app/src/main/kotlin/io/littlelanguages/bendu/compiler/Instructions.kt"), kotlinOut |> join("\n"))

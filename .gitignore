@@ -5,3 +5,5 @@ components/compiler-kotlin/*.bc
 components/compiler-kotlin/*.bendu
 
 settings.json
+components/compiler-kotlin/app/src/main/kotlin/io/littlelanguages/bendu/compiler/Instructions.kt
+components/bci-zig/src/op.zig
