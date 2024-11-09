@@ -15,8 +15,9 @@ let zigOut = ["pub const Op = enum(u8) {"]
 each(instructions.instructions, fn (instruction) zigOut <! "    " + Str.lower(instruction.name) + ",")
 zigOut <! "};"
 
-println("Writing to components/bci-zig/src/op.zig")
-FS.writeFile(Path.join(projectHome, "components/bci-zig/src/op.zig"), zigOut |> join("\n"))
+let zigFileName = "components/bci-zig/src/op.zig"
+println("Writing to "+ zigFileName)
+FS.writeFile(Path.join(projectHome, zigFileName), zigOut |> join("\n"))
 
 let kotlinOut = [
     "package io.littlelanguages.bendu.compiler",
@@ -26,5 +27,6 @@ let kotlinOut = [
 each(instructions.instructions, fn (instruction, idx) kotlinOut <! "    " + Str.upper(instruction.name) + "(" + str(idx) + "),")
 kotlinOut <! "}"
 
-println("Writing to components/compiler-kotlin/app/src/main/kotlin/io/littlelanguages/bendu/compiler/Instructions.kt")
-FS.writeFile(Path.join(projectHome, "components/compiler-kotlin/app/src/main/kotlin/io/littlelanguages/bendu/compiler/Instructions.kt"), kotlinOut |> join("\n"))
+let kotlinFileName = "components/compiler-kotlin/app/src/main/kotlin/io/littlelanguages/bendu/compiler/Instructions.kt"
+println("Writing to "+ kotlinFileName)
+FS.writeFile(Path.join(projectHome, kotlinFileName), kotlinOut |> join("\n"))
