@@ -55,6 +55,10 @@ private class Compiler(val errors: Errors) {
 
             if (e.type!!.isBool())
                 byteBuilder.appendInstruction(Instructions.PRINT_BOOL)
+            else if (e.type!!.isChar())
+                byteBuilder.appendInstruction(Instructions.PRINT_U8)
+            else if (e.type!!.isFloat())
+                byteBuilder.appendInstruction(Instructions.PRINT_F32)
             else if (e.type!!.isInt())
                 byteBuilder.appendInstruction(Instructions.PRINT_I32)
             else

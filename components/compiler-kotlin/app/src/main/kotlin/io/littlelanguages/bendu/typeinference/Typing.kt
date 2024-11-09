@@ -13,6 +13,8 @@ sealed class Type(open val location: Location?) {
     abstract fun isSimilar(other: Type): Boolean
 
     open fun isBool(): Boolean = false
+    open fun isChar(): Boolean = false
+    open fun isFloat(): Boolean = false
     open fun isInt(): Boolean = false
 }
 
@@ -43,7 +45,8 @@ data class TCon(val name: String, val args: List<Type> = emptyList(), override v
         TCon(name, args, location)
 
     override fun isSimilar(other: Type): Boolean =
-        other is TCon && other.name == name && other.args.size == args.size && args.zip(other.args).all { (a, b) -> a.isSimilar(b) }
+        other is TCon && other.name == name && other.args.size == args.size && args.zip(other.args)
+            .all { (a, b) -> a.isSimilar(b) }
 
     override fun toString(): String = if (args.isEmpty()) name else "$name ${
         args.joinToString(" ") { if (it is TCon && it.args.isNotEmpty() || it is TArr) "($it)" else "$it" }
@@ -52,8 +55,15 @@ data class TCon(val name: String, val args: List<Type> = emptyList(), override v
     override fun isBool(): Boolean =
         name == "Bool"
 
+    override fun isChar(): Boolean =
+        name == "Char"
+
+    override fun isFloat(): Boolean =
+        name == "Float"
+
     override fun isInt(): Boolean =
         name == "Int"
+
 }
 
 data class TTuple(val types: List<Type>, override val location: Location? = null) : Type(location) {

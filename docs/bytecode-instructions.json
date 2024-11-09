@@ -161,6 +161,16 @@
       "description": "Outputs the boolean value at the top of the stack and removes it from the stack."
     },
     {
+      "name": "PRINT_U8",
+      "args": [ ],
+      "description": "Outputs the u8 value at the top of the stack and removes it from the stack."
+    },
+    {
+      "name": "PRINT_F32",
+      "args": [ ],
+      "description": "Outputs the f32 value at the top of the stack and removes it from the stack."
+    },
+    {
       "name": "PRINT_I32",
       "args": [ ],
       "description": "Outputs the integer value at the top of the stack and removes it from the stack."

@@ -228,6 +228,14 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
                 try runtime.print_bool();
             },
+            .print_f32 => {
+                if (DEBUG) {
+                    const value = runtime.peek();
+                    std.debug.print("{d}: print_f32: value={d}\n", .{ ip - 1, Pointer.asInt(value) });
+                }
+
+                try runtime.print_f32();
+            },
             .print_i32 => {
                 if (DEBUG) {
                     const value = runtime.peek();
@@ -235,6 +243,14 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 }
 
                 try runtime.print_i32();
+            },
+            .print_u8 => {
+                if (DEBUG) {
+                    const value = runtime.peek();
+                    std.debug.print("{d}: print_u8: value={c}\n", .{ ip - 1, Pointer.asChar(value) });
+                }
+
+                try runtime.print_u8();
             },
             // else => std.debug.panic("unknown op code\n", .{}),
         }

@@ -157,9 +157,21 @@ pub const Runtime = struct {
         try stdout.print("{s}", .{if (value) "True" else "False"});
     }
 
+    pub inline fn print_f32(self: *Runtime) !void {
+        const value = Pointer.asFloat(self.pop());
+
+        try stdout.print("{d}", .{value});
+    }
+
     pub inline fn print_i32(self: *Runtime) !void {
         const value = Pointer.asInt(self.pop());
 
         try stdout.print("{d}", .{value});
+    }
+
+    pub inline fn print_u8(self: *Runtime) !void {
+        const value = Pointer.asChar(self.pop());
+
+        try stdout.print("{c}", .{value});
     }
 };
