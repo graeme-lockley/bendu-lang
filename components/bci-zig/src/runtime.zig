@@ -56,24 +56,65 @@ pub const Runtime = struct {
         try self.stack.append(Pointer.fromBool(!value));
     }
 
+    pub inline fn add_f32(self: *Runtime) !void {
+        const b = Pointer.asFloat(self.pop());
+        const a = Pointer.asFloat(self.pop());
+        try self.stack.append(Pointer.fromFloat(a + b));
+    }
     pub inline fn add_i32(self: *Runtime) !void {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromInt(a + b));
     }
+    pub inline fn add_u8(self: *Runtime) !void {
+        const b = Pointer.asChar(self.pop());
+        const a = Pointer.asChar(self.pop());
+        try self.stack.append(Pointer.fromChar(a + b));
+    }
 
+    pub inline fn sub_f32(self: *Runtime) !void {
+        const b = Pointer.asFloat(self.pop());
+        const a = Pointer.asFloat(self.pop());
+        try self.stack.append(Pointer.fromFloat(a - b));
+    }
     pub inline fn sub_i32(self: *Runtime) !void {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromInt(a - b));
     }
+    pub inline fn sub_u8(self: *Runtime) !void {
+        const b = Pointer.asChar(self.pop());
+        const a = Pointer.asChar(self.pop());
+        try self.stack.append(Pointer.fromChar(a - b));
+    }
 
+    pub inline fn mul_f32(self: *Runtime) !void {
+        const b = Pointer.asFloat(self.pop());
+        const a = Pointer.asFloat(self.pop());
+        try self.stack.append(Pointer.fromFloat(a * b));
+    }
     pub inline fn mul_i32(self: *Runtime) !void {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromInt(a * b));
     }
+    pub inline fn mul_u8(self: *Runtime) !void {
+        const b = Pointer.asChar(self.pop());
+        const a = Pointer.asChar(self.pop());
+        try self.stack.append(Pointer.fromChar(a * b));
+    }
 
+    pub inline fn div_f32(self: *Runtime) !void {
+        const b = Pointer.asFloat(self.pop());
+        const a = Pointer.asFloat(self.pop());
+
+        if (b == 0.0) {
+            try stdout.print("Error: Attempt to divide by zero\n", .{});
+            std.posix.exit(1);
+        }
+
+        try self.stack.append(Pointer.fromFloat(a / b));
+    }
     pub inline fn div_i32(self: *Runtime) !void {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
@@ -84,6 +125,17 @@ pub const Runtime = struct {
         }
 
         try self.stack.append(Pointer.fromInt(@divTrunc(a, b)));
+    }
+    pub inline fn div_u8(self: *Runtime) !void {
+        const b = Pointer.asChar(self.pop());
+        const a = Pointer.asChar(self.pop());
+
+        if (b == 0) {
+            try stdout.print("Error: Attempt to divide by zero\n", .{});
+            std.posix.exit(1);
+        }
+
+        try self.stack.append(Pointer.fromChar(a / b));
     }
 
     pub inline fn mod_i32(self: *Runtime) !void {
@@ -98,6 +150,11 @@ pub const Runtime = struct {
         try self.stack.append(Pointer.fromInt(@mod(a, b)));
     }
 
+    pub inline fn pow_f32(self: *Runtime) !void {
+        const b = Pointer.asFloat(self.pop());
+        const a = Pointer.asFloat(self.pop());
+        try self.stack.append(Pointer.fromFloat(std.math.pow(f32, a, b)));
+    }
     pub inline fn pow_i32(self: *Runtime) !void {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
@@ -109,14 +166,30 @@ pub const Runtime = struct {
         const a = Pointer.asBool(self.pop());
         try self.stack.append(Pointer.fromBool(a == b));
     }
+    pub inline fn eq_f32(self: *Runtime) !void {
+        const b = Pointer.asFloat(self.pop());
+        const a = Pointer.asFloat(self.pop());
+        try self.stack.append(Pointer.fromBool(a == b));
+    }
     pub inline fn eq_i32(self: *Runtime) !void {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromBool(a == b));
     }
+    pub inline fn eq_u8(self: *Runtime) !void {
+        const b = Pointer.asChar(self.pop());
+        const a = Pointer.asChar(self.pop());
+        try self.stack.append(Pointer.fromBool(a == b));
+    }
+
     pub inline fn neq_bool(self: *Runtime) !void {
         const b = Pointer.asBool(self.pop());
         const a = Pointer.asBool(self.pop());
+        try self.stack.append(Pointer.fromBool(a != b));
+    }
+    pub inline fn neq_f32(self: *Runtime) !void {
+        const b = Pointer.asFloat(self.pop());
+        const a = Pointer.asFloat(self.pop());
         try self.stack.append(Pointer.fromBool(a != b));
     }
     pub inline fn neq_i32(self: *Runtime) !void {
@@ -124,24 +197,73 @@ pub const Runtime = struct {
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromBool(a != b));
     }
+    pub inline fn neq_u8(self: *Runtime) !void {
+        const b = Pointer.asChar(self.pop());
+        const a = Pointer.asChar(self.pop());
+        try self.stack.append(Pointer.fromBool(a != b));
+    }
+
+    pub inline fn lt_f32(self: *Runtime) !void {
+        const b = Pointer.asFloat(self.pop());
+        const a = Pointer.asFloat(self.pop());
+        try self.stack.append(Pointer.fromBool(a < b));
+    }
     pub inline fn lt_i32(self: *Runtime) !void {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromBool(a < b));
+    }
+    pub inline fn lt_u8(self: *Runtime) !void {
+        const b = Pointer.asChar(self.pop());
+        const a = Pointer.asChar(self.pop());
+        try self.stack.append(Pointer.fromBool(a < b));
+    }
+
+    pub inline fn le_f32(self: *Runtime) !void {
+        const b = Pointer.asFloat(self.pop());
+        const a = Pointer.asFloat(self.pop());
+        try self.stack.append(Pointer.fromBool(a <= b));
     }
     pub inline fn le_i32(self: *Runtime) !void {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromBool(a <= b));
     }
+    pub inline fn le_u8(self: *Runtime) !void {
+        const b = Pointer.asChar(self.pop());
+        const a = Pointer.asChar(self.pop());
+        try self.stack.append(Pointer.fromBool(a <= b));
+    }
+
+    pub inline fn gt_f32(self: *Runtime) !void {
+        const b = Pointer.asFloat(self.pop());
+        const a = Pointer.asFloat(self.pop());
+        try self.stack.append(Pointer.fromBool(a > b));
+    }
     pub inline fn gt_i32(self: *Runtime) !void {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromBool(a > b));
     }
+    pub inline fn gt_u8(self: *Runtime) !void {
+        const b = Pointer.asChar(self.pop());
+        const a = Pointer.asChar(self.pop());
+        try self.stack.append(Pointer.fromBool(a > b));
+    }
+
+    pub inline fn ge_f32(self: *Runtime) !void {
+        const b = Pointer.asFloat(self.pop());
+        const a = Pointer.asFloat(self.pop());
+        try self.stack.append(Pointer.fromBool(a >= b));
+    }
     pub inline fn ge_i32(self: *Runtime) !void {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
+        try self.stack.append(Pointer.fromBool(a >= b));
+    }
+    pub inline fn ge_u8(self: *Runtime) !void {
+        const b = Pointer.asChar(self.pop());
+        const a = Pointer.asChar(self.pop());
         try self.stack.append(Pointer.fromBool(a >= b));
     }
 

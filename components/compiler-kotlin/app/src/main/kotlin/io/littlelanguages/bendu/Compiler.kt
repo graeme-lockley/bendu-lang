@@ -3,6 +3,8 @@ package io.littlelanguages.bendu
 import io.littlelanguages.bendu.compiler.ByteBuilder
 import io.littlelanguages.bendu.compiler.Instructions
 import io.littlelanguages.bendu.typeinference.typeBool
+import io.littlelanguages.bendu.typeinference.typeChar
+import io.littlelanguages.bendu.typeinference.typeFloat
 import io.littlelanguages.bendu.typeinference.typeInt
 import java.lang.IllegalArgumentException
 
@@ -89,7 +91,63 @@ private class Compiler(val errors: Errors) {
                     compileExpression(expression.e1)
                     compileExpression(expression.e2)
 
-                    if (expression.e1.type!!.isInt()) {
+                    if (expression.e1.type!!.isBool()) {
+                        when (expression.op.op) {
+                            Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_BOOL)
+                            Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_BOOL)
+                            else -> errors.addError(
+                                OperatorOperandTypeError(
+                                    expression.op.op,
+                                    expression.e1.type!!,
+                                    setOf(typeBool),
+                                    expression.e1.location()
+                                )
+                            )
+                        }
+                    } else if (expression.e1.type!!.isChar()) {
+                        when (expression.op.op) {
+                            Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_U8)
+                            Op.Minus -> byteBuilder.appendInstruction(Instructions.SUB_U8)
+                            Op.Multiply -> byteBuilder.appendInstruction(Instructions.MUL_U8)
+                            Op.Divide -> byteBuilder.appendInstruction(Instructions.DIV_U8)
+                            Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_U8)
+                            Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_U8)
+                            Op.LessThan -> byteBuilder.appendInstruction(Instructions.LT_U8)
+                            Op.LessEqual -> byteBuilder.appendInstruction(Instructions.LE_U8)
+                            Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.GT_U8)
+                            Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.GE_U8)
+                            else -> errors.addError(
+                                OperatorOperandTypeError(
+                                    expression.op.op,
+                                    expression.e1.type!!,
+                                    setOf(typeChar, typeFloat, typeInt),
+                                    expression.e1.location()
+                                )
+                            )
+                        }
+                    } else if (expression.e1.type!!.isFloat()) {
+                        when (expression.op.op) {
+                            Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_F32)
+                            Op.Minus -> byteBuilder.appendInstruction(Instructions.SUB_F32)
+                            Op.Multiply -> byteBuilder.appendInstruction(Instructions.MUL_F32)
+                            Op.Divide -> byteBuilder.appendInstruction(Instructions.DIV_F32)
+                            Op.Power -> byteBuilder.appendInstruction(Instructions.POW_F32)
+                            Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_F32)
+                            Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_F32)
+                            Op.LessThan -> byteBuilder.appendInstruction(Instructions.LT_F32)
+                            Op.LessEqual -> byteBuilder.appendInstruction(Instructions.LE_F32)
+                            Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.GT_F32)
+                            Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.GE_F32)
+                            else -> errors.addError(
+                                OperatorOperandTypeError(
+                                    expression.op.op,
+                                    expression.e1.type!!,
+                                    setOf(typeChar, typeFloat, typeInt),
+                                    expression.e1.location()
+                                )
+                            )
+                        }
+                    } else if (expression.e1.type!!.isInt()) {
                         when (expression.op.op) {
                             Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_I32)
                             Op.Minus -> byteBuilder.appendInstruction(Instructions.SUB_I32)
@@ -107,20 +165,7 @@ private class Compiler(val errors: Errors) {
                                 OperatorOperandTypeError(
                                     expression.op.op,
                                     expression.e1.type!!,
-                                    setOf(typeInt),
-                                    expression.e1.location()
-                                )
-                            )
-                        }
-                    } else if (expression.e1.type!!.isBool()) {
-                        when (expression.op.op) {
-                            Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_BOOL)
-                            Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_BOOL)
-                            else -> errors.addError(
-                                OperatorOperandTypeError(
-                                    expression.op.op,
-                                    expression.e1.type!!,
-                                    setOf(typeBool),
+                                    setOf(typeChar, typeFloat, typeInt),
                                     expression.e1.location()
                                 )
                             )
@@ -130,7 +175,7 @@ private class Compiler(val errors: Errors) {
                             OperatorOperandTypeError(
                                 expression.op.op,
                                 expression.e1.type!!,
-                                setOf(typeInt),
+                                setOf(typeChar, typeFloat, typeInt),
                                 expression.e1.location()
                             )
                         )

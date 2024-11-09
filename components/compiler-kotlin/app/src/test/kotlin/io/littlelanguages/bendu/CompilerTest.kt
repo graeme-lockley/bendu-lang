@@ -119,6 +119,55 @@ class CompilerTest {
     @Test
     fun `v op v`() {
         listOf(
+            Pair("'x' == 'y'", Instructions.EQ_U8),
+            Pair("'x' != 'y'", Instructions.NEQ_U8),
+            Pair("'x' < 'y'", Instructions.LT_U8),
+            Pair("'x' <= 'y'", Instructions.LE_U8),
+            Pair("'x' > 'y'", Instructions.GT_U8),
+            Pair("'x' >= 'y'", Instructions.GE_U8),
+            Pair("'x' + 'y'", Instructions.ADD_U8),
+            Pair("'x' - 'y'", Instructions.SUB_U8),
+            Pair("'x' * 'y'", Instructions.MUL_U8),
+            Pair("'x' / 'y'", Instructions.DIV_U8),
+        ).forEach { input ->
+            assertCompiledBC(
+                byteArrayOf(
+                    Instructions.PUSH_U8_LITERAL.op,
+                    120, // 'x'
+                    Instructions.PUSH_U8_LITERAL.op,
+                    121, // 'y'
+                    input.second.op,
+                ),
+                input.first
+            )
+        }
+
+        listOf(
+            Pair("1.0 == 2.0", Instructions.EQ_F32),
+            Pair("1.0 != 2.0", Instructions.NEQ_F32),
+            Pair("1.0 < 2.0", Instructions.LT_F32),
+            Pair("1.0 <= 2.0", Instructions.LE_F32),
+            Pair("1.0 > 2.0", Instructions.GT_F32),
+            Pair("1.0 >= 2.0", Instructions.GE_F32),
+            Pair("1.0 + 2.0", Instructions.ADD_F32),
+            Pair("1.0 - 2.0", Instructions.SUB_F32),
+            Pair("1.0 * 2.0", Instructions.MUL_F32),
+            Pair("1.0 / 2.0", Instructions.DIV_F32),
+            Pair("1.0 ** 2.0", Instructions.POW_F32),
+        ).forEach { input ->
+            assertCompiledBC(
+                byteArrayOf(
+                    Instructions.PUSH_F32_LITERAL.op,
+                    63, -128, 0, 0, // 1.0
+                    Instructions.PUSH_F32_LITERAL.op,
+                    64, 0, 0, 0, // 2
+                    input.second.op,
+                ),
+                input.first
+            )
+        }
+
+        listOf(
             Pair("1 == 2", Instructions.EQ_I32),
             Pair("1 != 2", Instructions.NEQ_I32),
             Pair("1 < 2", Instructions.LT_I32),

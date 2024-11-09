@@ -72,9 +72,9 @@ The following is the list of big features that need to be implemented.
 - [x] Add the `Char` type to the language
 - [x] Infer `Char` literal values
 - [x] Implement the `Char` type in the BC interpreter
-- [ ] Implement +, -, *, **, /
-- [ ] Implement ==, !=, <, <=, >, >=
-- [ ] Handle divide by zero
+- [x] Implement +, -, *, **, /
+- [x] Implement ==, !=, <, <=, >, >=
+- [x] Handle divide by zero
 - [ ] Add support for \x escape sequence
 
 ## Float
@@ -82,8 +82,8 @@ The following is the list of big features that need to be implemented.
 - [x] Add the `Float` type to the language
 - [x] Infer `Float` literal values
 - [x] Implement the `Float` type in the BC interpreter
-- [ ] Implement +, -, *, **, /
-- [ ] Implement ==, !=, <, <=, >, >=
+- [x] Implement +, -, *, **, /
+- [x] Implement ==, !=, <, <=, >, >=
 - [ ] Handle divide by zero
 
 ## Functions
