@@ -24,20 +24,32 @@ pub inline fn asChar(value: Pointer) u8 {
     return @intCast(v);
 }
 
+pub inline fn asFloat(value: Pointer) f32 {
+    return @as(f32, @bitCast(@as(u32, @intCast(value >> 32))));
+}
+
 pub inline fn asInt(value: Pointer) i32 {
-    return @intCast(@as(i32, @bitCast(@as(u32, @intCast(value >> 1)))));
+    return @intCast(@as(i32, @bitCast(@as(u32, @intCast(value >> 32)))));
 }
 
 pub inline fn fromBool(value: bool) Pointer {
     return if (value) fromInt(1) else fromInt(0);
 }
 
+pub inline fn fromChar(value: u8) Pointer {
+    return fromInt(@intCast(value));
+}
+
 pub inline fn fromInt(value: i32) Pointer {
-    return (@as(Pointer, @intCast(@as(u32, @bitCast(value)))) << 1) | 1;
+    return (@as(Pointer, @intCast(@as(u32, @bitCast(value)))) << 32) | 1;
+}
+
+pub inline fn fromFloat(value: f32) Pointer {
+    return (@as(Pointer, @intCast(@as(u32, @bitCast(value)))) << 32) | 1;
 }
 
 test "Pointer" {
-    const p: Pointer = 8589934591;
+    const p: Pointer = 18446744069414584321;
     const pptr: Pointer = @intFromPtr(&p);
     try std.testing.expect(!isPointer(p));
     try std.testing.expect(isInt(p));
@@ -46,14 +58,16 @@ test "Pointer" {
     try std.testing.expectEqual(asInt(p), -1);
     try std.testing.expectEqual(p, as(*Pointer, pptr).*);
 
-    try std.testing.expectEqual(fromInt(0), 1);
-    try std.testing.expectEqual(fromInt(-1), p);
-
-    try std.testing.expectEqual(asInt(fromInt(-1)) * asInt(fromInt(100)), -100);
-
     try std.testing.expectEqual(fromBool(true), fromInt(1));
     try std.testing.expectEqual(fromBool(false), fromInt(0));
-
     try std.testing.expectEqual(asBool(fromBool(true)), true);
     try std.testing.expectEqual(asBool(fromBool(false)), false);
+
+    try std.testing.expectEqual(asChar(fromChar(' ')), ' ');
+
+    try std.testing.expectEqual(asFloat(fromFloat(0.0)), 0.0);
+
+    try std.testing.expectEqual(fromInt(0), 1);
+    try std.testing.expectEqual(fromInt(-1), p);
+    try std.testing.expectEqual(asInt(fromInt(-1)) * asInt(fromInt(100)), -100);
 }
