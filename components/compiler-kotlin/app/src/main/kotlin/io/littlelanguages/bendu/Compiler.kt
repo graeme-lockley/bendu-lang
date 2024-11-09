@@ -143,7 +143,7 @@ private class Compiler(val errors: Errors) {
 
             is LiteralCharExpression -> {
                 byteBuilder.appendInstruction(Instructions.PUSH_U8_LITERAL)
-                byteBuilder.appendChar(expression.v.value.toInt())
+                byteBuilder.appendChar(expression.v.value.code)
             }
 
             is LiteralFloatExpression -> {
