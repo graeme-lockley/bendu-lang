@@ -6,6 +6,7 @@ import io.littlelanguages.bendu.typeinference.typeBool
 import io.littlelanguages.bendu.typeinference.typeChar
 import io.littlelanguages.bendu.typeinference.typeFloat
 import io.littlelanguages.bendu.typeinference.typeInt
+import io.littlelanguages.bendu.typeinference.typeString
 import java.lang.IllegalArgumentException
 
 fun compile(script: List<Statement>, errors: Errors): ByteArray {
@@ -63,8 +64,10 @@ private class Compiler(val errors: Errors) {
                 byteBuilder.appendInstruction(Instructions.PRINT_F32)
             else if (e.type!!.isInt())
                 byteBuilder.appendInstruction(Instructions.PRINT_I32)
+            else if (e.type!!.isString())
+                byteBuilder.appendInstruction(Instructions.PRINT_STRING)
             else
-                errors.addError(UnificationError(e.type!!, setOf(typeBool, typeInt)))
+                errors.addError(UnificationError(e.type!!, setOf(typeBool, typeChar, typeFloat, typeInt, typeString)))
         }
     }
 
@@ -203,6 +206,12 @@ private class Compiler(val errors: Errors) {
             is LiteralIntExpression -> {
                 byteBuilder.appendInstruction(Instructions.PUSH_I32_LITERAL)
                 byteBuilder.appendInt(expression.v.value)
+            }
+
+            is LiteralStringExpression -> {
+                byteBuilder.appendInstruction(Instructions.PUSH_STRING_LITERAL)
+                byteBuilder.appendInt(expression.v.value.length)
+                byteBuilder.append(expression.v.value.toByteArray())
             }
 
             is LowerIDExpression -> {

@@ -1,5 +1,7 @@
 const std = @import("std");
 
+const SP = @import("string_pool.zig");
+
 pub const Pointer = u64;
 
 pub inline fn isInt(value: Pointer) bool {
@@ -8,6 +10,10 @@ pub inline fn isInt(value: Pointer) bool {
 
 pub inline fn isPointer(value: Pointer) bool {
     return value & 1 == 0;
+}
+
+pub inline fn isString(value: Pointer) bool {
+    return value & 0b11 == 0b11;
 }
 
 pub inline fn as(t: type, value: Pointer) t {
@@ -32,6 +38,12 @@ pub inline fn asInt(value: Pointer) i32 {
     return @intCast(@as(i32, @bitCast(@as(u32, @intCast(value >> 32)))));
 }
 
+const stringMask = ~@as(u64, 0b11);
+
+pub inline fn asString(value: Pointer) *SP.String {
+    return as(*SP.String, value & stringMask);
+}
+
 pub inline fn fromBool(value: bool) Pointer {
     return if (value) fromInt(1) else fromInt(0);
 }
@@ -46,6 +58,10 @@ pub inline fn fromInt(value: i32) Pointer {
 
 pub inline fn fromFloat(value: f32) Pointer {
     return (@as(Pointer, @intCast(@as(u32, @bitCast(value)))) << 32) | 1;
+}
+
+pub inline fn fromString(value: *SP.String) Pointer {
+    return @as(Pointer, @intFromPtr(value) | 0b11);
 }
 
 test "Pointer" {
@@ -70,4 +86,17 @@ test "Pointer" {
     try std.testing.expectEqual(fromInt(0), 1);
     try std.testing.expectEqual(fromInt(-1), p);
     try std.testing.expectEqual(asInt(fromInt(-1)) * asInt(fromInt(100)), -100);
+}
+
+test "String Pointer" {
+    var pool = SP.StringPool.init(std.heap.page_allocator);
+    defer SP.StringPool.deinit(&pool);
+
+    const s = try pool.intern("Hello, World!");
+    defer s.deinit();
+
+    const p = fromString(s);
+    try std.testing.expect(!isPointer(p));
+    try std.testing.expect(isString(p));
+    try std.testing.expectEqual(asString(p), s);
 }

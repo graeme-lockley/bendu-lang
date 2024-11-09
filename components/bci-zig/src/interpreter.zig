@@ -58,6 +58,17 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.push_u8_literal(value);
                 ip += 1;
             },
+            .push_string_literal => {
+                const len = readi32(bc, ip);
+                const data = bc[ip + 4 .. ip + 4 + @as(usize, @intCast(len))];
+
+                if (DEBUG) {
+                    std.debug.print("{d}: push_string_literal: len={d}, data={s}\n", .{ ip - 1, len, data });
+                }
+
+                try runtime.push_string_literal(data);
+                ip += 4 + @as(usize, @intCast(len));
+            },
             .push_stack => {
                 const index = readi32(bc, ip);
 
@@ -73,7 +84,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                     std.debug.print("{d}: discard\n", .{ip - 1});
                 }
 
-                _ = runtime.pop();
+                runtime.discard();
             },
 
             .jmp_dup_false => {
@@ -369,8 +380,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
             },
             .print_bool => {
                 if (DEBUG) {
-                    const value = runtime.peek();
-                    std.debug.print("{d}: print_bool: value={d}\n", .{ ip - 1, Pointer.asBool(value) });
+                    std.debug.print("{d}: print_bool\n", .{ip - 1});
                 }
 
                 try runtime.print_bool();
@@ -399,6 +409,15 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
                 try runtime.print_u8();
             },
+            .print_string => {
+                if (DEBUG) {
+                    const value = runtime.peek();
+                    std.debug.print("{d}: print_string: value={s}\n", .{ ip - 1, Pointer.asString(value).data });
+                }
+
+                try runtime.print_string();
+            },
+
             // else => std.debug.panic("unknown op code\n", .{}),
         }
     }

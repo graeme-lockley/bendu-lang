@@ -1,22 +1,29 @@
 const std = @import("std");
 
 const Pointer = @import("pointer.zig");
+const SP = @import("string_pool.zig");
 
 const stdout = std.io.getStdOut().writer();
 
 pub const Runtime = struct {
     allocator: std.mem.Allocator,
+    sp: SP.StringPool,
     stack: std.ArrayList(Pointer.Pointer),
 
     pub fn init(allocator: std.mem.Allocator) Runtime {
         return Runtime{
             .allocator = allocator,
+            .sp = SP.StringPool.init(allocator),
             .stack = std.ArrayList(Pointer.Pointer).init(allocator),
         };
     }
 
     pub fn deinit(self: *Runtime) void {
+        while (self.stack.items.len > 0) {
+            self.discard();
+        }
         self.stack.deinit();
+        self.sp.deinit();
     }
 
     pub inline fn pop(self: *Runtime) Pointer.Pointer {
@@ -46,9 +53,26 @@ pub const Runtime = struct {
         try self.stack.append(Pointer.fromChar(value));
     }
 
+    pub inline fn push_string_literal(self: *Runtime, value: []const u8) !void {
+        try self.stack.append(Pointer.fromString(try self.sp.intern(value)));
+    }
+
     pub inline fn push_stack(self: *Runtime, index: i32) !void {
         const value = self.stack.items[@intCast(index)];
+
+        if (Pointer.isString(value)) {
+            Pointer.asString(value).incRef();
+        }
+
         try self.stack.append(value);
+    }
+
+    pub inline fn discard(self: *Runtime) void {
+        const value = self.stack.pop();
+
+        if (Pointer.isString(value)) {
+            Pointer.asString(value).decRef();
+        }
     }
 
     pub inline fn not_bool(self: *Runtime) !void {
@@ -295,5 +319,12 @@ pub const Runtime = struct {
         const value = Pointer.asChar(self.pop());
 
         try stdout.print("{c}", .{value});
+    }
+
+    pub inline fn print_string(self: *Runtime) !void {
+        const value = Pointer.asString(self.pop());
+        defer value.decRef();
+
+        try stdout.print("{s}", .{value.slice()});
     }
 };

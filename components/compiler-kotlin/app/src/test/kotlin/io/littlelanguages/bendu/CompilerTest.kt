@@ -53,6 +53,18 @@ class CompilerTest {
     }
 
     @Test
+    fun `literal string`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_STRING_LITERAL.op,
+                0, 0, 0, 5, // 5
+                'H'.code.toByte(), 'e'.code.toByte(), 'l'.code.toByte(), 'l'.code.toByte(), 'o'.code.toByte()
+            ),
+            "\"Hello\""
+        )
+    }
+
+    @Test
     fun `let x = 1 let y = x`() {
         assertCompiledBC(
             byteArrayOf(
@@ -85,8 +97,12 @@ class CompilerTest {
                 Instructions.PUSH_F32_LITERAL.op,
                 64, 73, 6, 37, // 3.141
                 Instructions.PRINT_F32.op,
+                Instructions.PUSH_STRING_LITERAL.op,
+                0, 0, 0, 2, // 2
+                'h'.code.toByte(), 'i'.code.toByte(),
+                Instructions.PRINT_STRING.op,
             ),
-            "print(1, True, 'x', 3.141)"
+            "print(1, True, 'x', 3.141, \"hi\")"
         )
     }
 
@@ -110,9 +126,13 @@ class CompilerTest {
                 Instructions.PUSH_F32_LITERAL.op,
                 64, 73, 6, 37, // 3.141
                 Instructions.PRINT_F32.op,
+                Instructions.PUSH_STRING_LITERAL.op,
+                0, 0, 0, 2, // 2
+                'h'.code.toByte(), 'i'.code.toByte(),
+                Instructions.PRINT_STRING.op,
                 Instructions.PRINTLN.op
             ),
-            "println(1, False, 'x', 3.141)"
+            "println(1, False, 'x', 3.141, \"hi\")"
         )
     }
 

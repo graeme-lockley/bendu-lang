@@ -31,6 +31,16 @@
       "description": "Adds a specified integer to the stack."
     },
     {
+      "name": "PUSH_STRING_LITERAL",
+      "args": [
+        {
+          "name": "literal_value",
+          "type": "string"
+        }
+      ],
+      "description": "Adds a specified char to the stack."
+    },
+    {
       "name": "PUSH_U8_LITERAL",
       "args": [
         {
@@ -279,6 +289,11 @@
       "name": "PRINT_I32",
       "args": [ ],
       "description": "Outputs the integer value at the top of the stack and removes it from the stack."
+    },
+    {
+      "name": "PRINT_STRING",
+      "args": [ ],
+      "description": "Outputs the string value at the top of the stack and removes it from the stack."
     }
   ]
 }
