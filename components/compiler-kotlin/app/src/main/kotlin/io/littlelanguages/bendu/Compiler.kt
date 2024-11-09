@@ -141,6 +141,16 @@ private class Compiler(val errors: Errors) {
                     byteBuilder.appendInstruction(Instructions.PUSH_BOOL_FALSE)
             }
 
+            is LiteralCharExpression -> {
+                byteBuilder.appendInstruction(Instructions.PUSH_U8_LITERAL)
+                byteBuilder.appendChar(expression.v.value.toInt())
+            }
+
+            is LiteralFloatExpression -> {
+                byteBuilder.appendInstruction(Instructions.PUSH_F32_LITERAL)
+                byteBuilder.appendFloat(expression.v.value)
+            }
+
             is LiteralIntExpression -> {
                 byteBuilder.appendInstruction(Instructions.PUSH_I32_LITERAL)
                 byteBuilder.appendInt(expression.v.value)

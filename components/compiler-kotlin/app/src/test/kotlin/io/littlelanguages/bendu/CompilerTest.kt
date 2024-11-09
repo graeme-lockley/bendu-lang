@@ -20,6 +20,39 @@ class CompilerTest {
     }
 
     @Test
+    fun `literal char`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_U8_LITERAL.op,
+                120 // 'x'
+            ),
+            "'x'"
+        )
+    }
+
+    @Test
+    fun `literal float`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_F32_LITERAL.op,
+                64, 73, 15, -38 // 3.1415926
+            ),
+            "3.1415926"
+        )
+    }
+
+    @Test
+    fun `literal int`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1 // 1
+            ),
+            "1"
+        )
+    }
+
+    @Test
     fun `let x = 1 let y = x`() {
         assertCompiledBC(
             byteArrayOf(
