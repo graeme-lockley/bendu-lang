@@ -173,12 +173,30 @@ private class Compiler(val errors: Errors) {
                                 )
                             )
                         }
+                    } else if (expression.e1.type!!.isString()) {
+                        when (expression.op.op) {
+                            Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_STRING)
+                            Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_STRING)
+                            Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_STRING)
+                            Op.LessThan -> byteBuilder.appendInstruction(Instructions.LT_STRING)
+                            Op.LessEqual -> byteBuilder.appendInstruction(Instructions.LE_STRING)
+                            Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.GT_STRING)
+                            Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.GE_STRING)
+                            else -> errors.addError(
+                                OperatorOperandTypeError(
+                                    expression.op.op,
+                                    expression.e1.type!!,
+                                    setOf(typeChar, typeFloat, typeInt),
+                                    expression.e1.location()
+                                )
+                            )
+                        }
                     } else {
                         errors.addError(
                             OperatorOperandTypeError(
                                 expression.op.op,
                                 expression.e1.type!!,
-                                setOf(typeChar, typeFloat, typeInt),
+                                setOf(typeChar, typeFloat, typeInt, typeString),
                                 expression.e1.location()
                             )
                         )

@@ -90,6 +90,14 @@ pub const Runtime = struct {
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromInt(a + b));
     }
+    pub inline fn add_string(self: *Runtime) !void {
+        const b = Pointer.asString(self.pop());
+        const a = Pointer.asString(self.pop());
+        defer b.decRef();
+        defer a.decRef();
+
+        try self.stack.append(Pointer.fromString(try self.sp.concat(a, b)));
+    }
     pub inline fn add_u8(self: *Runtime) !void {
         const b = Pointer.asChar(self.pop());
         const a = Pointer.asChar(self.pop());
@@ -200,6 +208,14 @@ pub const Runtime = struct {
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromBool(a == b));
     }
+    pub inline fn eq_string(self: *Runtime) !void {
+        const b = Pointer.asString(self.pop());
+        const a = Pointer.asString(self.pop());
+        defer b.decRef();
+        defer a.decRef();
+
+        try self.stack.append(Pointer.fromBool(a == b));
+    }
     pub inline fn eq_u8(self: *Runtime) !void {
         const b = Pointer.asChar(self.pop());
         const a = Pointer.asChar(self.pop());
@@ -221,6 +237,14 @@ pub const Runtime = struct {
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromBool(a != b));
     }
+    pub inline fn neq_string(self: *Runtime) !void {
+        const b = Pointer.asString(self.pop());
+        const a = Pointer.asString(self.pop());
+        defer b.decRef();
+        defer a.decRef();
+
+        try self.stack.append(Pointer.fromBool(a != b));
+    }
     pub inline fn neq_u8(self: *Runtime) !void {
         const b = Pointer.asChar(self.pop());
         const a = Pointer.asChar(self.pop());
@@ -236,6 +260,14 @@ pub const Runtime = struct {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromBool(a < b));
+    }
+    pub inline fn lt_string(self: *Runtime) !void {
+        const b = Pointer.asString(self.pop());
+        const a = Pointer.asString(self.pop());
+        defer b.decRef();
+        defer a.decRef();
+
+        try self.stack.append(Pointer.fromBool(std.mem.lessThan(u8, a.slice(), b.slice())));
     }
     pub inline fn lt_u8(self: *Runtime) !void {
         const b = Pointer.asChar(self.pop());
@@ -253,6 +285,18 @@ pub const Runtime = struct {
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromBool(a <= b));
     }
+    pub inline fn le_string(self: *Runtime) !void {
+        const b = Pointer.asString(self.pop());
+        const a = Pointer.asString(self.pop());
+        defer b.decRef();
+        defer a.decRef();
+
+        if (a == b) {
+            try self.stack.append(Pointer.fromBool(true));
+        } else {
+            try self.stack.append(Pointer.fromBool(std.mem.lessThan(u8, a.slice(), b.slice())));
+        }
+    }
     pub inline fn le_u8(self: *Runtime) !void {
         const b = Pointer.asChar(self.pop());
         const a = Pointer.asChar(self.pop());
@@ -269,6 +313,14 @@ pub const Runtime = struct {
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromBool(a > b));
     }
+    pub inline fn gt_string(self: *Runtime) !void {
+        const b = Pointer.asString(self.pop());
+        const a = Pointer.asString(self.pop());
+        defer b.decRef();
+        defer a.decRef();
+
+        try self.stack.append(Pointer.fromBool(std.mem.lessThan(u8, b.slice(), a.slice())));
+    }
     pub inline fn gt_u8(self: *Runtime) !void {
         const b = Pointer.asChar(self.pop());
         const a = Pointer.asChar(self.pop());
@@ -284,6 +336,18 @@ pub const Runtime = struct {
         const b = Pointer.asInt(self.pop());
         const a = Pointer.asInt(self.pop());
         try self.stack.append(Pointer.fromBool(a >= b));
+    }
+    pub inline fn ge_string(self: *Runtime) !void {
+        const b = Pointer.asString(self.pop());
+        const a = Pointer.asString(self.pop());
+        defer b.decRef();
+        defer a.decRef();
+
+        if (a == b) {
+            try self.stack.append(Pointer.fromBool(true));
+        } else {
+            try self.stack.append(Pointer.fromBool(std.mem.lessThan(u8, b.slice(), a.slice())));
+        }
     }
     pub inline fn ge_u8(self: *Runtime) !void {
         const b = Pointer.asChar(self.pop());

@@ -138,6 +138,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
                 try runtime.add_i32();
             },
+            .add_string => {
+                if (DEBUG) {
+                    std.debug.print("{d}: add_string\n", .{ip - 1});
+                }
+
+                try runtime.add_string();
+            },
             .add_u8 => {
                 if (DEBUG) {
                     std.debug.print("{d}: add_u8\n", .{ip - 1});
@@ -251,6 +258,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
                 try runtime.eq_i32();
             },
+            .eq_string => {
+                if (DEBUG) {
+                    std.debug.print("{d}: eq_string\n", .{ip - 1});
+                }
+
+                try runtime.eq_string();
+            },
             .eq_u8 => {
                 if (DEBUG) {
                     std.debug.print("{d}: eq_u8\n", .{ip - 1});
@@ -279,6 +293,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
                 try runtime.neq_i32();
             },
+            .neq_string => {
+                if (DEBUG) {
+                    std.debug.print("{d}: neq_string\n", .{ip - 1});
+                }
+
+                try runtime.neq_string();
+            },
             .neq_u8 => {
                 if (DEBUG) {
                     std.debug.print("{d}: neq_u8\n", .{ip - 1});
@@ -299,6 +320,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 }
 
                 try runtime.lt_i32();
+            },
+            .lt_string => {
+                if (DEBUG) {
+                    std.debug.print("{d}: lt_string\n", .{ip - 1});
+                }
+
+                try runtime.lt_string();
             },
             .lt_u8 => {
                 if (DEBUG) {
@@ -321,6 +349,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
                 try runtime.le_i32();
             },
+            .le_string => {
+                if (DEBUG) {
+                    std.debug.print("{d}: le_string\n", .{ip - 1});
+                }
+
+                try runtime.le_string();
+            },
             .le_u8 => {
                 if (DEBUG) {
                     std.debug.print("{d}: le_u8\n", .{ip - 1});
@@ -342,6 +377,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
                 try runtime.gt_i32();
             },
+            .gt_string => {
+                if (DEBUG) {
+                    std.debug.print("{d}: gt_string\n", .{ip - 1});
+                }
+
+                try runtime.gt_string();
+            },
             .gt_u8 => {
                 if (DEBUG) {
                     std.debug.print("{d}: gt_u8\n", .{ip - 1});
@@ -362,6 +404,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 }
 
                 try runtime.ge_i32();
+            },
+            .ge_string => {
+                if (DEBUG) {
+                    std.debug.print("{d}: ge_string\n", .{ip - 1});
+                }
+
+                try runtime.ge_string();
             },
             .ge_u8 => {
                 if (DEBUG) {
@@ -533,6 +582,18 @@ test "add_i32" {
     try run(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 142);
+}
+test "add_string" {
+    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+
+    const bc: [1]u8 = [_]u8{@intFromEnum(Op.add_string)};
+    try runtime.push_string_literal("hello");
+    try runtime.push_string_literal(" world");
+    try run(&bc, &runtime);
+
+    try std.testing.expectEqual(runtime.stack.items.len, 1);
+    try std.testing.expect(std.mem.eql(u8, Pointer.asString(runtime.peek()).slice(), "hello world"));
 }
 test "add_u8" {
     var runtime = Runtime.Runtime.init(std.testing.allocator);
@@ -722,6 +783,18 @@ test "eq_i32" {
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
 
+test "eq_string" {
+    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+
+    const bc: [1]u8 = [_]u8{@intFromEnum(Op.eq_string)};
+    try runtime.push_string_literal("hello");
+    try runtime.push_string_literal("hello");
+    try run(&bc, &runtime);
+
+    try std.testing.expect(Pointer.asBool(runtime.peek()));
+}
+
 test "eq_u8" {
     var runtime = Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
@@ -770,6 +843,18 @@ test "neq_i32" {
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
 
+test "neq_string" {
+    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+
+    const bc: [1]u8 = [_]u8{@intFromEnum(Op.neq_string)};
+    try runtime.push_string_literal("hello");
+    try runtime.push_string_literal("world");
+    try run(&bc, &runtime);
+
+    try std.testing.expect(Pointer.asBool(runtime.peek()));
+}
+
 test "neq_u8" {
     var runtime = Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
@@ -804,6 +889,18 @@ test "lt_i32" {
     try run(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
+}
+
+test "lt_string" {
+    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+
+    const bc: [1]u8 = [_]u8{@intFromEnum(Op.lt_string)};
+    try runtime.push_string_literal("hello");
+    try runtime.push_string_literal("world");
+    try run(&bc, &runtime);
+
+    try std.testing.expect(Pointer.asBool(runtime.peek()));
 }
 
 test "lt_u8" {
@@ -842,6 +939,18 @@ test "le_i32" {
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
 
+test "le_string" {
+    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+
+    const bc: [1]u8 = [_]u8{@intFromEnum(Op.le_string)};
+    try runtime.push_string_literal("hello");
+    try runtime.push_string_literal("world");
+    try run(&bc, &runtime);
+
+    try std.testing.expect(Pointer.asBool(runtime.peek()));
+}
+
 test "le_u8" {
     var runtime = Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
@@ -878,6 +987,18 @@ test "gt_i32" {
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
 
+test "gt_string" {
+    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+
+    const bc: [1]u8 = [_]u8{@intFromEnum(Op.gt_string)};
+    try runtime.push_string_literal("hello");
+    try runtime.push_string_literal("world");
+    try run(&bc, &runtime);
+
+    try std.testing.expect(!Pointer.asBool(runtime.peek()));
+}
+
 test "gt_u8" {
     var runtime = Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
@@ -912,6 +1033,18 @@ test "ge_i32" {
     try run(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
+}
+
+test "ge_string" {
+    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+
+    const bc: [1]u8 = [_]u8{@intFromEnum(Op.ge_string)};
+    try runtime.push_string_literal("hello");
+    try runtime.push_string_literal("world");
+    try run(&bc, &runtime);
+
+    try std.testing.expect(!Pointer.asBool(runtime.peek()));
 }
 
 test "ge_u8" {

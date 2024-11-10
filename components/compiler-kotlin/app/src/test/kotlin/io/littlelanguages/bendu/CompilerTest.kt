@@ -214,6 +214,29 @@ class CompilerTest {
         }
 
         listOf(
+            Pair("\"a\" == \"b\"", Instructions.EQ_STRING),
+            Pair("\"a\" != \"b\"", Instructions.NEQ_STRING),
+            Pair("\"a\" < \"b\"", Instructions.LT_STRING),
+            Pair("\"a\" <= \"b\"", Instructions.LE_STRING),
+            Pair("\"a\" > \"b\"", Instructions.GT_STRING),
+            Pair("\"a\" >= \"b\"", Instructions.GE_STRING),
+            Pair("\"a\" + \"b\"", Instructions.ADD_STRING),
+        ).forEach { input ->
+            assertCompiledBC(
+                byteArrayOf(
+                    Instructions.PUSH_STRING_LITERAL.op,
+                    0, 0, 0, 1, // 1
+                    'a'.code.toByte(),
+                    Instructions.PUSH_STRING_LITERAL.op,
+                    0, 0, 0, 1, // 1
+                    'b'.code.toByte(),
+                    input.second.op,
+                ),
+                input.first
+            )
+        }
+
+        listOf(
             Pair("True == False", Instructions.EQ_BOOL),
             Pair("True != False", Instructions.NEQ_BOOL),
         ).forEach { input ->

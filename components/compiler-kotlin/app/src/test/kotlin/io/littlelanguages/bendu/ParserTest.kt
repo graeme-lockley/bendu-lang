@@ -39,6 +39,7 @@ class ParserTest {
             Pair("print(1 / 2)", Op.Divide),
             Pair("print(1 % 2)", Op.Modulo),
             Pair("print(1 ** 2)", Op.Power),
+            Pair("print(\"a\" + \"b\")", Op.Plus),
         ).forEach { input ->
             val statements = successfulParse(input.first, 1)
 

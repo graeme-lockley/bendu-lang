@@ -122,9 +122,9 @@ The following is the list of big features that need to be implemented.
 
 - [x] Add the `String` type to the language
 - [x] Infer `String` literal values
-- [ ] Implement the `String` type in the BC interpreter
-- [ ] Implement +
-- [ ] Implement ==, !=, <, <=, >, >=
+- [x] Implement the `String` type in the BC interpreter
+- [x] Implement +
+- [x] Implement ==, !=, <, <=, >, >=
 
 ## Unit
 

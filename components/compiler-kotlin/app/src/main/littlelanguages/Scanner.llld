@@ -1,5 +1,5 @@
 tokens
-    LiteralChar = chr(39) (char | '\' ('\' | 'n' | chr(39))) chr(39);
+    LiteralChar = chr(39) (char | chr(34) | '\' ('\' | 'n' | chr(39))) chr(39);
 
     LiteralFloat = ['-'] digits '.' digits [('e' | 'E') ['-'] digits];
     LiteralInt = ['-'] digits;
@@ -15,7 +15,7 @@ whitespace
   chr(0)-' ';
 
 fragments
-  char = chr(32)-chr(38) + chr(40)-chr(91) + chr(93)-chr(255);
+  char = chr(32)-chr(33) + chr(35)-chr(38) + chr(40)-chr(91) + chr(93)-chr(255);
   digit = '0'-'9';
   digits = digit {digit};
   id = 'A'-'Z' + 'a'-'z';

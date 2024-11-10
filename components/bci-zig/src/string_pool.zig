@@ -50,6 +50,18 @@ pub const StringPool = struct {
     pub fn count(self: *const StringPool) usize {
         return self.items.count();
     }
+
+    pub fn concat(self: *StringPool, a: *String, b: *String) !*String {
+        if (a.len() == 0) {
+            return b.incRefR();
+        } else if (b.len() == 0) {
+            return a.incRefR();
+        }
+
+        const slices = [_][]const u8{ a.slice(), b.slice() };
+
+        return self.internOwned(try std.mem.concat(self.allocator, u8, &slices));
+    }
 };
 
 pub const String = struct {

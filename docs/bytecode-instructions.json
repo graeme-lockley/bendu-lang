@@ -101,6 +101,11 @@
       "description": "Removes the top two integers from the stack, adds them, and pushes the result onto the stack."
     },
     {
+      "name": "ADD_STRING",
+      "args": [ ],
+      "description": "Removes the top two strings from the stack, concatenates them , and pushes the result onto the stack."
+    },
+    {
       "name": "ADD_U8",
       "args": [ ],
       "description": "Removes the top bytes from the stack, adds them, and pushes the result onto the stack."
@@ -181,6 +186,11 @@
       "description": "Removes the top two integers from the stack, checks if they are equal, and pushes the result onto the stack."
     },
     {
+      "name": "EQ_STRING",
+      "args": [ ],
+      "description": "Removes the top two strings from the stack, checks if they are equal, and pushes the result onto the stack."
+    },
+    {
       "name": "EQ_U8",
       "args": [ ],
       "description": "Removes the top two bytes from the stack, checks if they are equal, and pushes the result onto the stack."
@@ -201,6 +211,11 @@
       "description": "Removes the top two integers from the stack, checks if they are not equal, and pushes the result onto the stack."
     },
     {
+      "name": "NEQ_STRING",
+      "args": [ ],
+      "description": "Removes the top two strings from the stack, checks if they are not equal, and pushes the result onto the stack."
+    },
+    {
       "name": "NEQ_U8",
       "args": [ ],
       "description": "Removes the top two bytes from the stack, checks if they are not equal, and pushes the result onto the stack."
@@ -216,6 +231,11 @@
       "description": "Removes the top two integers from the stack, checks if the first is less than the second, and pushes the result onto the stack."
     },
     {
+      "name": "LT_STRING",
+      "args": [ ],
+      "description": "Removes the top two strings from the stack, checks if the first is less than the second, and pushes the result onto the stack."
+    },
+    {
       "name": "LT_U8",
       "args": [ ],
       "description": "Removes the top two bytes from the stack, checks if the first is less than the second, and pushes the result onto the stack."
@@ -223,12 +243,17 @@
     {
       "name": "LE_F32",
       "args": [ ],
-      "description": "Removes the top two flaots from the stack, checks if the first is less than or equal to the second, and pushes the result onto the stack."
+      "description": "Removes the top two floats from the stack, checks if the first is less than or equal to the second, and pushes the result onto the stack."
     },
     {
       "name": "LE_I32",
       "args": [ ],
       "description": "Removes the top two integers from the stack, checks if the first is less than or equal to the second, and pushes the result onto the stack."
+    },
+    {
+      "name": "LE_STRING",
+      "args": [ ],
+      "description": "Removes the top two strings from the stack, checks if the first is less than or equal to the second, and pushes the result onto the stack."
     },
     {
       "name": "LE_U8",
@@ -246,6 +271,11 @@
       "description": "Removes the top two integers from the stack, checks if the first is greater than the second, and pushes the result onto the stack."
     },
     {
+      "name": "GT_STRING",
+      "args": [ ],
+      "description": "Removes the top two strings from the stack, checks if the first is greater than the second, and pushes the result onto the stack."
+    },
+    {
       "name": "GT_U8",
       "args": [ ],
       "description": "Removes the top two bytes from the stack, checks if the first is greater than the second, and pushes the result onto the stack."
@@ -259,6 +289,11 @@
       "name": "GE_I32",
       "args": [ ],
       "description": "Removes the top two integers from the stack, checks if the first is greater than or equal to the second, and pushes the result onto the stack."
+    },
+    {
+      "name": "GE_STRING",
+      "args": [ ],
+      "description": "Removes the top two strings from the stack, checks if the first is greater than or equal to the second, and pushes the result onto the stack."
     },
     {
       "name": "GE_U8",
