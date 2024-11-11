@@ -123,6 +123,14 @@ class ParserTest {
         }
 
     }
+
+    @Test
+    fun `literal unit`() {
+        val statements = successfulParse("()", 1)
+
+        assertIs<ExpressionStatement>(statements[0])
+        assertIs<LiteralUnitExpression>((statements[0] as ExpressionStatement).e)
+    }
 }
 
 private fun successfulParse(input: String, numberOfStatements: Int): List<Statement> {

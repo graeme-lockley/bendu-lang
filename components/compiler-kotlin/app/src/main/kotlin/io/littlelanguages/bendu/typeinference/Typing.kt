@@ -17,6 +17,7 @@ sealed class Type(open val location: Location?) {
     open fun isFloat(): Boolean = false
     open fun isInt(): Boolean = false
     open fun isString(): Boolean = false
+    open fun isUnit(): Boolean = false
 }
 
 data class TVar(val name: Var, override val location: Location? = null) : Type(location) {
@@ -67,6 +68,9 @@ data class TCon(val name: String, val args: List<Type> = emptyList(), override v
 
     override fun isString(): Boolean =
         name == "String"
+
+    override fun isUnit(): Boolean =
+        name == "Unit"
 }
 
 data class TTuple(val types: List<Type>, override val location: Location? = null) : Type(location) {
@@ -108,3 +112,4 @@ val typeChar = TCon("Char")
 val typeFloat = TCon("Float")
 val typeInt = TCon("Int")
 val typeString = TCon("String")
+val typeUnit = TCon("Unit")

@@ -57,6 +57,10 @@ pub const Runtime = struct {
         try self.stack.append(Pointer.fromString(try self.sp.intern(value)));
     }
 
+    pub inline fn push_unit_literal(self: *Runtime) !void {
+        try self.stack.append(Pointer.fromInt(0));
+    }
+
     pub inline fn push_stack(self: *Runtime, index: i32) !void {
         const value = self.stack.items[@intCast(index)];
 
@@ -216,6 +220,11 @@ pub const Runtime = struct {
 
         try self.stack.append(Pointer.fromBool(a == b));
     }
+    pub inline fn eq_unit(self: *Runtime) !void {
+        self.discard();
+        self.discard();
+        try self.stack.append(Pointer.fromBool(true));
+    }
     pub inline fn eq_u8(self: *Runtime) !void {
         const b = Pointer.asChar(self.pop());
         const a = Pointer.asChar(self.pop());
@@ -249,6 +258,11 @@ pub const Runtime = struct {
         const b = Pointer.asChar(self.pop());
         const a = Pointer.asChar(self.pop());
         try self.stack.append(Pointer.fromBool(a != b));
+    }
+    pub inline fn neq_unit(self: *Runtime) !void {
+        self.discard();
+        self.discard();
+        try self.stack.append(Pointer.fromBool(false));
     }
 
     pub inline fn lt_f32(self: *Runtime) !void {
@@ -390,5 +404,11 @@ pub const Runtime = struct {
         defer value.decRef();
 
         try stdout.print("{s}", .{value.slice()});
+    }
+
+    pub inline fn print_unit(self: *Runtime) !void {
+        _ = self;
+
+        try stdout.print("()", .{});
     }
 };

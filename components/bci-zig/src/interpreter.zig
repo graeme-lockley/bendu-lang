@@ -58,6 +58,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.push_u8_literal(value);
                 ip += 1;
             },
+            .push_unit_literal => {
+                if (DEBUG) {
+                    std.debug.print("{d}: push_unit_literal\n", .{ip - 1});
+                }
+
+                try runtime.push_unit_literal();
+            },
             .push_string_literal => {
                 const len = readi32(bc, ip);
                 const data = bc[ip + 4 .. ip + 4 + @as(usize, @intCast(len))];
@@ -272,6 +279,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
                 try runtime.eq_u8();
             },
+            .eq_unit => {
+                if (DEBUG) {
+                    std.debug.print("{d}: eq_unit\n", .{ip - 1});
+                }
+
+                try runtime.eq_unit();
+            },
             .neq_bool => {
                 if (DEBUG) {
                     std.debug.print("{d}: neq_bool\n", .{ip - 1});
@@ -306,6 +320,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 }
 
                 try runtime.neq_u8();
+            },
+            .neq_unit => {
+                if (DEBUG) {
+                    std.debug.print("{d}: neq_unit\n", .{ip - 1});
+                }
+
+                try runtime.neq_unit();
             },
             .lt_f32 => {
                 if (DEBUG) {
@@ -465,6 +486,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 }
 
                 try runtime.print_string();
+            },
+            .print_unit => {
+                if (DEBUG) {
+                    std.debug.print("{d}: print_unit\n", .{ip - 1});
+                }
+
+                try runtime.print_unit();
             },
 
             // else => std.debug.panic("unknown op code\n", .{}),

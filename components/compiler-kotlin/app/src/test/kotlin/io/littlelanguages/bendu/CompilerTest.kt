@@ -101,8 +101,10 @@ class CompilerTest {
                 0, 0, 0, 2, // 2
                 'h'.code.toByte(), 'i'.code.toByte(),
                 Instructions.PRINT_STRING.op,
+                Instructions.PUSH_UNIT_LITERAL.op,
+                Instructions.PRINT_UNIT.op,
             ),
-            "print(1, True, 'x', 3.141, \"hi\")"
+            "print(1, True, 'x', 3.141, \"hi\", ())"
         )
     }
 
@@ -130,9 +132,11 @@ class CompilerTest {
                 0, 0, 0, 2, // 2
                 'h'.code.toByte(), 'i'.code.toByte(),
                 Instructions.PRINT_STRING.op,
+                Instructions.PUSH_UNIT_LITERAL.op,
+                Instructions.PRINT_UNIT.op,
                 Instructions.PRINTLN.op
             ),
-            "println(1, False, 'x', 3.141, \"hi\")"
+            "println(1, False, 'x', 3.141, \"hi\", ())"
         )
     }
 
@@ -236,6 +240,23 @@ class CompilerTest {
             )
         }
 
+        listOf(
+            Pair("() == ()", Instructions.EQ_UNIT),
+            Pair("() != ()", Instructions.NEQ_UNIT),
+            Pair("() < ()", Instructions.NEQ_UNIT),
+            Pair("() <= ()", Instructions.EQ_UNIT),
+            Pair("() > ()", Instructions.NEQ_UNIT),
+            Pair("() >= ()", Instructions.EQ_UNIT),
+        ).forEach { input ->
+            assertCompiledBC(
+                byteArrayOf(
+                    Instructions.PUSH_UNIT_LITERAL.op,
+                    Instructions.PUSH_UNIT_LITERAL.op,
+                    input.second.op,
+                ),
+                input.first
+            )
+        }
         listOf(
             Pair("True == False", Instructions.EQ_BOOL),
             Pair("True != False", Instructions.NEQ_BOOL),

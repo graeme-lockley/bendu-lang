@@ -33,8 +33,9 @@ The following is the list of big features that need to be implemented.
 
 # Scaffolding
 
-- [ ] Pretty print errors during compilation
-- [ ] Generate the Ops for the compiler and interpreter from the JSON description.
+- [x] Pretty print errors during compilation
+- [x] Generate the Ops for the compiler and interpreter from the JSON description.
+- [ ] Produce more accurate errors for binary operator permissible types
 
 # Language
 
@@ -128,33 +129,32 @@ The following is the list of big features that need to be implemented.
 
 ## Unit
 
-- [ ] Implement the `Unit` type
-- [ ] Implement the `Unit` type in the BC interpreter
-- [ ] Integrate into main so that the value can be viewed.
-- [ ] Implement ==, !=, <, <=, >, >=
+- [x] Implement the `Unit` type
+- [x] Implement the `Unit` type in the BC interpreter
+- [x] Implement ==, !=, <, <=, >, >=
 
 # Operators
 
-- [ ] (+): [a: Char | Float | Int | String] a -> a -> a
-- [ ] (-): [a: Int | Float | Char] a -> a -> a
-- [ ] (*): [a: Int | Float | Char] a -> a -> a
-- [ ] (**): [a: Int | Float | Char] a -> a -> a
-- [ ] (/): [a: Int | Float | Char] a -> a -> a
-- [ ] (%): Int -> Int -> Int
+- [x] (+): [a: Char | Float | Int | String] a -> a -> a
+- [x] (-): [a: Int | Float | Char] a -> a -> a
+- [x] (*): [a: Int | Float | Char] a -> a -> a
+- [x] (**): [a: Int | Float | Char] a -> a -> a
+- [x] (/): [a: Int | Float | Char] a -> a -> a
+- [x] (%): Int -> Int -> Int
 - [ ] (==): [a] a -> a -> Bool
 - [ ] (!=): [a] a -> a -> Bool
-- [ ] (<): [a: Bool | Char | Float | Int | String] a -> a -> a
-- [ ] (<=): [a: Bool | Char | Float | Int | String] a -> a -> a
-- [ ] (>): [a: Bool | Char | Float | Int | String] a -> a -> a
-- [ ] (>=): [a: Bool | Char | Float | Int | String] a -> a -> a
+- [x] (<): [a: Bool | Char | Float | Int | String] a -> a -> a
+- [x] (<=): [a: Bool | Char | Float | Int | String] a -> a -> a
+- [x] (>): [a: Bool | Char | Float | Int | String] a -> a -> a
+- [x] (>=): [a: Bool | Char | Float | Int | String] a -> a -> a
 - [ ] (<<): [a] List a -> a -> List a
 - [ ] (<!): [a] List a -> a -> List a
 - [ ] (>>): [a] a -> List a -> List a
 - [ ] (>!): [a] a -> List a -> List a
 - [ ] (?): [a, b: a | Unit] b -> a -> a
-- [ ] (!): Bool -> Bool
-- [ ] (&&): Bool -> Bool -> Bool
-- [ ] (||): Bool -> Bool -> Bool
+- [x] (!): Bool -> Bool
+- [x] (&&): Bool -> Bool -> Bool
+- [x] (||): Bool -> Bool -> Bool
 
 # Typing
 

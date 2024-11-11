@@ -66,6 +66,8 @@ private class Compiler(val errors: Errors) {
                 byteBuilder.appendInstruction(Instructions.PRINT_I32)
             else if (e.type!!.isString())
                 byteBuilder.appendInstruction(Instructions.PRINT_STRING)
+            else if (e.type!!.isUnit())
+                byteBuilder.appendInstruction(Instructions.PRINT_UNIT)
             else
                 errors.addError(UnificationError(e.type!!, setOf(typeBool, typeChar, typeFloat, typeInt, typeString)))
         }
@@ -191,6 +193,23 @@ private class Compiler(val errors: Errors) {
                                 )
                             )
                         }
+                    } else if (expression.e1.type!!.isUnit()) {
+                        when (expression.op.op) {
+                            Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_UNIT)
+                            Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_UNIT)
+                            Op.LessThan -> byteBuilder.appendInstruction(Instructions.NEQ_UNIT)
+                            Op.LessEqual -> byteBuilder.appendInstruction(Instructions.EQ_UNIT)
+                            Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.NEQ_UNIT)
+                            Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.EQ_UNIT)
+                            else -> errors.addError(
+                                OperatorOperandTypeError(
+                                    expression.op.op,
+                                    expression.e1.type!!,
+                                    setOf(typeChar, typeFloat, typeInt),
+                                    expression.e1.location()
+                                )
+                            )
+                        }
                     } else {
                         errors.addError(
                             OperatorOperandTypeError(
@@ -232,6 +251,9 @@ private class Compiler(val errors: Errors) {
                 byteBuilder.append(expression.v.value.toByteArray())
             }
 
+            is LiteralUnitExpression ->
+                byteBuilder.appendInstruction(Instructions.PUSH_UNIT_LITERAL)
+
             is LowerIDExpression -> {
                 val offset = bindings[expression.v.value]
                     ?: throw IllegalArgumentException("${expression.v.value} referenced at ${expression.v.location} not found")
@@ -245,7 +267,7 @@ private class Compiler(val errors: Errors) {
                 byteBuilder.appendInstruction(Instructions.NOT_BOOL)
             }
 
-            else -> TODO()
+            else -> TODO(expression.toString())
         }
     }
 }

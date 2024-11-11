@@ -14,6 +14,7 @@ import io.littlelanguages.bendu.typeinference.typeError
 import io.littlelanguages.bendu.typeinference.typeFloat
 import io.littlelanguages.bendu.typeinference.typeInt
 import io.littlelanguages.bendu.typeinference.typeString
+import io.littlelanguages.bendu.typeinference.typeUnit
 
 fun infer(
     script: String,
@@ -109,6 +110,9 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
         is LiteralStringExpression ->
             expression.type = typeString.withLocation(expression.location())
+
+        is LiteralUnitExpression ->
+            expression.type = typeUnit.withLocation(expression.location())
 
         is LowerIDExpression -> {
             val scheme = env.typeEnv[expression.v.value]

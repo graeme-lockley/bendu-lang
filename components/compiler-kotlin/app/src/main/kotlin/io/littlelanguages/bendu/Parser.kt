@@ -54,6 +54,11 @@ data class LiteralStringExpression(val v: StringLocation, override var type: Typ
         v.location
 }
 
+data class LiteralUnitExpression(val location: Location, override var type: Type? = null) : Expression(type) {
+    override fun location(): Location =
+        location
+}
+
 data class LowerIDExpression(val v: StringLocation, override var type: Type? = null) : Expression(type) {
     override fun location(): Location =
         v.location
@@ -203,8 +208,8 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     ): Expression =
         a2.fold(a1) { acc, e -> BinaryExpression(acc, OpLocation(Op.Power, e.a.location), e.b) }
 
-    override fun visitFactor1(a1: Token, a2: Expression, a3: Token): Expression =
-        a2
+    override fun visitFactor1(a1: Token, a2: Expression?, a3: Token): Expression =
+        a2 ?: LiteralUnitExpression(a1.location + a3.location)
 
     override fun visitFactor2(a: Token): Expression =
         LowerIDExpression(StringLocation(a.lexeme, a.location))

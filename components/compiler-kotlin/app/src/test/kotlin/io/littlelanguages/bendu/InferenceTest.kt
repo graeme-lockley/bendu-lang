@@ -30,6 +30,11 @@ class InferenceTest {
     }
 
     @Test
+    fun `infer literal unit`() {
+        assertInferExpressionEquals("()", "Unit")
+    }
+
+    @Test
     fun `infer known lower ID`() {
         assertInferExpressionEquals("a", "Int", emptyTypeEnv + ("a" to emptyTypeEnv.generalise(typeInt)))
     }

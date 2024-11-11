@@ -49,7 +49,7 @@ Power
     ;
 
 Factor
-    : "(" Expression ")"
+    : "(" [Expression] ")"
     | LowerID
     | LiteralChar
     | LiteralFloat

@@ -51,6 +51,11 @@
       "description": "Adds a specified char to the stack."
     },
     {
+      "name": "PUSH_UNIT_LITERAL",
+      "args": [ ],
+      "description": "Pushes a unit value onto the stack."
+    },
+    {
       "name": "PUSH_STACK",
       "args": [
         {
@@ -196,6 +201,11 @@
       "description": "Removes the top two bytes from the stack, checks if they are equal, and pushes the result onto the stack."
     },
     {
+      "name": "EQ_UNIT",
+      "args": [ ],
+      "description": "Removes the top two unit values from the stack and pushes True onto the stack."
+    },
+    {
       "name": "NEQ_BOOL",
       "args": [ ],
       "description": "Removes the top two boolean values from the stack, checks if they are not equal, and pushes the result onto the stack."
@@ -219,6 +229,11 @@
       "name": "NEQ_U8",
       "args": [ ],
       "description": "Removes the top two bytes from the stack, checks if they are not equal, and pushes the result onto the stack."
+    },
+    {
+      "name": "NEQ_UNIT",
+      "args": [ ],
+      "description": "Removes the top two unit values from the stack and pushes False onto the stack."
     },
     {
       "name": "LT_F32",
@@ -329,6 +344,11 @@
       "name": "PRINT_STRING",
       "args": [ ],
       "description": "Outputs the string value at the top of the stack and removes it from the stack."
+    },
+    {
+      "name": "PRINT_UNIT",
+      "args": [ ],
+      "description": "Outputs the unit value at the top of the stack and removes it from the stack."
     }
   ]
 }
