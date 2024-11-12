@@ -7,6 +7,7 @@ import io.littlelanguages.bendu.typeinference.typeChar
 import io.littlelanguages.bendu.typeinference.typeFloat
 import io.littlelanguages.bendu.typeinference.typeInt
 import io.littlelanguages.bendu.typeinference.typeString
+import io.littlelanguages.bendu.typeinference.typeUnit
 import java.lang.IllegalArgumentException
 
 fun compile(script: List<Statement>, errors: Errors): ByteArray {
@@ -104,7 +105,7 @@ private class Compiler(val errors: Errors) {
                                 OperatorOperandTypeError(
                                     expression.op.op,
                                     expression.e1.type!!,
-                                    setOf(typeBool),
+                                    validBinaryOperatorArguments[expression.op.op]!!,
                                     expression.e1.location()
                                 )
                             )
@@ -125,7 +126,7 @@ private class Compiler(val errors: Errors) {
                                 OperatorOperandTypeError(
                                     expression.op.op,
                                     expression.e1.type!!,
-                                    setOf(typeChar, typeFloat, typeInt),
+                                    validBinaryOperatorArguments[expression.op.op]!!,
                                     expression.e1.location()
                                 )
                             )
@@ -147,7 +148,7 @@ private class Compiler(val errors: Errors) {
                                 OperatorOperandTypeError(
                                     expression.op.op,
                                     expression.e1.type!!,
-                                    setOf(typeChar, typeFloat, typeInt),
+                                    validBinaryOperatorArguments[expression.op.op]!!,
                                     expression.e1.location()
                                 )
                             )
@@ -170,7 +171,7 @@ private class Compiler(val errors: Errors) {
                                 OperatorOperandTypeError(
                                     expression.op.op,
                                     expression.e1.type!!,
-                                    setOf(typeChar, typeFloat, typeInt),
+                                    validBinaryOperatorArguments[expression.op.op]!!,
                                     expression.e1.location()
                                 )
                             )
@@ -188,7 +189,7 @@ private class Compiler(val errors: Errors) {
                                 OperatorOperandTypeError(
                                     expression.op.op,
                                     expression.e1.type!!,
-                                    setOf(typeChar, typeFloat, typeInt),
+                                    validBinaryOperatorArguments[expression.op.op]!!,
                                     expression.e1.location()
                                 )
                             )
@@ -205,7 +206,7 @@ private class Compiler(val errors: Errors) {
                                 OperatorOperandTypeError(
                                     expression.op.op,
                                     expression.e1.type!!,
-                                    setOf(typeChar, typeFloat, typeInt),
+                                    validBinaryOperatorArguments[expression.op.op]!!,
                                     expression.e1.location()
                                 )
                             )
@@ -215,7 +216,7 @@ private class Compiler(val errors: Errors) {
                             OperatorOperandTypeError(
                                 expression.op.op,
                                 expression.e1.type!!,
-                                setOf(typeChar, typeFloat, typeInt, typeString),
+                                validBinaryOperatorArguments[expression.op.op]!!,
                                 expression.e1.location()
                             )
                         )
@@ -271,5 +272,21 @@ private class Compiler(val errors: Errors) {
         }
     }
 }
+
+private val validBinaryOperatorArguments = mapOf(
+    Pair(Op.EqualEqual, setOf(typeBool, typeChar, typeFloat, typeInt, typeString, typeUnit)),
+    Pair(Op.NotEqual, setOf(typeBool, typeChar, typeFloat, typeInt, typeString, typeUnit)),
+    Pair(Op.LessThan, setOf(typeChar, typeFloat, typeInt, typeString, typeUnit)),
+    Pair(Op.LessEqual, setOf(typeChar, typeFloat, typeInt, typeString, typeUnit)),
+    Pair(Op.GreaterThan, setOf(typeChar, typeFloat, typeInt, typeString, typeUnit)),
+    Pair(Op.GreaterEqual, setOf(typeChar, typeFloat, typeInt, typeString, typeUnit)),
+    Pair(Op.Plus, setOf(typeChar, typeFloat, typeInt, typeString)),
+    Pair(Op.Minus, setOf(typeChar, typeFloat, typeInt)),
+    Pair(Op.Multiply, setOf(typeChar, typeFloat, typeInt)),
+    Pair(Op.Divide, setOf(typeChar, typeFloat, typeInt)),
+    Pair(Op.Power, setOf(typeChar, typeFloat, typeInt)),
+    Pair(Op.Modulo, setOf(typeInt)),
+)
+
 
 

@@ -18,7 +18,7 @@ complete:
 
 The following is the list of big features that need to be implemented.
 
-- [ ] Basic types
+- [x] Basic types
 - [ ] Control flow
 - [ ] Functions
 - [ ] Type annotation
@@ -34,8 +34,11 @@ The following is the list of big features that need to be implemented.
 # Scaffolding
 
 - [x] Pretty print errors during compilation
-- [x] Generate the Ops for the compiler and interpreter from the JSON description.
-- [ ] Produce more accurate errors for binary operator permissible types
+- [x] Generate the Ops for the compiler and interpreter from the JSON description
+- [x] Produce more accurate errors for binary operator permissible types
+- [ ] Produce accurate runtime errors by including the line number in the error as
+      well as the file name
+- [ ] Add a utility that will run tests and include the type signature in the result
 
 # Language
 
