@@ -12,6 +12,12 @@ Statement
     ;
 
 Expression
+    : "if" ["|"] Expression "->" Expression {"|" Expression "->" Expression} ["|" Expression]
+    | "while" Expression "->" Expression
+    | OrExpression
+    ;
+
+OrExpression
     : Or
     ;
 

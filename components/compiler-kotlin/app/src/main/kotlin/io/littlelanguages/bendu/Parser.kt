@@ -8,6 +8,7 @@ import io.littlelanguages.bendu.parser.Visitor
 import io.littlelanguages.bendu.typeinference.Subst
 import io.littlelanguages.bendu.typeinference.Type
 import io.littlelanguages.data.Tuple2
+import io.littlelanguages.data.Tuple4
 import io.littlelanguages.data.Union2
 import io.littlelanguages.data.Union3
 import io.littlelanguages.scanpiler.Location
@@ -27,6 +28,40 @@ sealed class Expression(open var type: Type? = null) {
     }
 
     abstract fun location(): Location
+}
+
+data class IfExpression(
+    val guards: List<Pair<Expression, Expression>>,
+    val elseBranch: Expression?,
+    override var type: Type? = null
+) : Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        guards.forEach { (e1, e2) ->
+            e1.apply(s, errors)
+            e2.apply(s, errors)
+        }
+        elseBranch?.apply(s, errors)
+
+        type = guards[0].second.type
+    }
+
+    override fun location(): Location {
+        val result = guards.drop(1)
+            .fold(guards.first().first.location() + guards.first().second.location()) { acc, (e1, e2) -> acc + e1.location() + e2.location() }
+
+        return if (elseBranch == null) result else elseBranch.location() + result
+    }
+}
+
+data class WhileExpression(val guard: Expression, val body: Expression, override var type: Type? = null) :
+    Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        guard.apply(s, errors)
+        body.apply(s, errors)
+    }
+
+    override fun location(): Location =
+        guard.location() + body.location()
 }
 
 data class LiteralBoolExpression(val v: BoolLocation, override var type: Type? = null) : Expression(type) {
@@ -106,7 +141,7 @@ enum class Op { Or, And, Plus, Minus, Multiply, Divide, Modulo, Power, EqualEqua
 enum class UnaryOp { Not }
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<List<Statement>, Statement, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression> {
+    Visitor<List<Statement>, Statement, Expression, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression> {
     override fun visitProgram(a: List<Tuple2<Statement, Token?>>): List<Statement> =
         a.map { it.a }
 
@@ -138,7 +173,28 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     override fun visitStatement4(a: Expression): Statement =
         ExpressionStatement(a)
 
-    override fun visitExpression(a: Expression): Expression =
+    override fun visitExpression1(
+        a1: Token,
+        a2: Token?,
+        a3: Expression,
+        a4: Token,
+        a5: Expression,
+        a6: List<Tuple4<Token, Expression, Token, Expression>>,
+        a7: Tuple2<Token, Expression>?
+    ): Expression {
+        val guards = mutableListOf(Pair(a3, a5))
+        guards.addAll(a6.map { Pair(it.b, it.d) })
+
+        return IfExpression(guards, a7?.b)
+    }
+
+    override fun visitExpression2(a1: Token, a2: Expression, a3: Token, a4: Expression): Expression =
+        WhileExpression(a2, a4)
+
+    override fun visitExpression3(a: Expression): Expression =
+        a
+
+    override fun visitOrExpression(a: Expression): Expression =
         a
 
     override fun visitOr(
