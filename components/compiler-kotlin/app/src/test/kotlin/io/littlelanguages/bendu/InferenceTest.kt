@@ -89,17 +89,17 @@ class InferenceTest {
 
     @Test
     fun `infer unary operator`() {
-        listOf(
-            "!True",
-        ).forEach { expr ->
-            assertInferExpressionEquals(expr, "Bool")
-        }
+        assertInferExpressionEquals("!True", "Bool")
+        inferErrorExpression("!1")
+    }
 
-        listOf(
-            "!1",
-        ).forEach { expr ->
-            inferErrorExpression(expr)
-        }
+    @Test
+    fun `infer if expression`() {
+        assertInferExpressionEquals("if True -> 1 | 2", "Int")
+        assertInferExpressionEquals("if True -> ()", "Unit")
+        assertInferExpressionEquals("if a == 0 -> 1 | a == 2 -> 2 | a == 3 -> 4 | -1", "Int", emptyTypeEnv + ("a" to emptyTypeEnv.generalise(typeInt)))
+        inferErrorExpression("if 1 -> 1 | 2")
+        inferErrorExpression("if True -> 1 | 'x'")
     }
 }
 

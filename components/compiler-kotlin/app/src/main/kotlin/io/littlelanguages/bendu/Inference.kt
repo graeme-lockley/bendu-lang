@@ -96,6 +96,24 @@ private fun inferExpression(expression: Expression, env: Environment) {
             env.constraints.add(u1, u2)
         }
 
+        is IfExpression -> {
+            expression.guards.forEach { guard ->
+                inferExpression(guard.first, env)
+                inferExpression(guard.second, env)
+
+                env.constraints.add(guard.first.type!!, typeBool)
+                env.constraints.add(guard.second.type!!, expression.guards[0].second.type!!)
+            }
+            expression.type = expression.guards[0].second.type
+
+            if (expression.elseBranch == null) {
+                env.constraints.add(expression.type!!, typeUnit)
+            } else {
+                inferExpression(expression.elseBranch, env)
+                env.constraints.add(expression.type!!, expression.elseBranch.type!!)
+            }
+        }
+
         is LiteralBoolExpression ->
             expression.type = typeBool.withLocation(expression.location())
 
