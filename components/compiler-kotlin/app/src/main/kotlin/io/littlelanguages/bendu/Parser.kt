@@ -3,11 +3,13 @@ package io.littlelanguages.bendu
 import io.littlelanguages.bendu.parser.Parser
 import io.littlelanguages.bendu.parser.ParsingException
 import io.littlelanguages.bendu.parser.Scanner
+import io.littlelanguages.bendu.parser.TToken
 import io.littlelanguages.bendu.parser.Token
 import io.littlelanguages.bendu.parser.Visitor
 import io.littlelanguages.bendu.typeinference.Subst
 import io.littlelanguages.bendu.typeinference.Type
 import io.littlelanguages.data.Tuple2
+import io.littlelanguages.data.Tuple3
 import io.littlelanguages.data.Tuple4
 import io.littlelanguages.data.Union2
 import io.littlelanguages.data.Union3
@@ -179,13 +181,23 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         a3: Expression,
         a4: Token,
         a5: Expression,
-        a6: List<Tuple4<Token, Expression, Token, Expression>>,
-        a7: Tuple2<Token, Expression>?
+        a6: List<Tuple3<Token, Expression, Tuple2<Token, Expression>?>>
     ): Expression {
         val guards = mutableListOf(Pair(a3, a5))
-        guards.addAll(a6.map { Pair(it.b, it.d) })
+        var elseExpression: Expression? = null
 
-        return IfExpression(guards, a7?.b)
+        a6.forEachIndexed { i, (a, b, c) ->
+            if (c == null) {
+                elseExpression = b
+                if (i != a6.size - 1) {
+                    errors.addError(ParsingError(a, setOf(TToken.TBar)))
+                }
+            } else {
+                guards.add(Pair(b, c.b))
+            }
+        }
+
+        return IfExpression(guards, elseExpression)
     }
 
     override fun visitExpression2(a1: Token, a2: Expression, a3: Token, a4: Expression): Expression =
