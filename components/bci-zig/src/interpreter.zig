@@ -94,6 +94,29 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 runtime.discard();
             },
 
+            .jmp => {
+                const offset = readi32(bc, ip);
+
+                if (DEBUG) {
+                    std.debug.print("{d}: jmp: offset={d}\n", .{ ip - 1, offset });
+                }
+
+                ip = @intCast(offset);
+            },
+            .jmp_false => {
+                const offset = readi32(bc, ip);
+
+                if (DEBUG) {
+                    std.debug.print("{d}: jmp_false: offset={d}\n", .{ ip - 1, offset });
+                }
+
+                const value = runtime.pop();
+                if (Pointer.asBool(value)) {
+                    ip += 4;
+                } else {
+                    ip = @intCast(offset);
+                }
+            },
             .jmp_dup_false => {
                 const offset = readi32(bc, ip);
 

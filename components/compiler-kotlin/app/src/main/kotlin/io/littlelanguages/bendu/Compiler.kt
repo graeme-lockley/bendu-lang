@@ -224,6 +224,38 @@ private class Compiler(val errors: Errors) {
                 }
             }
 
+            is IfExpression -> {
+                var guardJump: Int? = null
+                val endJumpOffsets = mutableListOf<Int>()
+
+                expression.guards.forEach { guard ->
+                    if (guardJump != null) {
+                        byteBuilder.writeIntAtPosition(guardJump, byteBuilder.size())
+                    }
+                    compileExpression(guard.first)
+                    byteBuilder.appendInstruction(Instructions.JMP_FALSE)
+                    guardJump = byteBuilder.size()
+                    byteBuilder.appendInt(0)
+
+                    compileExpression(guard.second)
+                    byteBuilder.appendInstruction(Instructions.JMP)
+                    endJumpOffsets.add(byteBuilder.size())
+                    byteBuilder.appendInt(0)
+                }
+
+                if (guardJump != null) {
+                    byteBuilder.writeIntAtPosition(guardJump, byteBuilder.size())
+                }
+                if (expression.elseBranch != null) {
+                    compileExpression(expression.elseBranch)
+                } else {
+                    byteBuilder.appendInstruction(Instructions.PUSH_UNIT_LITERAL)
+                }
+                endJumpOffsets.forEach { offset ->
+                    byteBuilder.writeIntAtPosition(offset, byteBuilder.size())
+                }
+            }
+
             is LiteralBoolExpression -> {
                 if (expression.v.value)
                     byteBuilder.appendInstruction(Instructions.PUSH_BOOL_TRUE)

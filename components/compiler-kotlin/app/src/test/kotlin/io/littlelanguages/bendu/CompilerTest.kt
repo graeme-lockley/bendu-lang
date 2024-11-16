@@ -312,6 +312,56 @@ class CompilerTest {
         )
 
     }
+
+    @Test
+    fun `if expression`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_BOOL_TRUE.op,
+                Instructions.JMP_FALSE.op,
+                0, 0, 0, 16,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.JMP.op,
+                0, 0, 0, 21,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+            ),
+            "if True -> 1 | 2"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 10, // 10
+                Instructions.PUSH_STACK.op,
+                0, 0, 0, 0, // x
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.EQ_I32.op,
+                Instructions.JMP_FALSE.op,
+                0, 0, 0, 31,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 10, // 10
+                Instructions.JMP.op,
+                0, 0, 0, 62,
+                Instructions.PUSH_STACK.op,
+                0, 0, 0, 0, // x
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 1
+                Instructions.EQ_I32.op,
+                Instructions.JMP_FALSE.op,
+                0, 0, 0, 57,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 20, // 20
+                Instructions.JMP.op,
+                0, 0, 0, 62,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 30, // 30
+            ),
+            "let x = 10 ; if x == 1 -> 10 | x == 2 -> 20 | 30"
+        )
+    }
 }
 
 private fun successfulCompile(input: String): ByteArray {

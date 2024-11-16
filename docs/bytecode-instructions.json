@@ -71,6 +71,26 @@
       "description": "Removes the top element from the stack."
     },
     {
+      "name": "JMP",
+      "args": [
+        {
+          "name": "offset",
+          "type": "u32"
+        }
+      ],
+      "description": "Jumps to the given instruction offset."
+    },
+    {
+      "name": "JMP_FALSE",
+      "args": [
+        {
+          "name": "offset",
+          "type": "u32"
+        }
+      ],
+      "description": "Removes the top boolean from the stack and jumps to a given instruction offset if the value is 'false'."
+    },
+    {
       "name": "JMP_DUP_FALSE",
       "args": [
         {
