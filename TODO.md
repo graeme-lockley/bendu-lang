@@ -50,9 +50,7 @@ The following is the list of big features that need to be implemented.
 
 ## if
 
-- [ ] Implement the `if` expression in the BC interpreter
-- [ ] Enforce syntactically that there MUST be at least one branch without a
-      guard
+- [x] Implement the `if` expression in the BC interpreter
 
 ## while
 

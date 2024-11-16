@@ -7,21 +7,36 @@ import java.io.File
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
-    val parser = ArgParser("bendu-compiler")
-    val script by parser.option(ArgType.String, description = "Script file to compiler")
-    val expression by parser.option(ArgType.String, description = "Expression to be compiled")
-        .default("println(\"Hello, World!\")")
-    val outputName by parser.option(ArgType.String, description = "Script file to compiler")
+    if (args[0] == "test") {
+        processTests(args.drop(1).toTypedArray())
+    } else {
+        val parser = ArgParser("bendu-compiler")
+        val script by parser.option(ArgType.String, description = "Script file to compiler")
+        val expression by parser.option(ArgType.String, description = "Expression to be compiled")
+            .default("println(\"Hello, World!\")")
+        val outputName by parser.option(ArgType.String, description = "Script file to compiler")
 
+        parser.parse(args)
+
+        if (script == null) {
+            compileExpression(expression, if (outputName == null) "out.bc" else outputName!!)
+        } else if (!script!!.endsWith(".bendu")) {
+            println("Unknown file type")
+        } else {
+            compileScript(script!!, if (outputName == null) script!!.replace(".bendu", ".bc") else outputName!!)
+        }
+    }
+}
+
+private fun processTests(args: Array<String>) {
+    val parser = ArgParser("bendu-compiler test")
+    val expression by parser.option(ArgType.String, description = "Expression to be compiled")
+        .default("> 1 + 1\n2: Int")
     parser.parse(args)
 
-    if (script == null) {
-        compileExpression(expression, if (outputName == null) "out.bc" else outputName!!)
-    } else if (!script!!.endsWith(".bendu")) {
-        println("Unknown file type")
-    } else {
-        compileScript(script!!, if (outputName == null) script!!.replace(".bendu", ".bc") else outputName!!)
-    }
+    println(expression)
+
+    TODO("test command not yet implemented")
 }
 
 private fun compileScript(scriptName: String, outputName: String) =
