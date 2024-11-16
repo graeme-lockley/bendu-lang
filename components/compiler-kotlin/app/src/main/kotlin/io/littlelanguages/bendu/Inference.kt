@@ -1,20 +1,6 @@
 package io.littlelanguages.bendu
 
-import io.littlelanguages.bendu.typeinference.Constraints
-import io.littlelanguages.bendu.typeinference.Pump
-import io.littlelanguages.bendu.typeinference.Scheme
-import io.littlelanguages.bendu.typeinference.TArr
-import io.littlelanguages.bendu.typeinference.TVar
-import io.littlelanguages.bendu.typeinference.Type
-import io.littlelanguages.bendu.typeinference.TypeEnv
-import io.littlelanguages.bendu.typeinference.emptyTypeEnv
-import io.littlelanguages.bendu.typeinference.typeBool
-import io.littlelanguages.bendu.typeinference.typeChar
-import io.littlelanguages.bendu.typeinference.typeError
-import io.littlelanguages.bendu.typeinference.typeFloat
-import io.littlelanguages.bendu.typeinference.typeInt
-import io.littlelanguages.bendu.typeinference.typeString
-import io.littlelanguages.bendu.typeinference.typeUnit
+import io.littlelanguages.bendu.typeinference.*
 
 fun infer(
     script: String,
@@ -39,19 +25,19 @@ private fun inferStatements(statements: List<Statement>, env: Environment) =
     statements.forEach { statement -> inferStatement(statement, env) }
 
 private fun inferStatement(statement: Statement, env: Environment) {
-    env.constraints.reset()
+    env.resetConstraints()
 
     when (statement) {
         is ExpressionStatement -> {
             inferExpression(statement.e, env)
 
-            statement.e.apply(env.constraints.solve(env.errors), env.errors)
+            statement.e.apply(env.solveConstraints(), env.errors)
         }
 
         is LetStatement -> {
             inferExpression(statement.e, env)
 
-            statement.e.apply(env.constraints.solve(env.errors), env.errors)
+            statement.e.apply(env.solveConstraints(), env.errors)
 
             env.bind(statement.id.value, statement.e.type!!)
         }
@@ -61,7 +47,7 @@ private fun inferStatement(statement: Statement, env: Environment) {
                 inferExpression(e, env)
             }
 
-            val s = env.constraints.solve(env.errors)
+            val s = env.solveConstraints()
 
             statement.es.forEach { e ->
                 e.apply(s, env.errors)
@@ -72,7 +58,7 @@ private fun inferStatement(statement: Statement, env: Environment) {
             statement.es.forEach { e ->
                 inferExpression(e, env)
             }
-            val s = env.constraints.solve(env.errors)
+            val s = env.solveConstraints()
 
             statement.es.forEach { e ->
                 e.apply(s, env.errors)
@@ -81,19 +67,28 @@ private fun inferStatement(statement: Statement, env: Environment) {
     }
 }
 
+private fun fix(e: Expression, env: Environment): Type {
+    inferExpression(e, env)
+    val tv = env.nextVar()
+
+    env.addConstraint(TArr(tv, tv), e.type!!)
+
+    return tv
+}
+
 private fun inferExpression(expression: Expression, env: Environment) {
     when (expression) {
         is BinaryExpression -> {
             inferExpression(expression.e1, env)
             inferExpression(expression.e2, env)
 
-            val tv = env.pump.next()
+            val tv = env.nextVar()
             expression.type = tv
 
             val u1 = TArr(expression.e1.type!!, TArr(expression.e2.type!!, tv))
-            val u2 = (binaryOperatorSignatures[expression.op.op] ?: Scheme(setOf(), typeError)).instantiate(env.pump)
+            val u2 = env.instantiateScheme(binaryOperatorSignatures[expression.op.op] ?: Scheme(setOf(), typeError))
 
-            env.constraints.add(u1, u2)
+            env.addConstraint(u1, u2)
         }
 
         is IfExpression -> {
@@ -101,16 +96,16 @@ private fun inferExpression(expression: Expression, env: Environment) {
                 inferExpression(guard.first, env)
                 inferExpression(guard.second, env)
 
-                env.constraints.add(guard.first.type!!, typeBool)
-                env.constraints.add(guard.second.type!!, expression.guards[0].second.type!!)
+                env.addConstraint(guard.first.type!!, typeBool)
+                env.addConstraint(guard.second.type!!, expression.guards[0].second.type!!)
             }
             expression.type = expression.guards[0].second.type
 
             if (expression.elseBranch == null) {
-                env.constraints.add(expression.type!!, typeUnit)
+                env.addConstraint(expression.type!!, typeUnit)
             } else {
                 inferExpression(expression.elseBranch, env)
-                env.constraints.add(expression.type!!, expression.elseBranch.type!!)
+                env.addConstraint(expression.type!!, expression.elseBranch.type!!)
             }
         }
 
@@ -133,26 +128,26 @@ private fun inferExpression(expression: Expression, env: Environment) {
             expression.type = typeUnit.withLocation(expression.location())
 
         is LowerIDExpression -> {
-            val scheme = env.typeEnv[expression.v.value]
+            val scheme = env[expression.v.value]
 
             if (scheme == null) {
                 env.errors.addError(UnknownIdentifierError(expression.v))
                 expression.type = typeError.withLocation(expression.location())
             } else {
-                expression.type = scheme.instantiate(env.pump).withLocation(expression.location())
+                expression.type = env.instantiateScheme(scheme).withLocation(expression.location())
             }
         }
 
         is UnaryExpression -> {
             inferExpression(expression.e, env)
 
-            val tv = env.pump.next()
+            val tv = env.nextVar()
             expression.type = tv
 
             val u1 = TArr(expression.e.type!!, tv)
-            val u2 = (unaryOperatorSignatures[expression.op.op] ?: Scheme(setOf(), typeError)).instantiate(env.pump)
+            val u2 = env.instantiateScheme(unaryOperatorSignatures[expression.op.op] ?: Scheme(setOf(), typeError))
 
-            env.constraints.add(u1, u2)
+            env.addConstraint(u1, u2)
         }
 
         else -> TODO()
@@ -182,9 +177,44 @@ private val unaryOperatorSignatures = mapOf(
     Pair(UnaryOp.Not, Scheme(setOf(), TArr(typeBool, typeBool)))
 )
 
-data class Environment(var typeEnv: TypeEnv, val pump: Pump, val errors: Errors, val constraints: Constraints) {
+data class Environment(
+    private var typeEnv: TypeEnv,
+    private val pump: Pump,
+    val errors: Errors,
+    private val constraints: Constraints
+) {
+    private val typeEnvs = mutableListOf(typeEnv)
+
     fun bind(name: String, type: Type) {
         typeEnv = typeEnv + (name to typeEnv.generalise(type))
+    }
+
+    fun bind(name: String, scheme: Scheme) {
+        typeEnv = typeEnv + (name to scheme)
+    }
+
+    fun openTypeEnv() {
+        typeEnvs.add(typeEnv)
+    }
+
+    fun closeTypeEnv() {
+        typeEnv = typeEnvs.removeAt(typeEnvs.size - 1)
+    }
+
+    operator fun get(name: String): Scheme? = typeEnv[name]
+
+    fun solveConstraints(): Subst = constraints.solve(errors)
+
+    fun nextVar(): TVar = pump.next()
+
+    fun instantiateScheme(scheme: Scheme): Type = scheme.instantiate(pump)
+
+    fun resetConstraints() {
+        constraints.reset()
+    }
+
+    fun addConstraint(t1: Type, t2: Type) {
+        constraints.add(t1, t2)
     }
 }
 
