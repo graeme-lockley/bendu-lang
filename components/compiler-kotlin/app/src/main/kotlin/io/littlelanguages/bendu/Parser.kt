@@ -18,7 +18,7 @@ import kotlin.collections.fold
 
 sealed class Statement
 
-data class LetStatement(val id: StringLocation, val e: Expression) : Statement()
+data class LetStatement(val id: StringLocation, val parameters: List<StringLocation>?, val e: Expression) : Statement()
 data class PrintStatement(val es: List<Expression>) : Statement()
 data class PrintlnStatement(val es: List<Expression>) : Statement()
 data class ExpressionStatement(val e: Expression) : Statement()
@@ -29,6 +29,34 @@ sealed class Expression(open var type: Type? = null) {
     }
 
     abstract fun location(): Location
+}
+
+data class ApplyExpression(val f: Expression, val arguments: List<Expression>, override var type: Type? = null) :
+    Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        super.apply(s, errors)
+        f.apply(s, errors)
+        arguments.forEach { it.apply(s, errors) }
+    }
+
+    override fun location(): Location =
+        arguments.map { it.location() }.fold(f.location(), Location::plus)
+}
+
+data class BinaryExpression(
+    val e1: Expression,
+    val op: OpLocation,
+    val e2: Expression,
+    override var type: Type? = null
+) : Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        super.apply(s, errors)
+        e1.apply(s, errors)
+        e2.apply(s, errors)
+    }
+
+    override fun location(): Location =
+        e1.location() + e2.location()
 }
 
 data class IfExpression(
@@ -52,17 +80,6 @@ data class IfExpression(
 
         return if (elseBranch == null) result else elseBranch.location() + result
     }
-}
-
-data class WhileExpression(val guard: Expression, val body: Expression, override var type: Type? = null) :
-    Expression(type) {
-    override fun apply(s: Subst, errors: Errors) {
-        guard.apply(s, errors)
-        body.apply(s, errors)
-    }
-
-    override fun location(): Location =
-        guard.location() + body.location()
 }
 
 data class LiteralBoolExpression(val v: BoolLocation, override var type: Type? = null) : Expression(type) {
@@ -100,22 +117,6 @@ data class LowerIDExpression(val v: StringLocation, override var type: Type? = n
         v.location
 }
 
-data class BinaryExpression(
-    val e1: Expression,
-    val op: OpLocation,
-    val e2: Expression,
-    override var type: Type? = null
-) : Expression(type) {
-    override fun apply(s: Subst, errors: Errors) {
-        super.apply(s, errors)
-        e1.apply(s, errors)
-        e2.apply(s, errors)
-    }
-
-    override fun location(): Location =
-        e1.location() + e2.location()
-}
-
 data class UnaryExpression(
     val op: UnaryOpLocation,
     val e: Expression,
@@ -128,6 +129,17 @@ data class UnaryExpression(
 
     override fun location(): Location =
         op.location + e.location()
+}
+
+data class WhileExpression(val guard: Expression, val body: Expression, override var type: Type? = null) :
+    Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        guard.apply(s, errors)
+        body.apply(s, errors)
+    }
+
+    override fun location(): Location =
+        guard.location() + body.location()
 }
 
 data class BoolLocation(val value: Boolean, val location: Location)
@@ -154,9 +166,21 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         a5: Expression
     ): Statement =
         if (a3 == null)
-            LetStatement(StringLocation(a2.lexeme, a2.location), a5)
+            LetStatement(StringLocation(a2.lexeme, a2.location), null, a5)
         else
-            TODO("Not yet implemented")
+            LetStatement(
+                StringLocation(a2.lexeme, a2.location),
+                if (a3.b == null)
+                    emptyList()
+                else
+                    listOf(StringLocation(a3.b.a.lexeme, a3.b.a.location)) + a3.b.b.map {
+                        StringLocation(
+                            it.b.lexeme,
+                            it.b.location
+                        )
+                    },
+                a5
+            )
 
     override fun visitStatement2(
         a1: Token,
@@ -294,7 +318,10 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         if (a2 == null)
             LowerIDExpression(StringLocation(a1.lexeme, a1.location))
         else
-            TODO("Not yet implemented")
+            ApplyExpression(
+                LowerIDExpression(StringLocation(a1.lexeme, a1.location)),
+                if (a2.b == null) emptyList() else listOf(a2.b.a, *a2.b.b.map { it.b }.toTypedArray())
+            )
 
 
     override fun visitFactor3(a: Token): Expression =
