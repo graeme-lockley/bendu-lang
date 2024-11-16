@@ -10,7 +10,6 @@ import io.littlelanguages.bendu.typeinference.Subst
 import io.littlelanguages.bendu.typeinference.Type
 import io.littlelanguages.data.Tuple2
 import io.littlelanguages.data.Tuple3
-import io.littlelanguages.data.Tuple4
 import io.littlelanguages.data.Union2
 import io.littlelanguages.data.Union3
 import io.littlelanguages.scanpiler.Location
@@ -147,8 +146,17 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     override fun visitProgram(a: List<Tuple2<Statement, Token?>>): List<Statement> =
         a.map { it.a }
 
-    override fun visitStatement1(a1: Token, a2: Token, a3: Token, a4: Expression): Statement =
-        LetStatement(StringLocation(a2.lexeme, a2.location), a4)
+    override fun visitStatement1(
+        a1: Token,
+        a2: Token,
+        a3: Tuple3<Token, Tuple2<Token, List<Tuple2<Token, Token>>>?, Token>?,
+        a4: Token,
+        a5: Expression
+    ): Statement =
+        if (a3 == null)
+            LetStatement(StringLocation(a2.lexeme, a2.location), a5)
+        else
+            TODO("Not yet implemented")
 
     override fun visitStatement2(
         a1: Token,
@@ -279,20 +287,23 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     override fun visitFactor1(a1: Token, a2: Expression?, a3: Token): Expression =
         a2 ?: LiteralUnitExpression(a1.location + a3.location)
 
-    override fun visitFactor2(a: Token): Expression =
-        LowerIDExpression(StringLocation(a.lexeme, a.location))
+    override fun visitFactor2(
+        a1: Token,
+        a2: Tuple3<Token, Tuple2<Expression, List<Tuple2<Token, Expression>>>?, Token>?
+    ): Expression =
+        if (a2 == null)
+            LowerIDExpression(StringLocation(a1.lexeme, a1.location))
+        else
+            TODO("Not yet implemented")
 
-    override fun visitFactor3(a: Token): Expression {
-        if (a.lexeme.length == 3) {
-            return LiteralCharExpression(CharLocation(a.lexeme[1], a.location))
-        } else if (a.lexeme == "'\\n'") {
-            return LiteralCharExpression(CharLocation('\n', a.location))
-        } else if (a.lexeme == "'\\\\'") {
-            return LiteralCharExpression(CharLocation('\\', a.location))
-        } else {
-            return LiteralCharExpression(CharLocation('\'', a.location))
+
+    override fun visitFactor3(a: Token): Expression =
+        when {
+            a.lexeme.length == 3 -> LiteralCharExpression(CharLocation(a.lexeme[1], a.location))
+            a.lexeme == "'\\n'" -> LiteralCharExpression(CharLocation('\n', a.location))
+            a.lexeme == "'\\\\'" -> LiteralCharExpression(CharLocation('\\', a.location))
+            else -> LiteralCharExpression(CharLocation('\'', a.location))
         }
-    }
 
     override fun visitFactor4(a: Token): Expression =
         try {

@@ -11,7 +11,7 @@ complete:
 - The feature is implemented in the language
 - The feature is documented in the language documentation
 - The feature is tested in the language test suite
-- Both the AST interpreter and BC interpreter are updated to support the feature
+- The feature is compiled and executed in the interpreter
 - No memory leaks for both positive and negative tests
 
 # Big Picture
@@ -91,16 +91,18 @@ The following is the list of big features that need to be implemented.
 ## Functions
 
 - [ ] In package, non-recursive, non-higher order, private function without
-      closure
+      closure declaration
+- [ ] Invoke in package, non-recursive, non-higher order, private function
+      without closure
+- [ ] Reference in package, non-recursive, non-higher order, private function
+      without closure as a value and use as a higher order function
 - [ ] In package, singular recursive, non-higher order, private function without
       closure
-- [ ] Change the parser to allow multiple ID declarations separated with `and`
-- [ ] Extend type inference to across mutually recursive functions
-- [ ] Embed the result of mutually recursive type inference into the test runner
-- [ ] AST execute in package, mutually recursive, non-higher order, private
-      function without closure
-- [ ] Bytecode compile and execute in package, mutually recursive, non-higher
-      order, private function without closure
+- [ ] Invoke in package, singular recursive, non-higher order, private function 
+      without closure
+- [ ] Reference in package, singular recursive, non-higher order, private function
+      without closure as a value and use as a higher order function      
+- [ ] In package, mutually recursive functions without closure
 
 ## Int
 

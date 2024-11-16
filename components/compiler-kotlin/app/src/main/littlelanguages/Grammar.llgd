@@ -5,7 +5,7 @@ Program
     ;
 
 Statement
-    : "let" LowerID "=" Expression
+    : "let" LowerID ["(" [LowerID {"," LowerID}] ")"] "=" Expression
     | "print" "(" [Expression {"," Expression}] ")"
     | "println" "(" [Expression {"," Expression}] ")"
     | Expression
@@ -56,7 +56,7 @@ Power
 
 Factor
     : "(" [Expression] ")"
-    | LowerID
+    | LowerID ["(" [Expression {"," Expression}] ")"]
     | LiteralChar
     | LiteralFloat
     | LiteralInt
