@@ -1,11 +1,6 @@
 package io.littlelanguages.bendu
 
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertIs
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 class ParserTest {
     @Test
@@ -22,43 +17,46 @@ class ParserTest {
 
             assertIs<LetStatement>(statements[0])
             assertEquals((statements[0] as LetStatement).id.value, "x")
-            assertNull((statements[0] as LetStatement).parameters)
             assertIs<LiteralIntExpression>((statements[0] as LetStatement).e)
             assertEquals(((statements[0] as LetStatement).e as LiteralIntExpression).v.value, 1)
 
             assertIs<LetStatement>(statements[1])
             assertEquals((statements[1] as LetStatement).id.value, "y")
-            assertNull((statements[1] as LetStatement).parameters)
             assertIs<LowerIDExpression>((statements[1] as LetStatement).e)
             assertEquals(((statements[1] as LetStatement).e as LowerIDExpression).v.value, "x")
         }
 
         listOf(
             "let bob() = 1"
-        ).forEach{input ->
+        ).forEach { input ->
             val statements = successfulParse(input, 1)
 
             assertIs<LetStatement>(statements[0])
             assertEquals("bob", (statements[0] as LetStatement).id.value)
-            assertNotNull((statements[0] as LetStatement).parameters)
-            assertEquals(0, (statements[0] as LetStatement).parameters!!.size)
-            assertIs<LiteralIntExpression>((statements[0] as LetStatement).e)
-            assertEquals(1, ((statements[0] as LetStatement).e as LiteralIntExpression).v.value)
+            assertIs<LiteralFunctionExpression>((statements[0] as LetStatement).e)
+            assertEquals(0, ((statements[0] as LetStatement).e as LiteralFunctionExpression).parameters.size)
+            assertIs<LiteralIntExpression>(((statements[0] as LetStatement).e as LiteralFunctionExpression).body)
+            assertEquals(
+                1,
+                (((statements[0] as LetStatement).e as LiteralFunctionExpression).body as LiteralIntExpression).v.value
+            )
         }
 
         listOf(
             "let add(a, b) = 1"
-        ).forEach{input ->
+        ).forEach { input ->
             val statements = successfulParse(input, 1)
 
             assertIs<LetStatement>(statements[0])
             assertEquals("add", (statements[0] as LetStatement).id.value)
-            assertNotNull((statements[0] as LetStatement).parameters)
-            assertEquals(2, (statements[0] as LetStatement).parameters!!.size)
-            assertEquals("a", (statements[0] as LetStatement).parameters!![0].value)
-            assertEquals("b", (statements[0] as LetStatement).parameters!![1].value)
-            assertIs<LiteralIntExpression>((statements[0] as LetStatement).e)
-            assertEquals(1, ((statements[0] as LetStatement).e as LiteralIntExpression).v.value)
+            assertEquals(2, ((statements[0] as LetStatement).e as LiteralFunctionExpression).parameters.size)
+            assertEquals("a", ((statements[0] as LetStatement).e as LiteralFunctionExpression).parameters[0].value)
+            assertEquals("b", ((statements[0] as LetStatement).e as LiteralFunctionExpression).parameters[1].value)
+            assertIs<LiteralIntExpression>(((statements[0] as LetStatement).e as LiteralFunctionExpression).body)
+            assertEquals(
+                1,
+                (((statements[0] as LetStatement).e as LiteralFunctionExpression).body as LiteralIntExpression).v.value
+            )
         }
     }
 
@@ -77,10 +75,13 @@ class ParserTest {
             assertIs<ExpressionStatement>(statements[0])
             assertIs<ApplyExpression>((statements[0] as ExpressionStatement).e)
             assertIs<LowerIDExpression>(((statements[0] as ExpressionStatement).e as ApplyExpression).f)
-            assertEquals("f", (((statements[0] as ExpressionStatement).e as ApplyExpression).f as LowerIDExpression).v.value)
+            assertEquals(
+                "f",
+                (((statements[0] as ExpressionStatement).e as ApplyExpression).f as LowerIDExpression).v.value
+            )
 
             assertEquals(idx, ((statements[0] as ExpressionStatement).e as ApplyExpression).arguments.size)
-            ((statements[0] as ExpressionStatement).e as ApplyExpression).arguments.forEachIndexed{i, argument ->
+            ((statements[0] as ExpressionStatement).e as ApplyExpression).arguments.forEachIndexed { i, argument ->
                 assertIs<LiteralIntExpression>(argument)
                 assertEquals(i + 1, argument.v.value)
             }

@@ -1,11 +1,6 @@
 package io.littlelanguages.bendu
 
-import io.littlelanguages.bendu.parser.Parser
-import io.littlelanguages.bendu.parser.ParsingException
-import io.littlelanguages.bendu.parser.Scanner
-import io.littlelanguages.bendu.parser.TToken
-import io.littlelanguages.bendu.parser.Token
-import io.littlelanguages.bendu.parser.Visitor
+import io.littlelanguages.bendu.parser.*
 import io.littlelanguages.bendu.typeinference.Subst
 import io.littlelanguages.bendu.typeinference.Type
 import io.littlelanguages.data.Tuple2
@@ -14,11 +9,10 @@ import io.littlelanguages.data.Union2
 import io.littlelanguages.data.Union3
 import io.littlelanguages.scanpiler.Location
 import java.io.StringReader
-import kotlin.collections.fold
 
 sealed class Statement
 
-data class LetStatement(val id: StringLocation, val parameters: List<StringLocation>?, val e: Expression) : Statement()
+data class LetStatement(val id: StringLocation, val e: Expression) : Statement()
 data class PrintStatement(val es: List<Expression>) : Statement()
 data class PrintlnStatement(val es: List<Expression>) : Statement()
 data class ExpressionStatement(val e: Expression) : Statement()
@@ -102,6 +96,19 @@ data class LiteralFloatExpression(val v: FloatLocation, override var type: Type?
         v.location
 }
 
+data class LiteralFunctionExpression(
+    val parameters: List<StringLocation>,
+    val body: Expression,
+    override var type: Type? = null
+) : Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        body.apply(s, errors)
+    }
+
+    override fun location(): Location =
+        parameters.map { it.location }.fold(body.location(), Location::plus)
+}
+
 data class LiteralStringExpression(val v: StringLocation, override var type: Type? = null) : Expression(type) {
     override fun location(): Location =
         v.location
@@ -166,20 +173,22 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         a5: Expression
     ): Statement =
         if (a3 == null)
-            LetStatement(StringLocation(a2.lexeme, a2.location), null, a5)
+            LetStatement(StringLocation(a2.lexeme, a2.location), a5)
         else
             LetStatement(
                 StringLocation(a2.lexeme, a2.location),
-                if (a3.b == null)
-                    emptyList()
-                else
-                    listOf(StringLocation(a3.b.a.lexeme, a3.b.a.location)) + a3.b.b.map {
-                        StringLocation(
-                            it.b.lexeme,
-                            it.b.location
-                        )
-                    },
-                a5
+                LiteralFunctionExpression(
+                    if (a3.b == null)
+                        emptyList()
+                    else
+                        listOf(StringLocation(a3.b.a.lexeme, a3.b.a.location)) + a3.b.b.map {
+                            StringLocation(
+                                it.b.lexeme,
+                                it.b.location
+                            )
+                        },
+                    a5
+                )
             )
 
     override fun visitStatement2(
