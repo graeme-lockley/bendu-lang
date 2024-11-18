@@ -39,28 +39,13 @@ private fun inferStatement(statement: Expression, env: Environment) {
         }
 
         is PrintStatement -> {
-            statement.es.forEach { e ->
-                inferExpression(e, env)
-            }
-
-            val s = env.solveConstraints()
-
-            statement.es.forEach { e ->
-                e.apply(s, env.errors)
-            }
+            inferPrintArguments(statement.es, env)
 
             statement.type = typeUnit.withLocation(statement.location())
         }
 
         is PrintlnStatement -> {
-            statement.es.forEach { e ->
-                inferExpression(e, env)
-            }
-            val s = env.solveConstraints()
-
-            statement.es.forEach { e ->
-                e.apply(s, env.errors)
-            }
+            inferPrintArguments(statement.es, env)
 
             statement.type = typeUnit.withLocation(statement.location())
         }
@@ -70,6 +55,17 @@ private fun inferStatement(statement: Expression, env: Environment) {
 
             statement.apply(env.solveConstraints(), env.errors)
         }
+    }
+}
+
+private fun inferPrintArguments(es: List<Expression>, env: Environment) {
+    es.forEach { e ->
+        inferExpression(e, env)
+    }
+    val s = env.solveConstraints()
+
+    es.forEach { e ->
+        e.apply(s, env.errors)
     }
 }
 
