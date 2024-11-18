@@ -2,15 +2,9 @@ package io.littlelanguages.bendu
 
 import io.littlelanguages.bendu.compiler.ByteBuilder
 import io.littlelanguages.bendu.compiler.Instructions
-import io.littlelanguages.bendu.typeinference.typeBool
-import io.littlelanguages.bendu.typeinference.typeChar
-import io.littlelanguages.bendu.typeinference.typeFloat
-import io.littlelanguages.bendu.typeinference.typeInt
-import io.littlelanguages.bendu.typeinference.typeString
-import io.littlelanguages.bendu.typeinference.typeUnit
-import java.lang.IllegalArgumentException
+import io.littlelanguages.bendu.typeinference.*
 
-fun compile(script: List<Statement>, errors: Errors): ByteArray {
+fun compile(script: List<Expression>, errors: Errors): ByteArray {
     val compiler = Compiler(errors)
     compiler.compile(script)
 
@@ -22,13 +16,13 @@ private class Compiler(val errors: Errors) {
     val bindings = mutableMapOf<String, Int>()
     var offset = 0
 
-    fun compile(script: List<Statement>) {
+    fun compile(script: List<Expression>) {
         if (errors.hasNoErrors()) {
             compileStatements(script)
         }
     }
 
-    private fun compileStatements(statements: List<Statement>) {
+    private fun compileStatements(statements: List<Expression>) {
         statements.forEach { statement ->
             when (statement) {
                 is LetStatement -> {
@@ -46,9 +40,7 @@ private class Compiler(val errors: Errors) {
                     byteBuilder.appendInstruction(Instructions.PRINTLN)
                 }
 
-                is ExpressionStatement -> {
-                    compileExpression(statement.e)
-                }
+                else -> compileExpression(statement)
             }
         }
     }

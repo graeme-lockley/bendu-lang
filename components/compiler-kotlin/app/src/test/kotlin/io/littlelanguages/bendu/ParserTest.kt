@@ -72,16 +72,15 @@ class ParserTest {
         ).forEachIndexed { idx, input ->
             val statements = successfulParse(input, 1)
 
-            assertIs<ExpressionStatement>(statements[0])
-            assertIs<ApplyExpression>((statements[0] as ExpressionStatement).e)
-            assertIs<LowerIDExpression>(((statements[0] as ExpressionStatement).e as ApplyExpression).f)
+            assertIs<ApplyExpression>(statements[0])
+            assertIs<LowerIDExpression>((statements[0]  as ApplyExpression).f)
             assertEquals(
                 "f",
-                (((statements[0] as ExpressionStatement).e as ApplyExpression).f as LowerIDExpression).v.value
+                ((statements[0] as ApplyExpression).f as LowerIDExpression).v.value
             )
 
-            assertEquals(idx, ((statements[0] as ExpressionStatement).e as ApplyExpression).arguments.size)
-            ((statements[0] as ExpressionStatement).e as ApplyExpression).arguments.forEachIndexed { i, argument ->
+            assertEquals(idx, (statements[0] as ApplyExpression).arguments.size)
+            (statements[0] as ApplyExpression).arguments.forEachIndexed { i, argument ->
                 assertIs<LiteralIntExpression>(argument)
                 assertEquals(i + 1, argument.v.value)
             }
@@ -141,9 +140,8 @@ class ParserTest {
         ).forEach { input ->
             val statements = successfulParse(input.first, 1)
 
-            assertIs<ExpressionStatement>(statements[0])
-            assertIs<LiteralCharExpression>((statements[0] as ExpressionStatement).e)
-            assertEquals(((statements[0] as ExpressionStatement).e as LiteralCharExpression).v.value, input.second)
+            assertIs<LiteralCharExpression>(statements[0])
+            assertEquals((statements[0] as LiteralCharExpression).v.value, input.second)
         }
     }
 
@@ -157,9 +155,8 @@ class ParserTest {
         ).forEach { input ->
             val statements = successfulParse(input.first, 1)
 
-            assertIs<ExpressionStatement>(statements[0])
-            assertIs<LiteralFloatExpression>((statements[0] as ExpressionStatement).e)
-            assertEquals(((statements[0] as ExpressionStatement).e as LiteralFloatExpression).v.value, input.second)
+            assertIs<LiteralFloatExpression>(statements[0])
+            assertEquals((statements[0] as LiteralFloatExpression).v.value, input.second)
         }
     }
 
@@ -175,9 +172,8 @@ class ParserTest {
         ).forEach { input ->
             val statements = successfulParse(input.first, 1)
 
-            assertIs<ExpressionStatement>(statements[0])
-            assertIs<LiteralStringExpression>((statements[0] as ExpressionStatement).e)
-            assertEquals(((statements[0] as ExpressionStatement).e as LiteralStringExpression).v.value, input.second)
+            assertIs<LiteralStringExpression>(statements[0])
+            assertEquals((statements[0]  as LiteralStringExpression).v.value, input.second)
         }
 
     }
@@ -186,12 +182,11 @@ class ParserTest {
     fun `literal unit`() {
         val statements = successfulParse("()", 1)
 
-        assertIs<ExpressionStatement>(statements[0])
-        assertIs<LiteralUnitExpression>((statements[0] as ExpressionStatement).e)
+        assertIs<LiteralUnitExpression>(statements[0])
     }
 }
 
-private fun successfulParse(input: String, numberOfStatements: Int): List<Statement> {
+private fun successfulParse(input: String, numberOfStatements: Int): List<Expression> {
     val errors = Errors()
     val statements = parse(input, errors)
     assertTrue(errors.hasNoErrors())

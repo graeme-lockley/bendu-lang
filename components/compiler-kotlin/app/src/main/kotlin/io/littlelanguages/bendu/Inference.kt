@@ -8,7 +8,7 @@ fun infer(
     pump: Pump = Pump(),
     errors: Errors = Errors(),
     constraints: Constraints = Constraints()
-): List<Statement> {
+): List<Expression> {
     val ast = parse(script, errors)
 
     if (errors.hasErrors()) {
@@ -21,25 +21,21 @@ fun infer(
 }
 
 
-private fun inferStatements(statements: List<Statement>, env: Environment) =
+private fun inferStatements(statements: List<Expression>, env: Environment) =
     statements.forEach { statement -> inferStatement(statement, env) }
 
-private fun inferStatement(statement: Statement, env: Environment) {
+private fun inferStatement(statement: Expression, env: Environment) {
     env.resetConstraints()
 
     when (statement) {
-        is ExpressionStatement -> {
-            inferExpression(statement.e, env)
-
-            statement.e.apply(env.solveConstraints(), env.errors)
-        }
-
         is LetStatement -> {
             inferExpression(statement.e, env)
 
             statement.e.apply(env.solveConstraints(), env.errors)
 
             env.bind(statement.id.value, statement.e.type!!)
+
+            statement.type = typeUnit.withLocation(statement.location())
         }
 
         is PrintStatement -> {
@@ -52,6 +48,8 @@ private fun inferStatement(statement: Statement, env: Environment) {
             statement.es.forEach { e ->
                 e.apply(s, env.errors)
             }
+
+            statement.type = typeUnit.withLocation(statement.location())
         }
 
         is PrintlnStatement -> {
@@ -63,6 +61,14 @@ private fun inferStatement(statement: Statement, env: Environment) {
             statement.es.forEach { e ->
                 e.apply(s, env.errors)
             }
+
+            statement.type = typeUnit.withLocation(statement.location())
+        }
+
+        else -> {
+            inferExpression(statement, env)
+
+            statement.apply(env.solveConstraints(), env.errors)
         }
     }
 }

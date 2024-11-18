@@ -108,8 +108,7 @@ private fun assertInferExpressionEquals(expr: String, expected: String, typeEnv:
     val ast = infer(expr, errors = errors, typeEnv = typeEnv)
 
     assertTrue(errors.hasNoErrors())
-    assertIs<ExpressionStatement>(ast[0])
-    assertEquals(expected, (ast[0] as ExpressionStatement).e.type.toString())
+    assertEquals(expected, ast[0].type.toString())
 }
 
 private fun inferErrorExpression(expr: String, typeEnv: TypeEnv = emptyTypeEnv): Errors {

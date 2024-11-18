@@ -10,12 +10,39 @@ import io.littlelanguages.data.Union3
 import io.littlelanguages.scanpiler.Location
 import java.io.StringReader
 
-sealed class Statement
+data class LetStatement(
+    val id: StringLocation,
+    val e: Expression,
+    private val location: Location,
+    override var type: Type? = null
+) : Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        e.apply(s, errors)
+    }
 
-data class LetStatement(val id: StringLocation, val e: Expression) : Statement()
-data class PrintStatement(val es: List<Expression>) : Statement()
-data class PrintlnStatement(val es: List<Expression>) : Statement()
-data class ExpressionStatement(val e: Expression) : Statement()
+    override fun location(): Location =
+        location
+}
+
+data class PrintStatement(val es: List<Expression>, private val location: Location, override var type: Type? = null) :
+    Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        es.forEach { it.apply(s, errors) }
+    }
+
+    override fun location(): Location =
+        location
+}
+
+data class PrintlnStatement(val es: List<Expression>, private val location: Location, override var type: Type? = null) :
+    Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        es.forEach { it.apply(s, errors) }
+    }
+
+    override fun location(): Location =
+        location
+}
 
 sealed class Expression(open var type: Type? = null) {
     open fun apply(s: Subst, errors: Errors) {
@@ -161,19 +188,19 @@ enum class Op { Or, And, Plus, Minus, Multiply, Divide, Modulo, Power, EqualEqua
 enum class UnaryOp { Not }
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<List<Statement>, Statement, Expression, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression> {
-    override fun visitProgram(a: List<Tuple2<Statement, Token?>>): List<Statement> =
+    Visitor<List<Expression>, Expression, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression> {
+    override fun visitProgram(a: List<Tuple2<Expression, Token?>>): List<Expression> =
         a.map { it.a }
 
-    override fun visitStatement1(
+    override fun visitExpression1(
         a1: Token,
         a2: Token,
         a3: Tuple3<Token, Tuple2<Token, List<Tuple2<Token, Token>>>?, Token>?,
         a4: Token,
         a5: Expression
-    ): Statement =
+    ): Expression =
         if (a3 == null)
-            LetStatement(StringLocation(a2.lexeme, a2.location), a5)
+            LetStatement(StringLocation(a2.lexeme, a2.location), a5, a1.location + a5.location())
         else
             LetStatement(
                 StringLocation(a2.lexeme, a2.location),
@@ -188,35 +215,33 @@ private class ParserVisitor(val errors: Errors = Errors()) :
                             )
                         },
                     a5
-                )
+                ),
+                a1.location + a5.location()
             )
 
-    override fun visitStatement2(
+    override fun visitExpression2(
         a1: Token,
         a2: Token,
         a3: Tuple2<Expression, List<Tuple2<Token, Expression>>>?,
         a4: Token
-    ): Statement =
+    ): Expression =
         if (a3 == null)
-            PrintStatement(emptyList())
+            PrintStatement(emptyList(), a1.location + a4.location)
         else
-            PrintStatement(listOf(a3.a, *a3.b.map { it.b }.toTypedArray()))
+            PrintStatement(listOf(a3.a, *a3.b.map { it.b }.toTypedArray()), a1.location + a4.location)
 
-    override fun visitStatement3(
+    override fun visitExpression3(
         a1: Token,
         a2: Token,
         a3: Tuple2<Expression, List<Tuple2<Token, Expression>>>?,
         a4: Token
-    ): Statement =
+    ): Expression =
         if (a3 == null)
-            PrintlnStatement(emptyList())
+            PrintlnStatement(emptyList(), a1.location + a4.location)
         else
-            PrintlnStatement(listOf(a3.a, *a3.b.map { it.b }.toTypedArray()))
+            PrintlnStatement(listOf(a3.a, *a3.b.map { it.b }.toTypedArray()), a1.location + a4.location)
 
-    override fun visitStatement4(a: Expression): Statement =
-        ExpressionStatement(a)
-
-    override fun visitExpression1(
+    override fun visitExpression4(
         a1: Token,
         a2: Token?,
         a3: Expression,
@@ -241,10 +266,10 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         return IfExpression(guards, elseExpression)
     }
 
-    override fun visitExpression2(a1: Token, a2: Expression, a3: Token, a4: Expression): Expression =
+    override fun visitExpression5(a1: Token, a2: Expression, a3: Token, a4: Expression): Expression =
         WhileExpression(a2, a4)
 
-    override fun visitExpression3(a: Expression): Expression =
+    override fun visitExpression6(a: Expression): Expression =
         a
 
     override fun visitOrExpression(a: Expression): Expression =
@@ -403,7 +428,7 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         UnaryExpression(UnaryOpLocation(UnaryOp.Not, a1.location), a2)
 }
 
-fun parse(scanner: Scanner, errors: Errors): List<Statement> {
+fun parse(scanner: Scanner, errors: Errors): List<Expression> {
     try {
         return Parser(scanner, ParserVisitor(errors)).program()
     } catch (e: ParsingException) {
@@ -412,5 +437,5 @@ fun parse(scanner: Scanner, errors: Errors): List<Statement> {
     }
 }
 
-fun parse(input: String, errors: Errors): List<Statement> =
+fun parse(input: String, errors: Errors): List<Expression> =
     parse(Scanner(StringReader(input)), errors)

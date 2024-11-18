@@ -1,18 +1,14 @@
 uses "./Scanner.llld";
 
 Program
-    : {Statement [";"]}
-    ;
-
-Statement
-    : "let" LowerID ["(" [LowerID {"," LowerID}] ")"] "=" Expression
-    | "print" "(" [Expression {"," Expression}] ")"
-    | "println" "(" [Expression {"," Expression}] ")"
-    | Expression
+    : {Expression [";"]}
     ;
 
 Expression
-    : "if" ["|"] Expression "->" Expression {"|" Expression ["->" Expression]}
+    : "let" LowerID ["(" [LowerID {"," LowerID}] ")"] "=" Expression
+    | "print" "(" [Expression {"," Expression}] ")"
+    | "println" "(" [Expression {"," Expression}] ")"
+    | "if" ["|"] Expression "->" Expression {"|" Expression ["->" Expression]}
     | "while" Expression "->" Expression
     | OrExpression
     ;
