@@ -27,55 +27,9 @@ private fun inferStatements(statements: List<Expression>, env: Environment) =
 private fun inferStatement(statement: Expression, env: Environment) {
     env.resetConstraints()
 
-    when (statement) {
-        is LetStatement -> {
-            inferExpression(statement.e, env)
+    inferExpression(statement, env)
 
-            statement.e.apply(env.solveConstraints(), env.errors)
-
-            env.bind(statement.id.value, statement.e.type!!)
-
-            statement.type = typeUnit.withLocation(statement.location())
-        }
-
-        is PrintStatement -> {
-            inferPrintArguments(statement.es, env)
-
-            statement.type = typeUnit.withLocation(statement.location())
-        }
-
-        is PrintlnStatement -> {
-            inferPrintArguments(statement.es, env)
-
-            statement.type = typeUnit.withLocation(statement.location())
-        }
-
-        else -> {
-            inferExpression(statement, env)
-
-            statement.apply(env.solveConstraints(), env.errors)
-        }
-    }
-}
-
-private fun inferPrintArguments(es: List<Expression>, env: Environment) {
-    es.forEach { e ->
-        inferExpression(e, env)
-    }
-    val s = env.solveConstraints()
-
-    es.forEach { e ->
-        e.apply(s, env.errors)
-    }
-}
-
-private fun fix(e: Expression, env: Environment): Type {
-    inferExpression(e, env)
-    val tv = env.nextVar()
-
-    env.addConstraint(TArr(tv, tv), e.type!!)
-
-    return tv
+    statement.apply(env.solveConstraints(), env.errors)
 }
 
 private fun inferExpression(expression: Expression, env: Environment) {
@@ -111,6 +65,16 @@ private fun inferExpression(expression: Expression, env: Environment) {
             }
         }
 
+        is LetStatement -> {
+            inferExpression(expression.e, env)
+
+            expression.e.apply(env.solveConstraints(), env.errors)
+
+            env.bind(expression.id.value, expression.e.type!!)
+
+            expression.type = typeUnit.withLocation(expression.location())
+        }
+
         is LiteralBoolExpression ->
             expression.type = typeBool.withLocation(expression.location())
 
@@ -140,6 +104,18 @@ private fun inferExpression(expression: Expression, env: Environment) {
             }
         }
 
+        is PrintStatement -> {
+            inferPrintArguments(expression.es, env)
+
+            expression.type = typeUnit.withLocation(expression.location())
+        }
+
+        is PrintlnStatement -> {
+            inferPrintArguments(expression.es, env)
+
+            expression.type = typeUnit.withLocation(expression.location())
+        }
+
         is UnaryExpression -> {
             inferExpression(expression.e, env)
 
@@ -154,6 +130,26 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
         else -> TODO()
     }
+}
+
+private fun inferPrintArguments(es: List<Expression>, env: Environment) {
+    es.forEach { e ->
+        inferExpression(e, env)
+    }
+    val s = env.solveConstraints()
+
+    es.forEach { e ->
+        e.apply(s, env.errors)
+    }
+}
+
+private fun fix(e: Expression, env: Environment): Type {
+    inferExpression(e, env)
+    val tv = env.nextVar()
+
+    env.addConstraint(TArr(tv, tv), e.type!!)
+
+    return tv
 }
 
 private val binaryOperatorSignatures = mapOf(

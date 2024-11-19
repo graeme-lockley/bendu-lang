@@ -71,7 +71,8 @@ class CompilerTest {
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 1, // 1
                 Instructions.PUSH_STACK.op,
-                0, 0, 0, 0 // x
+                0, 0, 0, 0, // x
+                Instructions.PUSH_UNIT_LITERAL.op,
             ),
             "let x = 1 ; let y = x"
         )
@@ -80,7 +81,9 @@ class CompilerTest {
     @Test
     fun `print( dotdotdot )`() {
         assertCompiledBC(
-            byteArrayOf(),
+            byteArrayOf(
+                Instructions.PUSH_UNIT_LITERAL.op,
+            ),
             "print()"
         )
 
@@ -103,6 +106,7 @@ class CompilerTest {
                 Instructions.PRINT_STRING.op,
                 Instructions.PUSH_UNIT_LITERAL.op,
                 Instructions.PRINT_UNIT.op,
+                Instructions.PUSH_UNIT_LITERAL.op,
             ),
             "print(1, True, 'x', 3.141, \"hi\", ())"
         )
@@ -111,7 +115,10 @@ class CompilerTest {
     @Test
     fun `println( dotdotdot )`() {
         assertCompiledBC(
-            byteArrayOf(Instructions.PRINTLN.op),
+            byteArrayOf(
+                Instructions.PRINTLN.op,
+                Instructions.PUSH_UNIT_LITERAL.op,
+            ),
             "println()"
         )
 
@@ -134,7 +141,8 @@ class CompilerTest {
                 Instructions.PRINT_STRING.op,
                 Instructions.PUSH_UNIT_LITERAL.op,
                 Instructions.PRINT_UNIT.op,
-                Instructions.PRINTLN.op
+                Instructions.PRINTLN.op,
+                Instructions.PUSH_UNIT_LITERAL.op,
             ),
             "println(1, False, 'x', 3.141, \"hi\", ())"
         )

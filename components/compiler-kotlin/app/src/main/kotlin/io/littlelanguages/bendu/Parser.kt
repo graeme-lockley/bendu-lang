@@ -10,40 +10,6 @@ import io.littlelanguages.data.Union3
 import io.littlelanguages.scanpiler.Location
 import java.io.StringReader
 
-data class LetStatement(
-    val id: StringLocation,
-    val e: Expression,
-    private val location: Location,
-    override var type: Type? = null
-) : Expression(type) {
-    override fun apply(s: Subst, errors: Errors) {
-        e.apply(s, errors)
-    }
-
-    override fun location(): Location =
-        location
-}
-
-data class PrintStatement(val es: List<Expression>, private val location: Location, override var type: Type? = null) :
-    Expression(type) {
-    override fun apply(s: Subst, errors: Errors) {
-        es.forEach { it.apply(s, errors) }
-    }
-
-    override fun location(): Location =
-        location
-}
-
-data class PrintlnStatement(val es: List<Expression>, private val location: Location, override var type: Type? = null) :
-    Expression(type) {
-    override fun apply(s: Subst, errors: Errors) {
-        es.forEach { it.apply(s, errors) }
-    }
-
-    override fun location(): Location =
-        location
-}
-
 sealed class Expression(open var type: Type? = null) {
     open fun apply(s: Subst, errors: Errors) {
         type = type!!.apply(s)
@@ -103,6 +69,20 @@ data class IfExpression(
     }
 }
 
+data class LetStatement(
+    val id: StringLocation,
+    val e: Expression,
+    private val location: Location,
+    override var type: Type? = null
+) : Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        e.apply(s, errors)
+    }
+
+    override fun location(): Location =
+        location
+}
+
 data class LiteralBoolExpression(val v: BoolLocation, override var type: Type? = null) : Expression(type) {
     override fun location(): Location =
         v.location
@@ -149,6 +129,26 @@ data class LiteralUnitExpression(val location: Location, override var type: Type
 data class LowerIDExpression(val v: StringLocation, override var type: Type? = null) : Expression(type) {
     override fun location(): Location =
         v.location
+}
+
+data class PrintStatement(val es: List<Expression>, private val location: Location, override var type: Type? = null) :
+    Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        es.forEach { it.apply(s, errors) }
+    }
+
+    override fun location(): Location =
+        location
+}
+
+data class PrintlnStatement(val es: List<Expression>, private val location: Location, override var type: Type? = null) :
+    Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        es.forEach { it.apply(s, errors) }
+    }
+
+    override fun location(): Location =
+        location
 }
 
 data class UnaryExpression(
