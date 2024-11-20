@@ -101,6 +101,13 @@ class InferenceTest {
         inferErrorExpression("if 1 -> 1 | 2")
         inferErrorExpression("if True -> 1 | 'x'")
     }
+
+    @Test
+    fun `infer recursive function`() {
+        assertInferFunctionEquals("let inc(a) = a + 1", "(Int) -> Int")
+        assertInferFunctionEquals("let add(a, b) = a + b + 1", "(Int * Int) -> Int")
+//        assertInferExpressionEquals("let f(x) = if x == 0 -> 0 | x + f(x - 1)", "(Int) -> Int")
+    }
 }
 
 private fun assertInferExpressionEquals(expr: String, expected: String, typeEnv: TypeEnv = emptyTypeEnv) {
@@ -109,6 +116,14 @@ private fun assertInferExpressionEquals(expr: String, expected: String, typeEnv:
 
     assertTrue(errors.hasNoErrors())
     assertEquals(expected, ast[0].type.toString())
+}
+
+private fun assertInferFunctionEquals(expr: String, expected: String, typeEnv: TypeEnv = emptyTypeEnv) {
+    val errors = Errors()
+    val ast = infer(expr, errors = errors, typeEnv = typeEnv)
+
+    assertTrue(errors.hasNoErrors())
+    assertEquals(expected, (ast[0] as LetStatement).e.type.toString())
 }
 
 private fun inferErrorExpression(expr: String, typeEnv: TypeEnv = emptyTypeEnv): Errors {

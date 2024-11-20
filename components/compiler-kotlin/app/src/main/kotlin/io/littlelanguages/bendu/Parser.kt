@@ -109,6 +109,8 @@ data class LiteralFunctionExpression(
     override var type: Type? = null
 ) : Expression(type) {
     override fun apply(s: Subst, errors: Errors) {
+        super.apply(s, errors)
+
         body.apply(s, errors)
     }
 

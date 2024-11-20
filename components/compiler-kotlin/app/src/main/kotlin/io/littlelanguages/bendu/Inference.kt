@@ -34,6 +34,21 @@ private fun inferStatement(statement: Expression, env: Environment) {
 
 private fun inferExpression(expression: Expression, env: Environment) {
     when (expression) {
+        is ApplyExpression -> {
+            inferExpression(expression.f, env)
+
+            expression.arguments.forEach { argument ->
+                inferExpression(argument, env)
+            }
+
+            val tv = env.nextVar()
+            val domain = TTuple(expression.arguments.map { it.type!! })
+
+            env.addConstraint(expression.f.type!!, TArr(domain, tv))
+            expression.type = tv
+
+        }
+
         is BinaryExpression -> {
             inferExpression(expression.e1, env)
             inferExpression(expression.e2, env)
@@ -68,9 +83,10 @@ private fun inferExpression(expression: Expression, env: Environment) {
         is LetStatement -> {
             inferExpression(expression.e, env)
 
-            expression.e.apply(env.solveConstraints(), env.errors)
+            val s = env.solveConstraints()
+            expression.e.apply(s, env.errors)
 
-            env.bind(expression.id.value, expression.e.type!!)
+            env.bind(expression.id.value, Scheme(emptySet(), expression.e.type!!))
 
             expression.type = typeUnit.withLocation(expression.location())
         }
@@ -86,6 +102,26 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
         is LiteralIntExpression ->
             expression.type = typeInt.withLocation(expression.location())
+
+        is LiteralFunctionExpression -> {
+            env.openTypeEnv()
+
+            val tv = env.nextVar()
+            val domain = TTuple(env.nextVars(expression.parameters.size))
+
+            expression.parameters.forEachIndexed { index, parameter ->
+                env.bind(parameter.value, Scheme(emptySet(), domain.types[index]))
+            }
+
+            inferExpression(expression.body, env)
+
+            env.closeTypeEnv()
+
+            val result = TArr(domain, expression.body.type!!)
+            env.addConstraint(tv, result)
+
+            expression.type = tv
+        }
 
         is LiteralStringExpression ->
             expression.type = typeString.withLocation(expression.location())
@@ -128,7 +164,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             env.addConstraint(u1, u2)
         }
 
-        else -> TODO()
+        else -> TODO(expression.toString())
     }
 }
 
@@ -183,9 +219,9 @@ data class Environment(
 ) {
     private val typeEnvs = mutableListOf(typeEnv)
 
-    fun bind(name: String, type: Type) {
-        typeEnv = typeEnv + (name to typeEnv.generalise(type))
-    }
+//    fun bind(name: String, type: Type) {
+//        typeEnv = typeEnv + (name to typeEnv.generalise(type))
+//    }
 
     fun bind(name: String, scheme: Scheme) {
         typeEnv = typeEnv + (name to scheme)
@@ -204,6 +240,8 @@ data class Environment(
     fun solveConstraints(): Subst = constraints.solve(errors)
 
     fun nextVar(): TVar = pump.next()
+
+    fun nextVars(n: Int): List<TVar> = pump.nextN(n)
 
     fun instantiateScheme(scheme: Scheme): Type = scheme.instantiate(pump)
 
