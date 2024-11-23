@@ -1,8 +1,6 @@
 package io.littlelanguages.bendu
 
-import io.littlelanguages.bendu.typeinference.TypeEnv
-import io.littlelanguages.bendu.typeinference.emptyTypeEnv
-import io.littlelanguages.bendu.typeinference.typeInt
+import io.littlelanguages.bendu.typeinference.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -97,16 +95,24 @@ class InferenceTest {
     fun `infer if expression`() {
         assertInferExpressionEquals("if True -> 1 | 2", "Int")
         assertInferExpressionEquals("if True -> ()", "Unit")
-        assertInferExpressionEquals("if a == 0 -> 1 | a == 2 -> 2 | a == 3 -> 4 | -1", "Int", emptyTypeEnv + ("a" to emptyTypeEnv.generalise(typeInt)))
+        assertInferExpressionEquals(
+            "if a == 0 -> 1 | a == 2 -> 2 | a == 3 -> 4 | -1",
+            "Int",
+            emptyTypeEnv + ("a" to emptyTypeEnv.generalise(typeInt))
+        )
         inferErrorExpression("if 1 -> 1 | 2")
         inferErrorExpression("if True -> 1 | 'x'")
     }
 
     @Test
-    fun `infer recursive function`() {
+    fun `infer function declaration`() {
+        assertInferFunctionEquals("let inc() = 1", "() -> Int")
         assertInferFunctionEquals("let inc(a) = a + 1", "(Int) -> Int")
-        assertInferFunctionEquals("let add(a, b) = a + b + 1", "(Int * Int) -> Int")
-//        assertInferExpressionEquals("let f(x) = if x == 0 -> 0 | x + f(x - 1)", "(Int) -> Int")
+        assertInferFunctionEquals("let add(a, b) = a + b + 1", "(Int, Int) -> Int")
+        assertInferFunctionEquals("let add(a, b) = a + b + 1.0", "(Float, Float) -> Float")
+        assertInferFunctionEquals("let f(x) = if x == 0 -> 0 | x + f(x - 1)", "(Int) -> Int")
+        assertInferFunctionEquals("let f(x) = g(x)", "(Int) -> Int", emptyTypeEnv + ("g" to Scheme(setOf(), TArr(listOf(typeInt), typeInt))))
+        assertInferFunctionEquals("let f(x) = g(1) + x", "(Int) -> Int", emptyTypeEnv + ("g" to Scheme(setOf(), TArr(listOf(typeInt), typeInt))))
     }
 }
 

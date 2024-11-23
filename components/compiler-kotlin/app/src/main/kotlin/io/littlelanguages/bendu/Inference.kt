@@ -42,7 +42,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             }
 
             val tv = env.nextVar()
-            val domain = TTuple(expression.arguments.map { it.type!! })
+            val domain = expression.arguments.map { it.type!! }
 
             env.addConstraint(expression.f.type!!, TArr(domain, tv))
             expression.type = tv
@@ -56,7 +56,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             val tv = env.nextVar()
             expression.type = tv
 
-            val u1 = TArr(expression.e1.type!!, TArr(expression.e2.type!!, tv))
+            val u1 = TArr(listOf(expression.e1.type!!), TArr(listOf(expression.e2.type!!), tv))
             val u2 = env.instantiateScheme(binaryOperatorSignatures[expression.op.op] ?: Scheme(setOf(), typeError))
 
             env.addConstraint(u1, u2)
@@ -81,7 +81,16 @@ private fun inferExpression(expression: Expression, env: Environment) {
         }
 
         is LetStatement -> {
-            inferExpression(expression.e, env)
+            val tv = env.nextVar()
+            val scheme = Scheme(emptySet(), tv)
+            env.bind(expression.id.value, scheme)
+            val declarationType = fix(
+                LiteralFunctionExpression(
+                    listOf(StringLocation("_bob", expression.id.location)),
+                    LiteralTupleExpression(listOf(expression.e))
+                ), env
+            )
+            env.addConstraint(declarationType, TTuple(listOf(tv)))
 
             val s = env.solveConstraints()
             expression.e.apply(s, env.errors)
@@ -107,10 +116,10 @@ private fun inferExpression(expression: Expression, env: Environment) {
             env.openTypeEnv()
 
             val tv = env.nextVar()
-            val domain = TTuple(env.nextVars(expression.parameters.size))
+            val domain = env.nextVars(expression.parameters.size)
 
             expression.parameters.forEachIndexed { index, parameter ->
-                env.bind(parameter.value, Scheme(emptySet(), domain.types[index]))
+                env.bind(parameter.value, Scheme(emptySet(), domain[index]))
             }
 
             inferExpression(expression.body, env)
@@ -125,6 +134,14 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
         is LiteralStringExpression ->
             expression.type = typeString.withLocation(expression.location())
+
+        is LiteralTupleExpression -> {
+            expression.es.forEach { e ->
+                inferExpression(e, env)
+            }
+
+            expression.type = TTuple(expression.es.map { it.type!! }).withLocation(expression.location())
+        }
 
         is LiteralUnitExpression ->
             expression.type = typeUnit.withLocation(expression.location())
@@ -158,7 +175,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             val tv = env.nextVar()
             expression.type = tv
 
-            val u1 = TArr(expression.e.type!!, tv)
+            val u1 = TArr(listOf(expression.e.type!!), tv)
             val u2 = env.instantiateScheme(unaryOperatorSignatures[expression.op.op] ?: Scheme(setOf(), typeError))
 
             env.addConstraint(u1, u2)
@@ -183,32 +200,32 @@ private fun fix(e: Expression, env: Environment): Type {
     inferExpression(e, env)
     val tv = env.nextVar()
 
-    env.addConstraint(TArr(tv, tv), e.type!!)
+    env.addConstraint(TArr(listOf(tv), tv), e.type!!)
 
     return tv
 }
 
 private val binaryOperatorSignatures = mapOf(
-    Pair(Op.And, Scheme(setOf(), TArr(typeBool, TArr(typeBool, typeBool)))),
-    Pair(Op.Or, Scheme(setOf(), TArr(typeBool, TArr(typeBool, typeBool)))),
+    Pair(Op.And, Scheme(setOf(), TArr(listOf(typeBool), TArr(listOf(typeBool), typeBool)))),
+    Pair(Op.Or, Scheme(setOf(), TArr(listOf(typeBool), TArr(listOf(typeBool), typeBool)))),
 
-    Pair(Op.EqualEqual, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), typeBool)))),
-    Pair(Op.NotEqual, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), typeBool)))),
-    Pair(Op.LessThan, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), typeBool)))),
-    Pair(Op.LessEqual, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), typeBool)))),
-    Pair(Op.GreaterThan, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), typeBool)))),
-    Pair(Op.GreaterEqual, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), typeBool)))),
+    Pair(Op.EqualEqual, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), typeBool)))),
+    Pair(Op.NotEqual, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), typeBool)))),
+    Pair(Op.LessThan, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), typeBool)))),
+    Pair(Op.LessEqual, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), typeBool)))),
+    Pair(Op.GreaterThan, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), typeBool)))),
+    Pair(Op.GreaterEqual, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), typeBool)))),
 
-    Pair(Op.Plus, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), TVar(0))))),
-    Pair(Op.Minus, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), TVar(0))))),
-    Pair(Op.Multiply, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), TVar(0))))),
-    Pair(Op.Divide, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), TVar(0))))),
-    Pair(Op.Modulo, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), TVar(0))))),
-    Pair(Op.Power, Scheme(setOf(0), TArr(TVar(0), TArr(TVar(0), TVar(0)))))
+    Pair(Op.Plus, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), TVar(0))))),
+    Pair(Op.Minus, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), TVar(0))))),
+    Pair(Op.Multiply, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), TVar(0))))),
+    Pair(Op.Divide, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), TVar(0))))),
+    Pair(Op.Modulo, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), TVar(0))))),
+    Pair(Op.Power, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), TVar(0)))))
 )
 
 private val unaryOperatorSignatures = mapOf(
-    Pair(UnaryOp.Not, Scheme(setOf(), TArr(typeBool, typeBool)))
+    Pair(UnaryOp.Not, Scheme(setOf(), TArr(listOf(typeBool), typeBool)))
 )
 
 data class Environment(

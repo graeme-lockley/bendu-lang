@@ -8,6 +8,7 @@ import io.littlelanguages.data.Tuple3
 import io.littlelanguages.data.Union2
 import io.littlelanguages.data.Union3
 import io.littlelanguages.scanpiler.Location
+import io.littlelanguages.scanpiler.LocationCoordinate
 import java.io.StringReader
 
 sealed class Expression(open var type: Type? = null) {
@@ -121,6 +122,18 @@ data class LiteralFunctionExpression(
 data class LiteralStringExpression(val v: StringLocation, override var type: Type? = null) : Expression(type) {
     override fun location(): Location =
         v.location
+}
+
+data class LiteralTupleExpression(val es: List<Expression>, override var type: Type? = null) : Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        es.forEach { it.apply(s, errors) }
+    }
+
+    override fun location(): Location =
+        if (es.isEmpty())
+            LocationCoordinate(0, 0, 0)
+        else
+            es.drop(1).map { it.location() }.fold(es[0].location(), Location::plus)
 }
 
 data class LiteralUnitExpression(val location: Location, override var type: Type? = null) : Expression(type) {

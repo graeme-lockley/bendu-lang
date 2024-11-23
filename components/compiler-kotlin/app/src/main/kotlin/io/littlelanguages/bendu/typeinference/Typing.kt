@@ -89,21 +89,21 @@ data class TTuple(val types: List<Type>, override val location: Location? = null
     override fun toString(): String = "(${types.joinToString(" * ")})"
 }
 
-data class TArr(val domain: Type, val range: Type, override val location: Location? = null) : Type(location) {
+data class TArr(val domain: List<Type>, val range: Type, override val location: Location? = null) : Type(location) {
     override fun apply(s: Subst): Type =
-        TArr(domain.apply(s), range.apply(s))
+        TArr(domain.map { it.apply(s) }, range.apply(s))
 
     override fun ftv(): Set<Var> =
-        domain.ftv() + range.ftv()
+        domain.map { it.ftv() }.fold(emptySet<Var>()) { a, b -> a + b } + range.ftv()
 
     override fun withLocation(location: Location?): Type =
         TArr(domain, range, location)
 
     override fun isSimilar(other: Type): Boolean =
-        other is TArr && domain.isSimilar(other.domain) && range.isSimilar(other.range)
+        other is TArr && domain.zip(other.domain).all { it.first.isSimilar(it.second) } && range.isSimilar(other.range)
 
     override fun toString(): String =
-        if (domain is TArr) "($domain) -> $range" else "$domain -> $range"
+        "(${domain.joinToString(", ")}) -> $range"
 }
 
 val typeError = TCon("Error")
