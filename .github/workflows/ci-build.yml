@@ -32,7 +32,3 @@ jobs:
       - name: Test Build
         run: |
           zig build test
-
-      - name: Run Tests
-        run: |
-          ./bin/bendu-test
