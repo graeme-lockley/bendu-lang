@@ -7,7 +7,7 @@ import java.io.File
 import kotlin.system.exitProcess
 
 fun main(args: Array<String>) {
-    if (args[0] == "test") {
+    if (args.isNotEmpty() && args[0] == "test") {
         processTests(args.drop(1).toTypedArray())
     } else {
         val parser = ArgParser("bendu-compiler")
@@ -30,24 +30,97 @@ fun main(args: Array<String>) {
 
 private fun processTests(args: Array<String>) {
     val parser = ArgParser("bendu-compiler test")
-    val expression by parser.option(ArgType.String, description = "Expression to be compiled")
-        .default("> 1 + 1\n2: Int")
+    val expression by parser.option(ArgType.String, description = "Test expression to be compiled and executed")
+        .default("> 1 + 1\\n2: Int")
+    val line by parser.option(ArgType.Int, description = "Line number into file where the test is located")
+        .default(1)
+    val bc by parser.option(ArgType.String, description = "Bytecode interpreter").default("bci-zig")
+    val verbose by parser.option(ArgType.Boolean, description = "Show the generate scripts").default(false)
+
     parser.parse(args)
 
-    println(expression)
+    val script = assembleScript(expression, line).joinToString("\n")
 
-    TODO("test command not yet implemented")
+    if (verbose) {
+        println(script)
+    }
+
+    compileExpression(script, "test.bc", true)
+
+    executeTest(bc)
+}
+
+private fun assembleScript(expression: String, startLineNumber: Int): List<String> {
+    val script = mutableListOf<String>()
+
+    var counter = 0
+    var state = 0 // 0: start of expression, 1: inside expression
+    var variableName = "vvvv"
+
+    expression.split("\\n").forEachIndexed { index, it ->
+        if (it.startsWith(">")) {
+            if (it.substring(1).trim().startsWith("let")) {
+                variableName = it.substring(1).trim().split(" ")[1]
+                script.add(it.substring(1).trim())
+                state = 1
+            } else {
+                variableName = "vvvv${counter++}"
+                script.add("let $variableName = ${it.substring(1).trim()}")
+                state = 1
+            }
+        } else if (it.startsWith(".")) {
+            if (state == 0) {
+                println("Error: Unexpected line $it")
+                exitProcess(1)
+            }
+            script.add(it.substring(1))
+        } else if (!it.isEmpty()) {
+            if (state == 1) {
+                val line = it.trim()
+                if (line.contains(":")) {
+                    val indexOfColon = line.indexOf(':')
+                    val valuePart = line.substring(0, indexOfColon).trim()
+                    val typePart = line.substring(indexOfColon + 1).trim()
+                    script.add("if $variableName != $valuePart || @$variableName != \"$typePart\" -> abort(\"Error: Line ${index + startLineNumber}: Expected $line, got \", $variableName, \": \", @$variableName)")
+                } else {
+                    script.add("if $variableName != $line -> abort(\"Error: Line ${index + startLineNumber}: Expected $line, got \", $variableName, \": \", @$variableName)")
+                }
+            } else {
+                println("Error: Unexpected line $it")
+                exitProcess(1)
+            }
+        }
+    }
+
+    return script
+}
+
+private fun executeTest(bc: String) {
+    val process = ProcessBuilder(bc, "test.bc")
+        .redirectOutput(ProcessBuilder.Redirect.INHERIT)
+        .redirectError(ProcessBuilder.Redirect.INHERIT)
+        .start()
+
+    val exitCode = process.waitFor()
+
+    if (exitCode != 0) {
+        exitProcess(exitCode)
+    }
 }
 
 private fun compileScript(scriptName: String, outputName: String) =
     compileExpression(File(scriptName).readText(), outputName)
 
-private fun compileExpression(expression: String, outputName: String) {
+private fun compileExpression(expression: String, outputName: String, showExpression: Boolean = false) {
     val errors = io.littlelanguages.bendu.Errors()
     val script = io.littlelanguages.bendu.infer(expression, errors = errors)
     val bc = io.littlelanguages.bendu.compile(script, errors)
 
     if (errors.hasErrors()) {
+        if (showExpression) {
+            println(expression)
+        }
+
         for (e in errors) {
             e.printError()
         }

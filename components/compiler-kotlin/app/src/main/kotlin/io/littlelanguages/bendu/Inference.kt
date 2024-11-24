@@ -34,6 +34,12 @@ private fun inferStatement(statement: Expression, env: Environment) {
 
 private fun inferExpression(expression: Expression, env: Environment) {
     when (expression) {
+        is AbortStatement -> {
+            inferPrintArguments(expression.es, env)
+
+            expression.type = typeUnit.withLocation(expression.location())
+        }
+
         is ApplyExpression -> {
             inferExpression(expression.f, env)
 
@@ -225,7 +231,8 @@ private val binaryOperatorSignatures = mapOf(
 )
 
 private val unaryOperatorSignatures = mapOf(
-    Pair(UnaryOp.Not, Scheme(setOf(), TArr(listOf(typeBool), typeBool)))
+    Pair(UnaryOp.Not, Scheme(setOf(), TArr(listOf(typeBool), typeBool))),
+    Pair(UnaryOp.TypeOf, Scheme(setOf(0), TArr(listOf(TVar(0)), typeString)))
 )
 
 data class Environment(

@@ -8,6 +8,7 @@ Expression
     : "let" LowerID ["(" [LowerID {"," LowerID}] ")"] "=" Expression
     | "print" "(" [Expression {"," Expression}] ")"
     | "println" "(" [Expression {"," Expression}] ")"
+    | "abort" "(" [Expression {"," Expression}] ")"
     | "if" ["|"] Expression "->" Expression {"|" Expression ["->" Expression]}
     | "while" Expression "->" Expression
     | OrExpression
@@ -60,4 +61,5 @@ Factor
     | "True"
     | "False"
     | "!" Factor
+    | "@" Factor
     ;

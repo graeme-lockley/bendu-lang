@@ -1,6 +1,16 @@
 {
   "instructions": [
     {
+      "name": "ABORT",
+      "args": [ 
+        {
+          "name": "error_code",
+          "type": "u32"
+        }
+      ],
+      "description": "Aborts the program with a specified error code."
+    },
+    {
       "name": "PUSH_BOOL_TRUE",
       "args": [ ],
       "description": "Places the value 'true' onto the stack."

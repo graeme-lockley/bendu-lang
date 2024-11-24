@@ -15,6 +15,16 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
         ip += 1;
         switch (op) {
+            .abort => {
+                const code = readi32(bc, ip);
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: abort, code={d}\n", .{ ip - 1, fp, code });
+                }
+
+                std.posix.exit(@intCast(code));
+            },
+
             .push_bool_true => {
                 if (DEBUG) {
                     std.debug.print("{d} {d}: push_bool_true\n", .{ ip - 1, fp });

@@ -56,6 +56,7 @@ private class Compiler(val errors: Errors) {
 
     private fun compileExpression(expression: Expression, keepResult: Boolean = true) {
         when (expression) {
+            is AbortStatement -> compileAbortExpression(expression, keepResult)
             is ApplyExpression -> compileApplyExpression(expression, keepResult)
             is BinaryExpression -> compileBinaryExpression(expression, keepResult)
             is IfExpression -> compileIfExpression(expression, keepResult)
@@ -74,6 +75,18 @@ private class Compiler(val errors: Errors) {
             else -> TODO(expression.toString())
         }
     }
+
+    private fun compileAbortExpression(e: AbortStatement, keepResult: Boolean) {
+        compilePrintExpressions(e.es)
+        byteBuilder.appendInstruction(Instructions.PRINTLN)
+        byteBuilder.appendInstruction(Instructions.ABORT)
+        byteBuilder.appendInt(1)
+
+        if (keepResult) {
+            byteBuilder.appendInstruction(Instructions.PUSH_UNIT_LITERAL)
+        }
+    }
+
 
     private fun compileApplyExpression(expression: ApplyExpression, keepResult: Boolean) {
         if (expression.f is LowerIDExpression) {
@@ -416,11 +429,23 @@ private class Compiler(val errors: Errors) {
     }
 
     private fun compileUnaryExpression(expression: UnaryExpression, keepResult: Boolean) {
-        compileExpression(expression.e)
-        byteBuilder.appendInstruction(Instructions.NOT_BOOL)
+        when (expression.op.op) {
+            UnaryOp.Not -> {
+                compileExpression(expression.e)
+                byteBuilder.appendInstruction(Instructions.NOT_BOOL)
 
-        if (!keepResult) {
-            byteBuilder.appendInstruction(Instructions.DISCARD)
+                if (!keepResult) {
+                    byteBuilder.appendInstruction(Instructions.DISCARD)
+                }
+            }
+
+            UnaryOp.TypeOf ->
+                if (keepResult) {
+                    val s = expression.e.type!!.toString()
+                    byteBuilder.appendInstruction(Instructions.PUSH_STRING_LITERAL)
+                    byteBuilder.appendInt(s.length)
+                    byteBuilder.append(s.toByteArray())
+                }
         }
     }
 }

@@ -19,6 +19,16 @@ sealed class Expression(open var type: Type? = null) {
     abstract fun location(): Location
 }
 
+data class AbortStatement(val es: List<Expression>, private val location: Location, override var type: Type? = null) :
+    Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        es.forEach { it.apply(s, errors) }
+    }
+
+    override fun location(): Location =
+        location
+}
+
 data class ApplyExpression(val f: Expression, val arguments: List<Expression>, override var type: Type? = null) :
     Expression(type) {
     override fun apply(s: Subst, errors: Errors) {
@@ -200,7 +210,7 @@ data class OpLocation(val op: Op, val location: Location)
 data class UnaryOpLocation(val op: UnaryOp, val location: Location)
 
 enum class Op { Or, And, Plus, Minus, Multiply, Divide, Modulo, Power, EqualEqual, NotEqual, LessThan, LessEqual, GreaterThan, GreaterEqual }
-enum class UnaryOp { Not }
+enum class UnaryOp { Not, TypeOf }
 
 private class ParserVisitor(val errors: Errors = Errors()) :
     Visitor<List<Expression>, Expression, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression> {
@@ -258,6 +268,17 @@ private class ParserVisitor(val errors: Errors = Errors()) :
 
     override fun visitExpression4(
         a1: Token,
+        a2: Token,
+        a3: Tuple2<Expression, List<Tuple2<Token, Expression>>>?,
+        a4: Token
+    ): Expression =
+        if (a3 == null)
+            AbortStatement(emptyList(), a1.location + a4.location)
+        else
+            AbortStatement(listOf(a3.a, *a3.b.map { it.b }.toTypedArray()), a1.location + a4.location)
+
+    override fun visitExpression5(
+        a1: Token,
         a2: Token?,
         a3: Expression,
         a4: Token,
@@ -281,10 +302,10 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         return IfExpression(guards, elseExpression)
     }
 
-    override fun visitExpression5(a1: Token, a2: Expression, a3: Token, a4: Expression): Expression =
+    override fun visitExpression6(a1: Token, a2: Expression, a3: Token, a4: Expression): Expression =
         WhileExpression(a2, a4)
 
-    override fun visitExpression6(a: Expression): Expression =
+    override fun visitExpression7(a: Expression): Expression =
         a
 
     override fun visitOrExpression(a: Expression): Expression =
@@ -441,6 +462,9 @@ private class ParserVisitor(val errors: Errors = Errors()) :
 
     override fun visitFactor9(a1: Token, a2: Expression): Expression =
         UnaryExpression(UnaryOpLocation(UnaryOp.Not, a1.location), a2)
+
+    override fun visitFactor10(a1: Token, a2: Expression): Expression =
+        UnaryExpression(UnaryOpLocation(UnaryOp.TypeOf, a1.location), a2)
 }
 
 fun parse(scanner: Scanner, errors: Errors): List<Expression> {
