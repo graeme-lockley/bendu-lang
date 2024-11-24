@@ -90,19 +90,9 @@ The following is the list of big features that need to be implemented.
 
 ## Functions
 
-- [ ] In package, non-recursive, non-higher order, private function without
-      closure declaration
-- [ ] Invoke in package, non-recursive, non-higher order, private function
-      without closure
-- [ ] Reference in package, non-recursive, non-higher order, private function
-      without closure as a value and use as a higher order function
-- [ ] In package, singular recursive, non-higher order, private function without
-      closure
-- [ ] Invoke in package, singular recursive, non-higher order, private function 
-      without closure
-- [ ] Reference in package, singular recursive, non-higher order, private function
-      without closure as a value and use as a higher order function      
-- [ ] In package, mutually recursive functions without closure
+- [x] In package, non-higher order, private function without closure declaration
+- [x] Invoke in package, non-higher order, private function without closure declaration
+- [ ] Invoke in package, *higher order*, private function with closure declaration
 
 ## Int
 
