@@ -66,6 +66,16 @@
       "description": "Pushes a value from a specific position in the stack onto the top."
     },
     {
+      "name": "PUSH_PARAMETER",
+      "args": [
+        {
+          "name": "parameter_index",
+          "type": "u32"
+        }
+      ],
+      "description": "Pushes a parameter from a specific position in the parameter list onto the top."
+    },
+    {
       "name": "DISCARD",
       "args": [ ],
       "description": "Removes the top element from the stack."
@@ -109,6 +119,26 @@
         }
       ],
       "description": "Jumps to a given instruction offset if the top value of the stack is 'true', without modifying the stack."
+    },
+    {
+      "name": "CALL_LOCAL",
+      "args": [
+        {
+          "name": "offset",
+          "type": "u32"
+        }
+      ],
+      "description": "Calls a function at a given instruction offset."
+    },
+    { 
+      "name": "RET",
+      "args": [
+        {
+          "name": "arg_count",
+          "type": "u32"
+        }
+      ],
+      "description": "Returns from the current function, keeping the value at the top of the stack and popping the specified number of arguments from the stack immediately the stack top."
     },
     {
       "name": "NOT_BOOL",

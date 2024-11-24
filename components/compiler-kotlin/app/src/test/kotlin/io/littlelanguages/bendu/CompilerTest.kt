@@ -370,6 +370,28 @@ class CompilerTest {
             "let x = 10 ; if x == 1 -> 10 | x == 2 -> 20 | 30"
         )
     }
+
+    @Test
+    fun functions() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.JMP.op,
+                0, 0, 0, 21,
+                Instructions.PUSH_PARAMETER.op,
+                0, 0, 0, 0,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1,
+                Instructions.ADD_I32.op,
+                Instructions.RET.op,
+                0, 0, 0, 1,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1,
+                Instructions.CALL_LOCAL.op,
+                0, 0, 0, 5,
+            ),
+            "let inc(a) = a + 1 ; inc(1)"
+        )
+    }
 }
 
 private fun successfulCompile(input: String): ByteArray {

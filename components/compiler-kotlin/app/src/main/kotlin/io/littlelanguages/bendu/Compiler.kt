@@ -11,14 +11,32 @@ fun compile(script: List<Expression>, errors: Errors): ByteArray {
     return compiler.byteBuilder.toByteArray()
 }
 
+private sealed class NatureOfBinding {
+    open fun patch(byteBuilder: ByteBuilder) {}
+}
+
+private data class PackageBinding(val offset: Int) : NatureOfBinding()
+private data class ParameterBinding(val offset: Int) : NatureOfBinding()
+private data class PackageFunction(var offset: Int = 0, val patches: MutableList<Int> = mutableListOf()) :
+    NatureOfBinding() {
+    fun addPatch(patch: Int) =
+        patches.add(patch)
+
+    override fun patch(byteBuilder: ByteBuilder) {
+        patches.forEach { byteBuilder.writeIntAtPosition(it, offset) }
+    }
+}
+
 private class Compiler(val errors: Errors) {
     val byteBuilder = ByteBuilder()
-    val bindings = mutableMapOf<String, Int>()
+    val bindings = mutableMapOf<String, NatureOfBinding>()
     var offset = 0
 
     fun compile(script: List<Expression>) {
         if (errors.hasNoErrors()) {
             compileStatements(script)
+
+            bindings.forEach { _, binding -> binding.patch(byteBuilder) }
         }
     }
 
@@ -38,6 +56,7 @@ private class Compiler(val errors: Errors) {
 
     private fun compileExpression(expression: Expression, keepResult: Boolean = true) {
         when (expression) {
+            is ApplyExpression -> compileApplyExpression(expression, keepResult)
             is BinaryExpression -> compileBinaryExpression(expression, keepResult)
             is IfExpression -> compileIfExpression(expression, keepResult)
             is LetStatement -> compileLetExpression(expression, keepResult)
@@ -53,6 +72,24 @@ private class Compiler(val errors: Errors) {
             is UnaryExpression -> compileUnaryExpression(expression, keepResult)
 
             else -> TODO(expression.toString())
+        }
+    }
+
+    private fun compileApplyExpression(expression: ApplyExpression, keepResult: Boolean) {
+        if (expression.f is LowerIDExpression) {
+            val binding = bindings[expression.f.v.value] as PackageFunction
+            expression.arguments.forEach { e ->
+                compileExpression(e)
+            }
+            byteBuilder.appendInstruction(Instructions.CALL_LOCAL)
+            binding.addPatch(byteBuilder.size())
+            byteBuilder.appendInt(0)
+        } else {
+            TODO("Not implemented yet")
+        }
+
+        if (!keepResult) {
+            byteBuilder.appendInstruction(Instructions.DISCARD)
         }
     }
 
@@ -245,12 +282,30 @@ private class Compiler(val errors: Errors) {
     }
 
     private fun compileLetExpression(e: LetStatement, keepResult: Boolean) {
-        compileExpression(e.e)
-        bindings.put(e.id.value, offset)
-        offset += 1
+        if (e.e is LiteralFunctionExpression) {
+            byteBuilder.appendInstruction(Instructions.JMP)
+            val jumpOffset = byteBuilder.size()
+            byteBuilder.appendInt(0)
 
-        if (keepResult) {
-            byteBuilder.appendInstruction(Instructions.PUSH_UNIT_LITERAL)
+            e.e.parameters.forEachIndexed { index, parameter ->
+                bindings.put(parameter.value, ParameterBinding(index - (e.e.parameters.size - 1)))
+            }
+
+            bindings.put(e.id.value, PackageFunction(byteBuilder.size()))
+
+            compileExpression(e.e.body)
+            byteBuilder.appendInstruction(Instructions.RET)
+            byteBuilder.appendInt(e.e.parameters.size)
+
+            byteBuilder.writeIntAtPosition(jumpOffset, byteBuilder.size())
+        } else {
+            compileExpression(e.e)
+            bindings.put(e.id.value, PackageBinding(offset))
+            offset += 1
+
+            if (keepResult) {
+                byteBuilder.appendInstruction(Instructions.PUSH_UNIT_LITERAL)
+            }
         }
     }
 
@@ -292,7 +347,10 @@ private class Compiler(val errors: Errors) {
         }
     }
 
-    private fun compileLiteralUnitExpression(expression: LiteralUnitExpression, keepResult: Boolean) {
+    private fun compileLiteralUnitExpression(
+        @Suppress("UNUSED_PARAMETER") expression: LiteralUnitExpression,
+        keepResult: Boolean
+    ) {
         if (keepResult) {
             byteBuilder.appendInstruction(Instructions.PUSH_UNIT_LITERAL)
         }
@@ -300,11 +358,22 @@ private class Compiler(val errors: Errors) {
 
     private fun compileLowerIDExpression(expression: LowerIDExpression, keepResult: Boolean) {
         if (keepResult) {
-            val offset = bindings[expression.v.value]
-                ?: throw IllegalArgumentException("${expression.v.value} referenced at ${expression.v.location} not found")
+            when (val binding = bindings[expression.v.value]) {
+                null -> throw IllegalArgumentException("${expression.v.value} referenced at ${expression.v.location} not found")
 
-            byteBuilder.appendInstruction(Instructions.PUSH_STACK)
-            byteBuilder.appendInt(offset)
+                is PackageBinding -> {
+                    byteBuilder.appendInstruction(Instructions.PUSH_STACK)
+                    byteBuilder.appendInt(binding.offset)
+                }
+
+                is ParameterBinding -> {
+                    byteBuilder.appendInstruction(Instructions.PUSH_PARAMETER)
+                    byteBuilder.appendInt(binding.offset)
+                }
+
+                is PackageFunction ->
+                    TODO("Not implemented yet")
+            }
         }
     }
 

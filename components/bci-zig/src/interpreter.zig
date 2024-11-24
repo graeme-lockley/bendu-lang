@@ -8,6 +8,8 @@ const DEBUG = false;
 
 pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
     var ip: usize = 0;
+    var fp: usize = 0;
+
     while (ip < bc.len) {
         const op = @as(Op, @enumFromInt(bc[ip]));
 
@@ -15,7 +17,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
         switch (op) {
             .push_bool_true => {
                 if (DEBUG) {
-                    std.debug.print("{d}: push_bool_true\n", .{ip - 1});
+                    std.debug.print("{d} {d}: push_bool_true\n", .{ ip - 1, fp });
                 }
 
                 try runtime.push_bool_true();
@@ -23,7 +25,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
             .push_bool_false => {
                 if (DEBUG) {
-                    std.debug.print("{d}: push_bool_false\n", .{ip - 1});
+                    std.debug.print("{d} {d}: push_bool_false\n", .{ ip - 1, fp });
                 }
 
                 try runtime.push_bool_false();
@@ -32,7 +34,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 const value = readf32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d}: push_f32_literal: value={d}\n", .{ ip - 1, value });
+                    std.debug.print("{d} {d}: push_f32_literal: value={d}\n", .{ ip - 1, fp, value });
                 }
 
                 try runtime.push_f32_literal(value);
@@ -42,7 +44,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 const value = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d}: push_i32_literal: value={d}\n", .{ ip - 1, value });
+                    std.debug.print("{d} {d}: push_i32_literal: value={d}\n", .{ ip - 1, fp, value });
                 }
 
                 try runtime.push_i32_literal(value);
@@ -52,7 +54,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 const value = bc[ip];
 
                 if (DEBUG) {
-                    std.debug.print("{d}: push_u8_literal: value={d}\n", .{ ip - 1, value });
+                    std.debug.print("{d} {d}: push_u8_literal: value={d}\n", .{ ip - 1, fp, value });
                 }
 
                 try runtime.push_u8_literal(value);
@@ -60,7 +62,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
             },
             .push_unit_literal => {
                 if (DEBUG) {
-                    std.debug.print("{d}: push_unit_literal\n", .{ip - 1});
+                    std.debug.print("{d} {d}: push_unit_literal\n", .{ ip - 1, fp });
                 }
 
                 try runtime.push_unit_literal();
@@ -70,7 +72,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 const data = bc[ip + 4 .. ip + 4 + @as(usize, @intCast(len))];
 
                 if (DEBUG) {
-                    std.debug.print("{d}: push_string_literal: len={d}, data={s}\n", .{ ip - 1, len, data });
+                    std.debug.print("{d} {d}: push_string_literal: len={d}, data={s}\n", .{ ip - 1, fp, len, data });
                 }
 
                 try runtime.push_string_literal(data);
@@ -80,15 +82,25 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 const index = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d}: push_stack: offset={d}\n", .{ ip - 1, index });
+                    std.debug.print("{d} {d}: push_stack: offset={d}\n", .{ ip - 1, fp, index });
                 }
 
                 try runtime.push_stack(index);
                 ip += 4;
             },
+            .push_parameter => {
+                const index = readi32(bc, ip);
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: push_parameter: offset={d}\n", .{ ip - 1, fp, index });
+                }
+
+                try runtime.push_stack(@intCast(@as(i32, @intCast(fp)) + index));
+                ip += 4;
+            },
             .discard => {
                 if (DEBUG) {
-                    std.debug.print("{d}: discard\n", .{ip - 1});
+                    std.debug.print("{d} {d}: discard\n", .{ ip - 1, fp });
                 }
 
                 runtime.discard();
@@ -98,7 +110,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 const offset = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d}: jmp: offset={d}\n", .{ ip - 1, offset });
+                    std.debug.print("{d} {d}: jmp: offset={d}\n", .{ ip - 1, fp, offset });
                 }
 
                 ip = @intCast(offset);
@@ -107,7 +119,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 const offset = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d}: jmp_false: offset={d}\n", .{ ip - 1, offset });
+                    std.debug.print("{d} {d}: jmp_false: offset={d}\n", .{ ip - 1, fp, offset });
                 }
 
                 const value = runtime.pop();
@@ -121,7 +133,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 const offset = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d}: jmp_dup_false: offset={d}\n", .{ ip - 1, offset });
+                    std.debug.print("{d} {d}: jmp_dup_false: offset={d}\n", .{ ip - 1, fp, offset });
                 }
 
                 const value = runtime.peek();
@@ -135,7 +147,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 const offset = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d}: jmp_dup_true: offset={d}\n", .{ ip - 1, offset });
+                    std.debug.print("{d} {d}: jmp_dup_true: offset={d}\n", .{ ip - 1, fp, offset });
                 }
 
                 const value = runtime.peek();
@@ -145,10 +157,43 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                     ip += 4;
                 }
             },
+            .call_local => {
+                const offset = readi32(bc, ip);
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: call_local: offset={d}\n", .{ ip - 1, fp, offset });
+                }
+
+                const newFP = runtime.stack.items.len - 1;
+
+                try runtime.push_i32_literal(@intCast(ip + 4));
+                try runtime.push_i32_literal(@intCast(fp));
+
+                fp = newFP;
+                ip = @intCast(offset);
+            },
+            .ret => {
+                const items = readi32(bc, ip);
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: ret: items={d}\n", .{ ip - 1, fp, items });
+                }
+
+                const result = runtime.pop();
+
+                ip = @intCast(Pointer.asInt(runtime.stack.items[fp + 1]));
+                fp = @intCast(Pointer.asInt(runtime.stack.items[fp + 2]));
+
+                for (@as(usize, @intCast(items + 2))) |_| {
+                    runtime.discard();
+                }
+
+                try runtime.stack.append(result);
+            },
 
             .not_bool => {
                 if (DEBUG) {
-                    std.debug.print("{d}: not_bool\n", .{ip - 1});
+                    std.debug.print("{d} {d}: not_bool\n", .{ ip - 1, fp });
                 }
 
                 try runtime.not_bool();
@@ -156,112 +201,112 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
             .add_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: add_f32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: add_f32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.add_f32();
             },
             .add_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: add_i32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: add_i32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.add_i32();
             },
             .add_string => {
                 if (DEBUG) {
-                    std.debug.print("{d}: add_string\n", .{ip - 1});
+                    std.debug.print("{d} {d}: add_string\n", .{ ip - 1, fp });
                 }
 
                 try runtime.add_string();
             },
             .add_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: add_u8\n", .{ip - 1});
+                    std.debug.print("{d} {d}: add_u8\n", .{ ip - 1, fp });
                 }
 
                 try runtime.add_u8();
             },
             .sub_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: sub_f32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: sub_f32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.sub_f32();
             },
             .sub_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: sub_i32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: sub_i32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.sub_i32();
             },
             .sub_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: sub_u8\n", .{ip - 1});
+                    std.debug.print("{d} {d}: sub_u8\n", .{ ip - 1, fp });
                 }
 
                 try runtime.sub_u8();
             },
             .mul_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: mul_f32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: mul_f32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.mul_f32();
             },
             .mul_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: mul_i32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: mul_i32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.mul_i32();
             },
             .mul_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: mul_u8\n", .{ip - 1});
+                    std.debug.print("{d} {d}: mul_u8\n", .{ ip - 1, fp });
                 }
 
                 try runtime.mul_u8();
             },
             .div_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: div_f32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: div_f32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.div_f32();
             },
             .div_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: div_i32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: div_i32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.div_i32();
             },
             .div_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: div_u8\n", .{ip - 1});
+                    std.debug.print("{d} {d}: div_u8\n", .{ ip - 1, fp });
                 }
 
                 try runtime.div_u8();
             },
             .mod_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: mod_i32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: mod_i32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.mod_i32();
             },
             .pow_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: pow_f32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: pow_f32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.pow_f32();
             },
             .pow_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: pow_i32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: pow_i32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.pow_i32();
@@ -269,196 +314,196 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
             .eq_bool => {
                 if (DEBUG) {
-                    std.debug.print("{d}: eq_bool\n", .{ip - 1});
+                    std.debug.print("{d} {d}: eq_bool\n", .{ ip - 1, fp });
                 }
 
                 try runtime.eq_bool();
             },
             .eq_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: eq_f32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: eq_f32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.eq_f32();
             },
             .eq_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: eq_i32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: eq_i32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.eq_i32();
             },
             .eq_string => {
                 if (DEBUG) {
-                    std.debug.print("{d}: eq_string\n", .{ip - 1});
+                    std.debug.print("{d} {d}: eq_string\n", .{ ip - 1, fp });
                 }
 
                 try runtime.eq_string();
             },
             .eq_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: eq_u8\n", .{ip - 1});
+                    std.debug.print("{d} {d}: eq_u8\n", .{ ip - 1, fp });
                 }
 
                 try runtime.eq_u8();
             },
             .eq_unit => {
                 if (DEBUG) {
-                    std.debug.print("{d}: eq_unit\n", .{ip - 1});
+                    std.debug.print("{d} {d}: eq_unit\n", .{ ip - 1, fp });
                 }
 
                 try runtime.eq_unit();
             },
             .neq_bool => {
                 if (DEBUG) {
-                    std.debug.print("{d}: neq_bool\n", .{ip - 1});
+                    std.debug.print("{d} {d}: neq_bool\n", .{ ip - 1, fp });
                 }
 
                 try runtime.neq_bool();
             },
             .neq_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: neq_f32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: neq_f32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.neq_f32();
             },
             .neq_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: neq_i32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: neq_i32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.neq_i32();
             },
             .neq_string => {
                 if (DEBUG) {
-                    std.debug.print("{d}: neq_string\n", .{ip - 1});
+                    std.debug.print("{d} {d}: neq_string\n", .{ ip - 1, fp });
                 }
 
                 try runtime.neq_string();
             },
             .neq_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: neq_u8\n", .{ip - 1});
+                    std.debug.print("{d} {d}: neq_u8\n", .{ ip - 1, fp });
                 }
 
                 try runtime.neq_u8();
             },
             .neq_unit => {
                 if (DEBUG) {
-                    std.debug.print("{d}: neq_unit\n", .{ip - 1});
+                    std.debug.print("{d} {d}: neq_unit\n", .{ ip - 1, fp });
                 }
 
                 try runtime.neq_unit();
             },
             .lt_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: lt_f32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: lt_f32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.lt_f32();
             },
             .lt_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: lt_i32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: lt_i32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.lt_i32();
             },
             .lt_string => {
                 if (DEBUG) {
-                    std.debug.print("{d}: lt_string\n", .{ip - 1});
+                    std.debug.print("{d} {d}: lt_string\n", .{ ip - 1, fp });
                 }
 
                 try runtime.lt_string();
             },
             .lt_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: lt_u8\n", .{ip - 1});
+                    std.debug.print("{d} {d}: lt_u8\n", .{ ip - 1, fp });
                 }
 
                 try runtime.lt_u8();
             },
             .le_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: le_f32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: le_f32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.le_f32();
             },
             .le_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: le_i32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: le_i32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.le_i32();
             },
             .le_string => {
                 if (DEBUG) {
-                    std.debug.print("{d}: le_string\n", .{ip - 1});
+                    std.debug.print("{d} {d}: le_string\n", .{ ip - 1, fp });
                 }
 
                 try runtime.le_string();
             },
             .le_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: le_u8\n", .{ip - 1});
+                    std.debug.print("{d} {d}: le_u8\n", .{ ip - 1, fp });
                 }
 
                 try runtime.le_u8();
             },
             .gt_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: gt_f32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: gt_f32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.gt_f32();
             },
             .gt_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: gt_i32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: gt_i32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.gt_i32();
             },
             .gt_string => {
                 if (DEBUG) {
-                    std.debug.print("{d}: gt_string\n", .{ip - 1});
+                    std.debug.print("{d} {d}: gt_string\n", .{ ip - 1, fp });
                 }
 
                 try runtime.gt_string();
             },
             .gt_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: gt_u8\n", .{ip - 1});
+                    std.debug.print("{d} {d}: gt_u8\n", .{ ip - 1, fp });
                 }
 
                 try runtime.gt_u8();
             },
             .ge_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: ge_f32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: ge_f32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.ge_f32();
             },
             .ge_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: ge_i32\n", .{ip - 1});
+                    std.debug.print("{d} {d}: ge_i32\n", .{ ip - 1, fp });
                 }
 
                 try runtime.ge_i32();
             },
             .ge_string => {
                 if (DEBUG) {
-                    std.debug.print("{d}: ge_string\n", .{ip - 1});
+                    std.debug.print("{d} {d}: ge_string\n", .{ ip - 1, fp });
                 }
 
                 try runtime.ge_string();
             },
             .ge_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d}: ge_u8\n", .{ip - 1});
+                    std.debug.print("{d} {d}: ge_u8\n", .{ ip - 1, fp });
                 }
 
                 try runtime.ge_u8();
@@ -466,14 +511,14 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
             .println => {
                 if (DEBUG) {
-                    std.debug.print("{d}: println\n", .{ip - 1});
+                    std.debug.print("{d} {d}: println\n", .{ ip - 1, fp });
                 }
 
                 try runtime.println();
             },
             .print_bool => {
                 if (DEBUG) {
-                    std.debug.print("{d}: print_bool\n", .{ip - 1});
+                    std.debug.print("{d} {d}: print_bool\n", .{ ip - 1, fp });
                 }
 
                 try runtime.print_bool();
@@ -481,7 +526,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
             .print_f32 => {
                 if (DEBUG) {
                     const value = runtime.peek();
-                    std.debug.print("{d}: print_f32: value={d}\n", .{ ip - 1, Pointer.asInt(value) });
+                    std.debug.print("{d} {d}: print_f32: value={d}\n", .{ ip - 1, fp, Pointer.asInt(value) });
                 }
 
                 try runtime.print_f32();
@@ -489,7 +534,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
             .print_i32 => {
                 if (DEBUG) {
                     const value = runtime.peek();
-                    std.debug.print("{d}: print_i32: value={d}\n", .{ ip - 1, Pointer.asInt(value) });
+                    std.debug.print("{d} {d}: print_i32: value={d}\n", .{ ip - 1, fp, Pointer.asInt(value) });
                 }
 
                 try runtime.print_i32();
@@ -497,7 +542,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
             .print_u8 => {
                 if (DEBUG) {
                     const value = runtime.peek();
-                    std.debug.print("{d}: print_u8: value={c}\n", .{ ip - 1, Pointer.asChar(value) });
+                    std.debug.print("{d} {d}: print_u8: value={c}\n", .{ ip - 1, fp, Pointer.asChar(value) });
                 }
 
                 try runtime.print_u8();
@@ -505,14 +550,14 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
             .print_string => {
                 if (DEBUG) {
                     const value = runtime.peek();
-                    std.debug.print("{d}: print_string: value={s}\n", .{ ip - 1, Pointer.asString(value).data });
+                    std.debug.print("{d} {d}: print_string: value={s}\n", .{ ip - 1, fp, Pointer.asString(value).data });
                 }
 
                 try runtime.print_string();
             },
             .print_unit => {
                 if (DEBUG) {
-                    std.debug.print("{d}: print_unit\n", .{ip - 1});
+                    std.debug.print("{d} {d}: print_unit\n", .{ ip - 1, fp });
                 }
 
                 try runtime.print_unit();
