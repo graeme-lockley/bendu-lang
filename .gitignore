@@ -1,7 +1,8 @@
 .zig-cache/
 zig-out/
 
-components/compiler-kotlin/*.bc
+*.bc
+
 components/compiler-kotlin/*.bendu
 
 settings.json
