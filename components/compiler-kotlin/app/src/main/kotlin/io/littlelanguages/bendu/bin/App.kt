@@ -45,7 +45,7 @@ private fun processTests(args: Array<String>) {
         println(script)
     }
 
-    compileExpression(script, "test.bc", true)
+    compileExpression(script, "test.bc", false)
 
     executeTest(bc)
 }
