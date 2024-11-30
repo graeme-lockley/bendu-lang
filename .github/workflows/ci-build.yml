@@ -49,14 +49,21 @@ jobs:
         run: |
           ./tasks/generate_ops
 
-      - name: Build Bendu Compiler
+      - name: Generate Bendu Kotlin Parser
         working-directory: ./components/compiler-kotlin
         run: |
           ./tasks/generate_parser
-          ./gradlew test
-          ./gradlew build
-          ./tasks/build_fat_jar
 
+      - name: Test Bendu Compiler
+        working-directory: ./components/compiler-kotlin
+        run: |
+          ./gradlew test
+
+      - name: Build Bendu Compiler Jar
+        working-directory: ./components/compiler-kotlin
+        run: |
+          ./tasks/build_fat_jar
+  
       - name: Build Bendu Bytecode Interpreter
         working-directory: ./components/bci-zig
         run: |
