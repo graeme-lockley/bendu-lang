@@ -1,39 +1,39 @@
 # `if` Scenarios
 
-All conditions in an `if` statement are evaluated in order, and the first one that is `True` is executed. If none of the conditions are `True`, the `else` block is executed.
+All conditions in an `if` statement are evaluated in order, and the first one that is `True` is executed. If none of the conditions are `True`, the `else` block is executed.  In order to demonstrate that the flow of the `if` statement is as expected, we can use division by zero to show that the branches are not evaluated until they are needed.
 
 ```bendu-repl
-> if True -> 1 | 2
+> if True -> 1 | (2 / 0)
 1: Int
 
-> if False -> 1 | 2
+> if False -> (1 / 0) | 2
 2: Int
 
-> if False -> 1 | True -> 2 | 3
+> if False -> (1 / 0) | True -> 2 | (3 / 0)
 2: Int
 
-> if False -> 1 | False -> 2 | 3
+> if False -> (1 / 0) | False -> (2 / 0) | 3
 3: Int
 
-> if False -> 1 | False -> 2 | True -> 3 | 4
+> if False -> (1 / 0) | False -> (2 / 0) | True -> 3 | (4 / 0)
 3: Int
 
-> if False -> 1 | False -> 2 | False -> 3 | 4
+> if False -> (1 / 0) | False -> (2 / 0) | False -> (3 / 0) | 4
 4: Int
 ```
 
 All conditions in an `if` statement need to unify with `Bool`.
 
-```bendu-repl
+```bendu-error
 > if 1 -> 1 | 2
-Error: 1:4: Unification error: Unable to unify Bool with Int
+Unification Error: Int 1:16, Bool
 ```
 
 Similarly all of the branches in an `if` statement need to have the same type.
 
-```bendu-repl
+```bendu-error
 > if True -> 1 | "hello"
-Error: 1:16-22: Unification error: Unable to unify Int with String
+Unification Error: Int 1:24, String  1:28-1:34
 ```
 
 From this we can see that the `if` has the following type rule.
