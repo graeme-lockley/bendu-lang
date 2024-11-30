@@ -31,12 +31,17 @@ jobs:
           distribution: 'adopt'
           java-version: '23'
 
-      - name: Setup Gradle
+      - name: Install Gradle
         uses: gradle/actions/setup-gradle@v3
 
       - name: Generate Instructions Opcodes
         run: |
           ./tasks/generate_ops
+
+      - name: Install deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
       - name: Build Bendu Compiler
         run: |
