@@ -56,7 +56,3 @@ tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar> {
     archiveClassifier.set("")
     dependsOn(tasks.named("test"))
 }
-
-tasks.named<Zip>("distZip") {
-    dependsOn(tasks.named("shadowJar"))
-}
