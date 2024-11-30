@@ -41,7 +41,7 @@ jobs:
       - name: Build Bendu Compiler
         run: |
           cd ./components/compiler-kotlin
-          ./tasks/build_fat_jar
+          ./tasks/generate_parser
           ./gradlew build
           ./gradlew test
           ./tasks/build_fat_jar
