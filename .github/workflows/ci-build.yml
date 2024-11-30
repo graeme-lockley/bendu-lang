@@ -37,7 +37,9 @@ jobs:
           java-version: '23'
 
       - name: Install Gradle
-        uses: gradle/actions/setup-gradle@v3
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10"
 
       - name: Verify Gradle
         working-directory: ./components/compiler-kotlin
