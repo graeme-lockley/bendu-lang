@@ -72,4 +72,4 @@ jobs:
 
       - name: Acceptance Tests
         run: |
-          ./bin/
+          ./bin/bendu-test
