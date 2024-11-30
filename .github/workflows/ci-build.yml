@@ -25,6 +25,11 @@ jobs:
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/graeme-lockley/rebo-lang/main/tasks/install.sh)" -- ./rebo
           echo "$(pwd)/rebo/bin" >> $GITHUB_PATH
     
+      - name: Install deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+  
       - name: Install Java
         uses: actions/setup-java@v4
         with:
@@ -34,26 +39,25 @@ jobs:
       - name: Install Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Verify Gradle
+        working-directory: ./components/compiler-kotlin
+        run: gradle --version
+        
       - name: Generate Instructions Opcodes
         run: |
           ./tasks/generate_ops
 
-      - name: Install deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
       - name: Build Bendu Compiler
+        working-directory: ./components/compiler-kotlin
         run: |
-          cd ./components/compiler-kotlin
           ./tasks/generate_parser
-          ./gradlew build
           ./gradlew test
+          ./gradlew build
           ./tasks/build_fat_jar
 
       - name: Build Bendu Bytecode Interpreter
+        working-directory: ./components/bci-zig
         run: |
-          cd ./components/bci-zig
           zig build test
           zig build
 
