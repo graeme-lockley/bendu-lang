@@ -30,6 +30,10 @@ private fun inferStatement(statement: Expression, env: Environment) {
     inferExpression(statement, env)
 
     statement.apply(env.solveConstraints(), env.errors)
+
+    if (statement is LetStatement) {
+        env.bind(statement.id.value, Scheme(emptySet(), statement.e.type!!))
+    }
 }
 
 private fun inferExpression(expression: Expression, env: Environment) {
@@ -97,11 +101,6 @@ private fun inferExpression(expression: Expression, env: Environment) {
                 ), env
             )
             env.addConstraint(declarationType, TTuple(listOf(tv)))
-
-            val s = env.solveConstraints()
-            expression.e.apply(s, env.errors)
-
-            env.bind(expression.id.value, Scheme(emptySet(), expression.e.type!!))
 
             expression.type = typeUnit.withLocation(expression.location())
         }

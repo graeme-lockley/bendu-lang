@@ -149,7 +149,7 @@ private fun compileExpression(expression: String, outputName: String, showExpres
         }
 
         for (e in errors) {
-            e.printError()
+            e.printError(false)
         }
         exitProcess(1)
     }
