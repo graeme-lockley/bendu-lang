@@ -34,10 +34,20 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build
+      - name: Build Bendu Compiler
         run: |
+          cd ./components/compiler-kotlin
+          ./tasks/build_fat_jar
+          ./gradlew build
+          ./gradlew test
+          ./tasks/build_fat_jar
+
+      - name: Build Bendu Bytecode Interpreter
+        run: |
+          cd ./components/bci-zig
+          zig build test
           zig build
 
-      - name: Test Build
+      - name: Acceptance Tests
         run: |
-          zig build test
+          ./bin/bendu-test
