@@ -164,6 +164,7 @@ class ParserTest {
     fun `literal string`() {
         listOf(
             Pair("\"\"", ""),
+            Pair("\"'hello'\"", "'hello'"),
             Pair("\"hello world\"", "hello world"),
             Pair("\"[\\n]\"", "[\n]"),
             Pair("\"[\\\\]\"", "[\\]"),

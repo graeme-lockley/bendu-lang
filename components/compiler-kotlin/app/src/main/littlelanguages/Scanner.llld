@@ -3,7 +3,7 @@ tokens
 
     LiteralFloat = ['-'] digits '.' digits [('e' | 'E') ['-'] digits];
     LiteralInt = ['-'] digits;
-    LiteralString = '"' {char | '\' ('\' | 'n' | '"' | ("x" digits ';'))} '"';
+    LiteralString = '"' {char | chr(39) | '\' ('\' | 'n' | '"' | ("x" digits ';'))} '"';
 
     LowerID = lowerID {digit | id};
     UpperID = upperID {digit | id};
