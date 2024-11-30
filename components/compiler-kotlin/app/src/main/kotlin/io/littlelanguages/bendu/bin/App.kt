@@ -81,9 +81,21 @@ private fun assembleScript(expression: String, startLineNumber: Int): List<Strin
                     val indexOfColon = line.indexOf(':')
                     val valuePart = line.substring(0, indexOfColon).trim()
                     val typePart = line.substring(indexOfColon + 1).trim()
-                    script.add("if $variableName != $valuePart || @$variableName != \"$typePart\" -> abort(\"Error: Line ${index + startLineNumber}: Expected $line, got \", $variableName, \": \", @$variableName)")
+                    script.add(
+                        "if $variableName != $valuePart || @$variableName != \"$typePart\" -> abort(\"Error: Line ${index + startLineNumber}: Expected ${
+                            markupLiteral(
+                                line
+                            )
+                        }, got \", $variableName, \": \", @$variableName)"
+                    )
                 } else {
-                    script.add("if $variableName != $line -> abort(\"Error: Line ${index + startLineNumber}: Expected $line, got \", $variableName, \": \", @$variableName)")
+                    script.add(
+                        "if $variableName != $line -> abort(\"Error: Line ${index + startLineNumber}: Expected ${
+                            markupLiteral(
+                                line
+                            )
+                        }, got \", $variableName, \": \", @$variableName)"
+                    )
                 }
             } else {
                 println("Error: Unexpected line $it")
@@ -93,6 +105,21 @@ private fun assembleScript(expression: String, startLineNumber: Int): List<Strin
     }
 
     return script
+}
+
+private fun markupLiteral(value: String): String {
+    val result = StringBuilder()
+
+    for (c in value) {
+        if (c == '"') {
+            result.append('\\')
+        } else if (c == '\\') {
+            result.append('\\')
+        }
+        result.append(c)
+    }
+
+    return result.toString()
 }
 
 private fun executeTest(bc: String) {
