@@ -34,6 +34,10 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Generate Instructions Opcodes
+        run: |
+          ./tasks/generate_ops
+
       - name: Build Bendu Compiler
         run: |
           cd ./components/compiler-kotlin
@@ -50,4 +54,4 @@ jobs:
 
       - name: Acceptance Tests
         run: |
-          ./bin/bendu-test
+          ./bin/
