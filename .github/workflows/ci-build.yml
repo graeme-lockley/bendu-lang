@@ -25,6 +25,15 @@ jobs:
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/graeme-lockley/rebo-lang/main/tasks/install.sh)" -- ./rebo
           echo "$(pwd)/rebo/bin" >> $GITHUB_PATH
     
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'adopt'
+          java-version: '23'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
       - name: Build
         run: |
           zig build

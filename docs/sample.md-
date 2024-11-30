@@ -1,5 +1,21 @@
 This is a sample file to build bendu-test.
 
+
+```bendu-error
+> x
+Unknown Identifier: x at 1:13
+```
+
+```bendu-repl
+> 'a'
+'a': Char
+```
+
+```bendu-repl
+> "Hello"
+"Hello": String
+```
+
 ```bendu-repl
 > ()
 (): Unit
@@ -13,8 +29,20 @@ True: Bool
 False: Bool
 ```
 
-
 ```bendu-repl
+> let identity(x) = x
+
+> identity(10)
+10: Int
+
+> identity(3.14)
+3.14: Float
+
+> identity("Hello World")
+"Hello World": String
+```
+
+```xbendu-repl
 > let ackermann(m, n) = 
 .   if m == 0 -> n + 1 
 .    | n == 0 -> ackermann(m - 1, 1) 
@@ -30,7 +58,7 @@ False: Bool
 29: Int
 ```
 
-```bendu-repl
+```sbendu-repl
 > 40 + 2
 42: Int
 

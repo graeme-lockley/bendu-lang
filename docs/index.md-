@@ -258,7 +258,6 @@ Ackermann function would be a good example of this.
 .   if m == 0 -> n + 1 
 .    | n == 0 -> ackermann(m - 1, 1) 
 .    | ackermann(m - 1, ackermann(m, n - 1))
-fn: (Int, Int) -> Int
 
 > ackermann(1, 2)
 4: Int
