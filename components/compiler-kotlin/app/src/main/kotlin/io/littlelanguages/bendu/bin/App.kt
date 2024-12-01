@@ -1,5 +1,7 @@
 package io.littlelanguages.bendu.bin
 
+import io.littlelanguages.bendu.compiler.Args
+import io.littlelanguages.bendu.compiler.Instructions
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
@@ -9,6 +11,8 @@ import kotlin.system.exitProcess
 fun main(args: Array<String>) {
     if (args.isNotEmpty() && args[0] == "test") {
         processTests(args.drop(1).toTypedArray())
+    } else if (args.isNotEmpty() && args[0] == "dis") {
+        processDis(args.drop(1).toTypedArray())
     } else {
         val parser = ArgParser("bendu-compiler")
         val script by parser.option(ArgType.String, description = "Script file to compiler")
@@ -35,7 +39,7 @@ private fun processTests(args: Array<String>) {
     val line by parser.option(ArgType.Int, description = "Line number into file where the test is located")
         .default(1)
     val bc by parser.option(ArgType.String, description = "Bytecode interpreter").default("bci-zig")
-    val verbose by parser.option(ArgType.Boolean, description = "Show the generate scripts").default(false)
+    val verbose by parser.option(ArgType.Boolean, description = "Show the generated script").default(false)
 
     parser.parse(args)
 
@@ -138,7 +142,114 @@ private fun executeTest(bc: String) {
 private fun compileScript(scriptName: String, outputName: String) =
     compileExpression(File(scriptName).readText(), outputName)
 
-private fun compileExpression(expression: String, outputName: String, showExpression: Boolean = false) {
+private fun compileExpression(expression: String, outputName: String, showExpression: Boolean = false) =
+    File(outputName).writeBytes(compileExpression(expression, showExpression))
+
+private fun processDis(args: Array<String>) {
+    val parser = ArgParser("bendu-compiler dis")
+    val expression by parser.option(ArgType.String, description = "Test expression to be compiled and disassembled")
+        .default("1 + 1")
+
+    parser.parse(args)
+
+    val script = assembleDisScript(expression).joinToString("\n")
+
+    disassembleExpression(script)
+}
+
+private fun assembleDisScript(expression: String): List<String> {
+    val script = mutableListOf<String>()
+
+    expression.split("\\n").forEachIndexed { index, it ->
+        script.add(it.trim())
+    }
+
+    return script
+}
+
+private fun disassembleExpression(expression: String) {
+    val bc = compileExpression(expression)
+
+    var offset = 0
+
+    while (offset < bc.size) {
+        print(offset.toString().padStart(4, ' '))
+        print(": ")
+
+        val op = getInstructionByOp(bc[offset])
+
+        if (op == null) {
+            println("Unknown opcode: ${bc[offset]}")
+            exitProcess(1)
+        } else {
+            print(op.name)
+        }
+        offset += 1
+
+        for (arg in op.args) {
+            print(" ")
+            when (arg) {
+                Args.U32 -> {
+                    val value = readU32(bc, offset)
+                    print(value)
+                    offset += 4
+                }
+
+                Args.U8 -> {
+                    val value = readU8(bc, offset)
+                    print(value)
+                    offset += 1
+                }
+                Args.F32 -> {
+                    val value = readF32(bc, offset)
+                    print(value)
+                    offset += 4
+                }
+                Args.I32 -> {
+                    val value = readI32(bc, offset)
+                    print(value)
+                    offset += 4
+                }
+                Args.STRING -> {
+                    val (value, length) = readString(bc, offset)
+                    print(value)
+                    offset += length
+                }
+            }
+        }
+
+        println()
+
+    }
+}
+
+private fun readU8(bc: ByteArray, offset: Int): Int = bc[offset].toInt()
+
+private fun readI32(bc: ByteArray, offset: Int): Int =
+     (bc[offset].toInt() shl 24) or (bc[offset + 1].toInt() shl 16) or (bc[offset + 2].toInt() shl 8) or bc[offset + 3].toInt()
+
+private fun readU32(bc: ByteArray, offset: Int): Int =
+    (bc[offset].toInt() shl 24) or (bc[offset + 1].toInt() shl 16) or (bc[offset + 2].toInt() shl 8) or bc[offset + 3].toInt()
+
+private fun readF32(bc: ByteArray, offset: Int): Float =
+    java.lang.Float.intBitsToFloat(readI32(bc, offset))
+
+private fun readString(bc: ByteArray, offset: Int): Pair<String, Int> {
+    val length = readU32(bc, offset)
+
+    val result = StringBuilder()
+    for (i in 0 until length) {
+        result.append(bc[offset + 4 + i].toChar())
+    }
+
+    return Pair(result.toString(), length + 4)
+}
+
+private fun getInstructionByOp(op: Byte): Instructions? {
+    return Instructions.entries.find { it.op == op }
+}
+
+private fun compileExpression(expression: String, showExpression: Boolean = false): ByteArray {
     val errors = io.littlelanguages.bendu.Errors()
     val script = io.littlelanguages.bendu.infer(expression, errors = errors)
     val bc = io.littlelanguages.bendu.compile(script, errors)
@@ -154,5 +265,6 @@ private fun compileExpression(expression: String, outputName: String, showExpres
         exitProcess(1)
     }
 
-    File(outputName).writeBytes(bc)
+    return bc
 }
+

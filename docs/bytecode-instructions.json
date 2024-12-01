@@ -2,7 +2,7 @@
   "instructions": [
     {
       "name": "ABORT",
-      "args": [ 
+      "args": [
         {
           "name": "error_code",
           "type": "u32"
@@ -12,12 +12,12 @@
     },
     {
       "name": "PUSH_BOOL_TRUE",
-      "args": [ ],
+      "args": [],
       "description": "Places the value 'true' onto the stack."
     },
     {
       "name": "PUSH_BOOL_FALSE",
-      "args": [ ],
+      "args": [],
       "description": "Places the value 'false' onto the stack."
     },
     {
@@ -62,7 +62,7 @@
     },
     {
       "name": "PUSH_UNIT_LITERAL",
-      "args": [ ],
+      "args": [],
       "description": "Pushes a unit value onto the stack."
     },
     {
@@ -87,7 +87,7 @@
     },
     {
       "name": "DISCARD",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top element from the stack."
     },
     {
@@ -140,7 +140,7 @@
       ],
       "description": "Calls a function at a given instruction offset."
     },
-    { 
+    {
       "name": "RET",
       "args": [
         {
@@ -152,262 +152,262 @@
     },
     {
       "name": "NOT_BOOL",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top boolean from the stack, negates it, and pushes the result back onto the stack."
     },
     {
       "name": "ADD_F32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two floats from the stack, adds them, and pushes the result onto the stack."
     },
     {
       "name": "ADD_I32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two integers from the stack, adds them, and pushes the result onto the stack."
     },
     {
       "name": "ADD_STRING",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two strings from the stack, concatenates them , and pushes the result onto the stack."
     },
     {
       "name": "ADD_U8",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top bytes from the stack, adds them, and pushes the result onto the stack."
     },
     {
       "name": "SUB_F32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two floats from the stack, subtracts the second from the first, and pushes the result onto the stack."
     },
     {
       "name": "SUB_I32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two integers from the stack, subtracts the second from the first, and pushes the result onto the stack."
     },
     {
       "name": "SUB_U8",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two bytes from the stack, subtracts the second from the first, and pushes the result onto the stack."
     },
     {
       "name": "MUL_F32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two floats from the stack, multiplies them, and pushes the result onto the stack."
     },
     {
       "name": "MUL_I32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two integers from the stack, multiplies them, and pushes the result onto the stack."
     },
     {
       "name": "MUL_U8",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two bytes from the stack, multiplies them, and pushes the result onto the stack."
     },
     {
       "name": "DIV_F32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two floats from the stack, divides the first by the second, and pushes the result onto the stack."
     },
     {
       "name": "DIV_I32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two integers from the stack, divides the first by the second, and pushes the result onto the stack."
     },
     {
       "name": "DIV_U8",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two bytes from the stack, divides the first by the second, and pushes the result onto the stack."
     },
     {
       "name": "MOD_I32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two integers from the stack, computes the modulus, and pushes the result onto the stack."
     },
     {
       "name": "POW_F32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two floats from the stack, raises the first to the power of the second, and pushes the result onto the stack."
     },
     {
       "name": "POW_I32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two integers from the stack, raises the first to the power of the second, and pushes the result onto the stack."
     },
     {
       "name": "EQ_BOOL",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two boolean values from the stack, checks if they are equal, and pushes the result onto the stack."
     },
     {
       "name": "EQ_F32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two floats from the stack, checks if they are equal, and pushes the result onto the stack."
     },
     {
       "name": "EQ_I32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two integers from the stack, checks if they are equal, and pushes the result onto the stack."
     },
     {
       "name": "EQ_STRING",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two strings from the stack, checks if they are equal, and pushes the result onto the stack."
     },
     {
       "name": "EQ_U8",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two bytes from the stack, checks if they are equal, and pushes the result onto the stack."
     },
     {
       "name": "EQ_UNIT",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two unit values from the stack and pushes True onto the stack."
     },
     {
       "name": "NEQ_BOOL",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two boolean values from the stack, checks if they are not equal, and pushes the result onto the stack."
     },
     {
       "name": "NEQ_F32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two floats from the stack, checks if they are not equal, and pushes the result onto the stack."
     },
     {
       "name": "NEQ_I32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two integers from the stack, checks if they are not equal, and pushes the result onto the stack."
     },
     {
       "name": "NEQ_STRING",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two strings from the stack, checks if they are not equal, and pushes the result onto the stack."
     },
     {
       "name": "NEQ_U8",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two bytes from the stack, checks if they are not equal, and pushes the result onto the stack."
     },
     {
       "name": "NEQ_UNIT",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two unit values from the stack and pushes False onto the stack."
     },
     {
       "name": "LT_F32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two floats from the stack, checks if the first is less than the second, and pushes the result onto the stack."
     },
     {
       "name": "LT_I32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two integers from the stack, checks if the first is less than the second, and pushes the result onto the stack."
     },
     {
       "name": "LT_STRING",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two strings from the stack, checks if the first is less than the second, and pushes the result onto the stack."
     },
     {
       "name": "LT_U8",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two bytes from the stack, checks if the first is less than the second, and pushes the result onto the stack."
     },
     {
       "name": "LE_F32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two floats from the stack, checks if the first is less than or equal to the second, and pushes the result onto the stack."
     },
     {
       "name": "LE_I32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two integers from the stack, checks if the first is less than or equal to the second, and pushes the result onto the stack."
     },
     {
       "name": "LE_STRING",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two strings from the stack, checks if the first is less than or equal to the second, and pushes the result onto the stack."
     },
     {
       "name": "LE_U8",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two bytes from the stack, checks if the first is less than or equal to the second, and pushes the result onto the stack."
     },
     {
       "name": "GT_F32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two floats from the stack, checks if the first is greater than the second, and pushes the result onto the stack."
     },
     {
       "name": "GT_I32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two integers from the stack, checks if the first is greater than the second, and pushes the result onto the stack."
     },
     {
       "name": "GT_STRING",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two strings from the stack, checks if the first is greater than the second, and pushes the result onto the stack."
     },
     {
       "name": "GT_U8",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two bytes from the stack, checks if the first is greater than the second, and pushes the result onto the stack."
     },
     {
       "name": "GE_F32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two floats from the stack, checks if the first is greater than or equal to the second, and pushes the result onto the stack."
     },
     {
       "name": "GE_I32",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two integers from the stack, checks if the first is greater than or equal to the second, and pushes the result onto the stack."
     },
     {
       "name": "GE_STRING",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two strings from the stack, checks if the first is greater than or equal to the second, and pushes the result onto the stack."
     },
     {
       "name": "GE_U8",
-      "args": [ ],
+      "args": [],
       "description": "Removes the top two bytes from the stack, checks if the first is greater than or equal to the second, and pushes the result onto the stack."
     },
     {
       "name": "PRINTLN",
-      "args": [ ],
+      "args": [],
       "description": "Outputs a newline while leaving the stack unchanged."
     },
     {
       "name": "PRINT_BOOL",
-      "args": [ ],
+      "args": [],
       "description": "Outputs the boolean value at the top of the stack and removes it from the stack."
     },
     {
       "name": "PRINT_U8",
-      "args": [ ],
+      "args": [],
       "description": "Outputs the u8 value at the top of the stack and removes it from the stack."
     },
     {
       "name": "PRINT_F32",
-      "args": [ ],
+      "args": [],
       "description": "Outputs the f32 value at the top of the stack and removes it from the stack."
     },
     {
       "name": "PRINT_I32",
-      "args": [ ],
+      "args": [],
       "description": "Outputs the integer value at the top of the stack and removes it from the stack."
     },
     {
       "name": "PRINT_STRING",
-      "args": [ ],
+      "args": [],
       "description": "Outputs the string value at the top of the stack and removes it from the stack."
     },
     {
       "name": "PRINT_UNIT",
-      "args": [ ],
+      "args": [],
       "description": "Outputs the unit value at the top of the stack and removes it from the stack."
     }
   ]
