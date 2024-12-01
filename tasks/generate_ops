@@ -22,9 +22,11 @@ FS.writeFile(Path.join(projectHome, zigFileName), zigOut |> join("\n"))
 let kotlinOut = [
     "package io.littlelanguages.bendu.compiler",
     "",
-    "enum class Instructions(val op: Byte) {"
+    "enum class Args {U32, I32, F32, STRING, U8}",
+    "",
+    "enum class Instructions(val op: Byte, val args: List<Args>) {"
 ]
-each(instructions.instructions, fn (instruction, idx) kotlinOut <! "    " + Str.upper(instruction.name) + "(" + str(idx) + "),")
+each(instructions.instructions, fn (instruction, idx) kotlinOut <! "    " + Str.upper(instruction.name) + "(" + str(idx) + ", listOf(" + join(map(instruction.args, fn(a) "Args." + Str.upper(a.type)), ", ") + ")),")
 kotlinOut <! "}"
 
 let kotlinFileName = "components/compiler-kotlin/app/src/main/kotlin/io/littlelanguages/bendu/compiler/Instructions.kt"

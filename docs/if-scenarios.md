@@ -1,6 +1,10 @@
 # `if` Scenarios
 
-All conditions in an `if` statement are evaluated in order, and the first one that is `True` is executed. If none of the conditions are `True`, the `else` block is executed.  In order to demonstrate that the flow of the `if` statement is as expected, we can use division by zero to show that the branches are not evaluated until they are needed.
+All conditions in an `if` statement are evaluated in order, and the first one
+that is `True` is executed. If none of the conditions are `True`, the `else`
+block is executed. In order to demonstrate that the flow of the `if` statement
+is as expected, we can use division by zero to show that the branches are not
+evaluated until they are needed.
 
 ```bendu-repl
 > if True -> 1 | (2 / 0)
@@ -40,4 +44,6 @@ From this we can see that the `if` has the following type rule.
 
 $$\frac{\mathtt{e_{j 1}: {\rm Bool}, e_{j 2}: t, 1 \le j \le n}}{\mathtt{{\tt if}\ e_{1 1} \rightarrow e_{1 2} | \dots | e_{n 1} \rightarrow e_{n 2} : t}}$$
 
-Syntactically it is possible to leave out the last condition and just have an `if` statement with just a branch.  From a typing perspective the optional guard is treated as `True`.
+Syntactically it is possible to leave out the last condition and just have an
+`if` statement with just a branch. From a typing perspective the optional guard
+is treated as `True`.
