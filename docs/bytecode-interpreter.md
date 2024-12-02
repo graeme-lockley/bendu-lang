@@ -18,3 +18,4 @@ Can be found in [bytecode-instructions.json](bytecode-instructions.json).
 # Stack Layout
 
 Can be found in [function implementation](function-implementation.md).
+

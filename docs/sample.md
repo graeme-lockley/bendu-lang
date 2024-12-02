@@ -1,6 +1,16 @@
 This is a sample file to build bendu-test.
 
 
+```bendu-dis
+> let x = 10
+. x + 5
+
+ 0: PUSH_I32_LITERAL 10
+ 5: PUSH_STACK 0
+10: PUSH_I32_LITERAL 5
+15: ADD_I32
+```
+
 ```bendu-error
 > x
 Unknown Identifier: x at 1:13

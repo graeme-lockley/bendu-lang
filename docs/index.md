@@ -92,10 +92,10 @@ function body is a single expression.
 
 ### See also
 
-- [Function scenarios](docs/function-scenarios.md) for a breakdown of the
+- [Function scenarios](function-scenarios.md) for a breakdown of the
   different ways functions can be used in Bendu and the scenarios that are used
   to implement them.
-- [Function implementation](docs/function-implementation.md) for a detailed
+- [Function implementation](function-implementation.md) for a detailed
   description of how functions are implemented in Bendu's runtime system. This
   note is essentially a description of the stack layout, closure structure and
   the execution model.

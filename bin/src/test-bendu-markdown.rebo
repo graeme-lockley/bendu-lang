@@ -81,6 +81,30 @@ let process(path, test, silent = false) {
       suite.eq(Str.trim(code[0][1:]) + "...", join(code |> filter(fn(l) !Str.startsWith?(l, ">")), "\\n"), result)
    }
 
+   let executeBenduDis(suite, path, startLine, endLine, code) {      
+      let evalBenduDis(script, lineno) {
+         let result = rebo.os.exec([
+            "java", 
+            "-jar",
+            Path.join(projectHome, "components/compiler-kotlin/app/build/libs/app.jar"), 
+            "dis",
+            "--expression", 
+            script
+         ])
+
+         Str.trim(result.stdout) + Str.trim(result.stderr)
+      }
+
+      let script = join(code |> filter(fn(l) Str.startsWith?(l, ">") || Str.startsWith?(l, ".")) |> map(fn(l) l[1:]), "\\n")
+
+      let result = evalBenduDis(script, startLine + 1) catch e -> e
+
+      let expected = code |> filter(fn(l) !Str.startsWith?(l, ">") && !Str.startsWith?(l, ".")) |> map(fn(l) Str.trim(l)) |> filter(fn(l) len(l) > 0)
+      let actual = result |> split("\n") |> map(fn(l) Str.trim(l)) |> filter(fn(l) len(l) > 0)
+
+      suite.eq(Str.trim(code[0][1:]) + "...", expected |> join("\n"), actual |> join("\n"))
+   }
+
    let newSuite = test.suite(path)
 
    let content = FS.lines(path)
@@ -97,8 +121,7 @@ let process(path, test, silent = false) {
          execute(newSuite, path, lp + 1, upper, content[lp + 1 : upper])
 
          lp := upper + 1
-      }
-      | if Str.startsWith?(content[lp], "```bendu-repl") ||  Str.startsWith?(content[lp], "``` bendu-repl") -> {
+      } | if Str.startsWith?(content[lp], "```bendu-repl") ||  Str.startsWith?(content[lp], "``` bendu-repl") -> {
          let upper = lp + 1
 
          while upper < len(content) && !Str.startsWith?(content[upper], "```") ->
@@ -114,6 +137,15 @@ let process(path, test, silent = false) {
             upper := upper + 1
 
          executeBenduError(newSuite, path, lp + 1, upper, content[lp + 1 : upper])
+
+         lp := upper + 1
+      } | if Str.startsWith?(content[lp], "```bendu-dis") ||  Str.startsWith?(content[lp], "``` bendu-dis") -> {
+         let upper = lp + 1
+
+         while upper < len(content) && !Str.startsWith?(content[upper], "```") ->
+            upper := upper + 1
+
+         executeBenduDis(newSuite, path, lp + 1, upper, content[lp + 1 : upper])
 
          lp := upper + 1
       } | {

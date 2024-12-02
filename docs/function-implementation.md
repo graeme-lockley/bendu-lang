@@ -178,4 +178,6 @@ main:
   CALL_CLOSURE 1
 ```
 
-Both 
+The only new instruction `CALL_CLOSURE` is defined as follows:
+
+- `CALL_CLOSURE <arity>`: Call the closure with the arity number of arguments from the stack.  The closure is stored in the frame at offset 0.  The arguments are removed from the call stack and replaced with the return address and the new frame pointer.
