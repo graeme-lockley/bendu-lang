@@ -40,11 +40,11 @@ RelOp
     ;
 
 Additive
-    : Multiplicative {["+" | "-"] Multiplicative}
+    : Multiplicative {("+" | "-") Multiplicative}
     ;
 
 Multiplicative
-    : Power {["*" | "/" | "%"] Power}
+    : Power {("*" | "/" | "%") Power}
     ;
 
 Power

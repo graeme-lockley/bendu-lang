@@ -349,11 +349,11 @@ private class ParserVisitor(val errors: Errors = Errors()) :
 
     override fun visitAdditive(
         a1: Expression,
-        a2: List<Tuple2<Union2<Token, Token>?, Expression>>
+        a2: List<Tuple2<Union2<Token, Token>, Expression>>
     ): Expression =
         a2.fold(a1) { acc, e ->
             val op =
-                if (e.a!!.isA()) Pair(Op.Plus, e.a.a().location)
+                if (e.a.isA()) Pair(Op.Plus, e.a.a().location)
                 else Pair(Op.Minus, e.a.b().location)
 
             BinaryExpression(acc, OpLocation(op.first, op.second), e.b)
@@ -361,11 +361,11 @@ private class ParserVisitor(val errors: Errors = Errors()) :
 
     override fun visitMultiplicative(
         a1: Expression,
-        a2: List<Tuple2<Union3<Token, Token, Token>?, Expression>>
+        a2: List<Tuple2<Union3<Token, Token, Token>, Expression>>
     ): Expression =
         a2.fold(a1) { acc, e ->
             val op =
-                if (e.a!!.isA()) Pair(Op.Multiply, e.a.a().location)
+                if (e.a.isA()) Pair(Op.Multiply, e.a.a().location)
                 else if (e.a.isB()) Pair(Op.Divide, e.a.b().location)
                 else Pair(Op.Modulo, e.a.c().location)
 
