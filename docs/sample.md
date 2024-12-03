@@ -3,12 +3,38 @@ This is a sample file to build bendu-test.
 
 ```bendu-dis
 > let x = 10
-. x + 5
+> x + 5
 
  0: PUSH_I32_LITERAL 10
  5: PUSH_STACK 0
 10: PUSH_I32_LITERAL 5
 15: ADD_I32
+```
+
+```bendu-dis
+> let x = 10
+> if x == 1 -> 10 | x == 2 -> 20 | 30
+
+ 0: PUSH_I32_LITERAL 10
+ 5: PUSH_STACK 0
+10: PUSH_I32_LITERAL 1
+15: EQ_I32
+16: JMP_FALSE 31
+21: PUSH_I32_LITERAL 10
+26: JMP 62
+31: PUSH_STACK 0
+36: PUSH_I32_LITERAL 2
+41: EQ_I32
+42: JMP_FALSE 57
+47: PUSH_I32_LITERAL 20
+52: JMP 62
+57: PUSH_I32_LITERAL 30
+```
+
+```bendu-repl
+> let x = 10
+> if x == 1 -> 10 | x == 2 -> 20 | 30
+30: Int
 ```
 
 ```bendu-error

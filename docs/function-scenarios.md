@@ -10,7 +10,7 @@ implementation of the language. The scenarios reflect the implementation
 sequence where functions are implemented in a variety of ways with different
 degrees of complexity and overhead.
 
-## In package, recursive, non-higher order, package function without closure
+## Package function without closure
 
 The simplest form of a function is a function that is defined in a package and
 does not need a closure to be created. This allows the invocation to be
@@ -27,55 +27,24 @@ stack and the invocation itself jumps to an offset within the same code block.
 11: Int
 ```
 
-The exact mechanism surrounding function declaration is a little more complex as
-it is necessary to describe the layout of the stack frame. It is worthwhile to
-note that there are essentially 2 registers that are used to manage the
-interpreter's execution - the instruction pointer (`IP`) and frame pointer
-(`FP`).
+The generated code is shown in the following snippet.
 
-- `IP` is the instruction pointer and is used to keep track of the current
-  instruction being executed.
-- `FP` is the local base pointer and is used to keep track of the current stack
-  frame.
+```bendu-dis
+> let inc(n) = n + 1
+> inc(1)
+> inc(10)
 
-The stack frame is a collection of values placed onto the stack used to store
-the return state when, the function's results, function arguments and function
-local variables. The stack frame is created when a function is called and is
-destroyed when the function returns.
-
-Using some ASCII art, and the stack growing downwards, a typical stack frame
-might look like this:
-
+ 0: JMP 21
+ 5: PUSH_PARAMETER 0
+10: PUSH_I32_LITERAL 1
+15: ADD_I32
+16: RET 1
+21: PUSH_I32_LITERAL 1
+26: CALL_LOCAL 5
+31: DISCARD
+32: PUSH_I32_LITERAL 10
+37: CALL_LOCAL 5
 ```
-+-------------------------------------+
-| Argument 1                          | <- FP - 1
-+-------------------------------------+
-| Argument 2                          | <- FP
-+-------------------------------------+
-| IP of instruction following return  | <- FP + 1
-+-------------------------------------+
-| Previous LBP                        | <- FP + 2
-+-------------------------------------+
-| Local 1                             | <- FP + 3
-+-------------------------------------+
-| Local 2                             | <- FP + 4
-+-------------------------------------+
-| Local 3                             | <- FP + 5
-+-------------------------------------+
-```
-
-It is the responsibility of the compiler to generate the correct instructions to
-manage the stack frame. The bytecode will need to include instructions to create
-the function result and push each of the arguments. Invoking `CALL_LOCAL` will
-automatically cause the function result, `IP` and `FP` to be pushed and the
-setting of `IP` and `FP` in the function. The operation `RET` will pop the `IP`
-and `FP` and arguments off of the stack and return to the calling function with
-the function result on the top of the stack.
-
-The above might seem a little strange as it implies that it specifically refers
-to the compiler. However it is worthwhile to note that the interpreter uses the
-same stack structure and, rather than using recursion when performing a call,
-continues to iterate and uses this runtime stack to manage the execution.
 
 ## In package, recursive, non-higher order, private function without closure
 
