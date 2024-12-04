@@ -16,14 +16,14 @@ class ParserTest {
             val statements = successfulParse(input, 2)
 
             assertIs<LetStatement>(statements[0])
-            assertEquals((statements[0] as LetStatement).id.value, "x")
-            assertIs<LiteralIntExpression>((statements[0] as LetStatement).e)
-            assertEquals(((statements[0] as LetStatement).e as LiteralIntExpression).v.value, 1)
+            assertEquals((statements[0] as LetStatement).terms[0].id.value, "x")
+            assertIs<LiteralIntExpression>((statements[0] as LetStatement).terms[0].e)
+            assertEquals(((statements[0] as LetStatement).terms[0].e as LiteralIntExpression).v.value, 1)
 
             assertIs<LetStatement>(statements[1])
-            assertEquals((statements[1] as LetStatement).id.value, "y")
-            assertIs<LowerIDExpression>((statements[1] as LetStatement).e)
-            assertEquals(((statements[1] as LetStatement).e as LowerIDExpression).v.value, "x")
+            assertEquals((statements[1] as LetStatement).terms[0].id.value, "y")
+            assertIs<LowerIDExpression>((statements[1] as LetStatement).terms[0].e)
+            assertEquals(((statements[1] as LetStatement).terms[0].e as LowerIDExpression).v.value, "x")
         }
 
         listOf(
@@ -32,13 +32,13 @@ class ParserTest {
             val statements = successfulParse(input, 1)
 
             assertIs<LetStatement>(statements[0])
-            assertEquals("bob", (statements[0] as LetStatement).id.value)
-            assertIs<LiteralFunctionExpression>((statements[0] as LetStatement).e)
-            assertEquals(0, ((statements[0] as LetStatement).e as LiteralFunctionExpression).parameters.size)
-            assertIs<LiteralIntExpression>(((statements[0] as LetStatement).e as LiteralFunctionExpression).body)
+            assertEquals("bob", (statements[0] as LetStatement).terms[0].id.value)
+            assertIs<LiteralFunctionExpression>((statements[0] as LetStatement).terms[0].e)
+            assertEquals(0, ((statements[0] as LetStatement).terms[0].e as LiteralFunctionExpression).parameters.size)
+            assertIs<LiteralIntExpression>(((statements[0] as LetStatement).terms[0].e as LiteralFunctionExpression).body)
             assertEquals(
                 1,
-                (((statements[0] as LetStatement).e as LiteralFunctionExpression).body as LiteralIntExpression).v.value
+                (((statements[0] as LetStatement).terms[0].e as LiteralFunctionExpression).body as LiteralIntExpression).v.value
             )
         }
 
@@ -48,14 +48,14 @@ class ParserTest {
             val statements = successfulParse(input, 1)
 
             assertIs<LetStatement>(statements[0])
-            assertEquals("add", (statements[0] as LetStatement).id.value)
-            assertEquals(2, ((statements[0] as LetStatement).e as LiteralFunctionExpression).parameters.size)
-            assertEquals("a", ((statements[0] as LetStatement).e as LiteralFunctionExpression).parameters[0].value)
-            assertEquals("b", ((statements[0] as LetStatement).e as LiteralFunctionExpression).parameters[1].value)
-            assertIs<LiteralIntExpression>(((statements[0] as LetStatement).e as LiteralFunctionExpression).body)
+            assertEquals("add", (statements[0] as LetStatement).terms[0].id.value)
+            assertEquals(2, ((statements[0] as LetStatement).terms[0].e as LiteralFunctionExpression).parameters.size)
+            assertEquals("a", ((statements[0] as LetStatement).terms[0].e as LiteralFunctionExpression).parameters[0].value)
+            assertEquals("b", ((statements[0] as LetStatement).terms[0].e as LiteralFunctionExpression).parameters[1].value)
+            assertIs<LiteralIntExpression>(((statements[0] as LetStatement).terms[0].e as LiteralFunctionExpression).body)
             assertEquals(
                 1,
-                (((statements[0] as LetStatement).e as LiteralFunctionExpression).body as LiteralIntExpression).v.value
+                (((statements[0] as LetStatement).terms[0].e as LiteralFunctionExpression).body as LiteralIntExpression).v.value
             )
         }
     }

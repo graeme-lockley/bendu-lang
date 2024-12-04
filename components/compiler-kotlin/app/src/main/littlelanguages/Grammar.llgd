@@ -5,7 +5,7 @@ Program
     ;
 
 Expression
-    : "let" LowerID ["(" [LowerID {"," LowerID}] ")"] "=" Expression
+    : "let" LetDeclaration {"and" LetDeclaration}
     | "print" "(" [Expression {"," Expression}] ")"
     | "println" "(" [Expression {"," Expression}] ")"
     | "abort" "(" [Expression {"," Expression}] ")"
@@ -14,15 +14,19 @@ Expression
     | OrExpression
     ;
 
+LetDeclaration
+    : LowerID ["(" [LowerID {"," LowerID}] ")"] "=" Expression
+    ;
+
 OrExpression
     : Or
     ;
 
 Or
-    : And {"||" And}
+    : AndE {"||" AndE}
     ;
 
-And
+AndE
     : Equality {"&&" Equality}
     ;
 

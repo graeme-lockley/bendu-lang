@@ -81,17 +81,26 @@ data class IfExpression(
 }
 
 data class LetStatement(
-    val id: StringLocation,
-    val e: Expression,
-    private val location: Location,
+    val terms: List<LetStatementTerm>,
     override var type: Type? = null
 ) : Expression(type) {
     override fun apply(s: Subst, errors: Errors) {
-        e.apply(s, errors)
+        terms.forEach { t -> t.apply(s, errors) }
     }
 
     override fun location(): Location =
-        location
+        terms.fold(terms[0].location) { acc, t -> acc + t.location }
+}
+
+data class LetStatementTerm(
+    val id: StringLocation,
+    val e: Expression,
+    val location: Location
+) {
+
+    fun apply(s: Subst, errors: Errors) {
+        e.apply(s, errors)
+    }
 }
 
 data class LiteralBoolExpression(val v: BoolLocation, override var type: Type? = null) : Expression(type) {
@@ -213,36 +222,16 @@ enum class Op { Or, And, Plus, Minus, Multiply, Divide, Modulo, Power, EqualEqua
 enum class UnaryOp { Not, TypeOf }
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<List<Expression>, Expression, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression> {
+    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression> {
     override fun visitProgram(a: List<Tuple2<Expression, Token?>>): List<Expression> =
         a.map { it.a }
 
     override fun visitExpression1(
         a1: Token,
-        a2: Token,
-        a3: Tuple3<Token, Tuple2<Token, List<Tuple2<Token, Token>>>?, Token>?,
-        a4: Token,
-        a5: Expression
+        a2: LetStatementTerm,
+        a3: List<Tuple2<Token, LetStatementTerm>>
     ): Expression =
-        if (a3 == null)
-            LetStatement(StringLocation(a2.lexeme, a2.location), a5, a1.location + a5.location())
-        else
-            LetStatement(
-                StringLocation(a2.lexeme, a2.location),
-                LiteralFunctionExpression(
-                    if (a3.b == null)
-                        emptyList()
-                    else
-                        listOf(StringLocation(a3.b.a.lexeme, a3.b.a.location)) + a3.b.b.map {
-                            StringLocation(
-                                it.b.lexeme,
-                                it.b.location
-                            )
-                        },
-                    a5
-                ),
-                a1.location + a5.location()
-            )
+        LetStatement(listOf(a2) + a3.map { it.b })
 
     override fun visitExpression2(
         a1: Token,
@@ -308,6 +297,32 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     override fun visitExpression7(a: Expression): Expression =
         a
 
+    override fun visitLetDeclaration(
+        a1: Token,
+        a2: Tuple3<Token, Tuple2<Token, List<Tuple2<Token, Token>>>?, Token>?,
+        a3: Token,
+        a4: Expression
+    ): LetStatementTerm =
+        if (a2 == null)
+            LetStatementTerm(StringLocation(a1.lexeme, a1.location), a4, a1.location + a4.location())
+        else
+            LetStatementTerm(
+                StringLocation(a1.lexeme, a1.location),
+                LiteralFunctionExpression(
+                    if (a2.b == null)
+                        emptyList()
+                    else
+                        listOf(StringLocation(a2.b.a.lexeme, a2.b.a.location)) + a2.b.b.map {
+                            StringLocation(
+                                it.b.lexeme,
+                                it.b.location
+                            )
+                        },
+                    a4
+                ),
+                a1.location + a4.location()
+            )
+
     override fun visitOrExpression(a: Expression): Expression =
         a
 
@@ -317,7 +332,7 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     ): Expression =
         a2.fold(a1) { acc, e -> BinaryExpression(acc, OpLocation(Op.Or, e.a.location), e.b) }
 
-    override fun visitAnd(
+    override fun visitAndE(
         a1: Expression,
         a2: List<Tuple2<Token, Expression>>
     ): Expression =

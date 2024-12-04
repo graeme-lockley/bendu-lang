@@ -129,7 +129,7 @@ private fun assertInferFunctionEquals(expr: String, expected: String, typeEnv: T
     val ast = infer(expr, errors = errors, typeEnv = typeEnv)
 
     assertTrue(errors.hasNoErrors())
-    assertEquals(expected, (ast[0] as LetStatement).e.type.toString())
+    assertEquals(expected, (ast[0] as LetStatement).terms[0].e.type.toString())
 }
 
 private fun inferErrorExpression(expr: String, typeEnv: TypeEnv = emptyTypeEnv): Errors {

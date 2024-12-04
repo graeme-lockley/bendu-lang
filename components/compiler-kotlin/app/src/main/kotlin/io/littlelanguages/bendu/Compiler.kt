@@ -295,6 +295,11 @@ private class Compiler(val errors: Errors) {
     }
 
     private fun compileLetExpression(e: LetStatement, keepResult: Boolean) {
+        e.terms.forEach { t -> bindings.put(t.id.value, PackageFunction()) }
+        e.terms.forEach { t -> compileLetStatementTerm(t, keepResult) }
+    }
+
+    private fun compileLetStatementTerm(e: LetStatementTerm, keepResult: Boolean) {
         if (e.e is LiteralFunctionExpression) {
             byteBuilder.appendInstruction(Instructions.JMP)
             val jumpOffset = byteBuilder.size()
@@ -304,7 +309,11 @@ private class Compiler(val errors: Errors) {
                 bindings.put(parameter.value, ParameterBinding(index - (e.e.parameters.size - 1)))
             }
 
-            bindings.put(e.id.value, PackageFunction(byteBuilder.size()))
+            bindings[e.id.value]!!.let {
+                if (it is PackageFunction) {
+                    it.offset = byteBuilder.size()
+                }
+            }
 
             compileExpression(e.e.body)
             byteBuilder.appendInstruction(Instructions.RET)

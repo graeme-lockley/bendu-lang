@@ -92,13 +92,52 @@ A classic recursive function is the Ackermann function.
 This is where multiple procedures are dependent upon each other. The following
 example illustrates this.
 
-```-bendu-repl
-> let odd(n) = if n == 0 -> false | even(n - 1)
-. and even(n) = if n == 0 -> true | odd(n - 1)
+```bendu-repl
+> let odd(n) = if n == 0 -> False | even(n - 1)
+. and even(n) = if n == 0 -> True | odd(n - 1)
 
 > odd(5)
 True: Bool
 
 > even(5)
 False: Bool
+```
+
+Looking at the generated code the the odd/even functions are implemented as follows:
+
+```bendu-dis
+> let odd(n) = if n == 0 -> False | even(n - 1)
+. and even(n) = if n == 0 -> True | odd(n - 1)
+> odd(5)
+> even(5)
+
+ 0: JMP 48
+ 5: PUSH_PARAMETER 0
+10: PUSH_I32_LITERAL 0
+15: EQ_I32
+16: JMP_FALSE 27
+21: PUSH_BOOL_FALSE
+22: JMP 43
+27: PUSH_PARAMETER 0
+32: PUSH_I32_LITERAL 1
+37: SUB_I32
+38: CALL_LOCAL 53
+43: RET 1
+48: JMP 96
+53: PUSH_PARAMETER 0
+58: PUSH_I32_LITERAL 0
+63: EQ_I32
+64: JMP_FALSE 75
+69: PUSH_BOOL_TRUE
+70: JMP 91
+75: PUSH_PARAMETER 0
+80: PUSH_I32_LITERAL 1
+85: SUB_I32
+86: CALL_LOCAL 5
+91: RET 1
+96: PUSH_I32_LITERAL 5
+101: CALL_LOCAL 5
+106: DISCARD
+107: PUSH_I32_LITERAL 5
+112: CALL_LOCAL 53
 ```
