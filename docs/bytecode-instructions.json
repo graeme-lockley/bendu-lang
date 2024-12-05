@@ -86,6 +86,48 @@
       "description": "Pushes a parameter from a specific position in the parameter list onto the top."
     },
     {
+      "name": "LOAD",
+      "args": [
+        {
+          "name": "frame",
+          "type": "u32"
+        },
+        {
+          "name": "offset",
+          "type": "u32"
+        }
+      ],
+      "description": "Load the value at the offset from the frame onto the stack. The frame, starting at 0 indicates how many frames to traverse to get to the correct frame. The offset is the offset from the start of the frame."
+    },
+    {
+      "name": "STORE",
+      "args": [
+        {
+          "name": "frame",
+          "type": "u32"
+        },
+        {
+          "name": "offset",
+          "type": "u32"
+        }
+      ],
+      "description": "Store the value on the stack into the frame at the offset.  The frame, starting at 0 indicates how many frames to traverse to get to the correct frame. The offset is the offset from the start of the frame."
+    },
+    {
+      "name": "CREATE_CLOSURE",
+      "args": [
+        {
+          "name": "offset",
+          "type": "u32"
+        },
+        {
+          "name": "frame",
+          "type": "u32"
+        }
+      ],
+      "description": "Create a closure for a function with the frame.  The frame, starting at 0 indicates how many frames to traverse to get to the correct frame."
+    },
+    {
       "name": "DISCARD",
       "args": [],
       "description": "Removes the top element from the stack."
@@ -139,6 +181,34 @@
         }
       ],
       "description": "Calls a function at a given instruction offset."
+    },
+    {
+      "name": "CALL",
+      "args": [
+        {
+          "name": "function_offset",
+          "type": "u32"
+        },
+        {
+          "name": "arity",
+          "type": "u32"
+        },
+        {
+          "name": "frame",
+          "type": "u32"
+        }
+      ],
+      "description": "Call the function ats offset with the arity number of arguments from the stack. The frame, starting at 0 indicates how many frames to traverse to get to the correct frame. A new frame is created for the function call and the arguments are stored in the frame. These arguments are removed from the call stack and replaced with the return address and the new frame pointer."
+    },
+    {
+      "name": "CALL_CLOSURE",
+      "args": [
+        {
+          "name": "frame",
+          "type": "u32"
+        }
+      ],
+      "description": "Call the closure on the stack with following arity number of arguments also located on the stack. The arguments are removed from the call stack and replaced with the return address and the new frame pointer."
     },
     {
       "name": "RET",

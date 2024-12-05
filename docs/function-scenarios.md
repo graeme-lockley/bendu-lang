@@ -108,6 +108,7 @@ Looking at the generated code the the odd/even functions are implemented as foll
 ```bendu-dis
 > let odd(n) = if n == 0 -> False | even(n - 1)
 . and even(n) = if n == 0 -> True | odd(n - 1)
+
 > odd(5)
 > even(5)
 

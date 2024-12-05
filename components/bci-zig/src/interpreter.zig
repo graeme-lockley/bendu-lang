@@ -573,7 +573,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.print_unit();
             },
 
-            // else => std.debug.panic("unknown op code\n", .{}),
+            else => std.debug.panic("unknown op code\n", .{}),
         }
     }
 }

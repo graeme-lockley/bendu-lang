@@ -155,7 +155,7 @@ This is a little less contrived than the previous but, equally, it shows how the
   JMP main
   
 mkPlus:
-  CREATE_CLOSURE anon_0
+  CREATE_CLOSURE anon_0 0
   RET
 
 anon_0:
@@ -178,6 +178,7 @@ main:
   CALL_CLOSURE 1
 ```
 
-The only new instruction `CALL_CLOSURE` is defined as follows:
+The only new instructions `CREATE_CLOSURE` and `CALL_CLOSURE` is defined as follows:
 
-- `CALL_CLOSURE <arity>`: Call the closure with the arity number of arguments from the stack.  The closure is stored in the frame at offset 0.  The arguments are removed from the call stack and replaced with the return address and the new frame pointer.
+- `CREATE_CLOSURE <function> <frame>`: Create a closure for a function with the frame.  The frame, starting at 0 indicates how many frames to traverse to get to the correct frame.
+- `CALL_CLOSURE <arity>`: Call the closure with the arity number of arguments from the stack.  The arguments are removed from the call stack and replaced with the return address and the new frame pointer.
