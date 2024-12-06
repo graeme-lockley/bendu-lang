@@ -2,6 +2,10 @@ package io.littlelanguages.bendu
 
 import io.littlelanguages.bendu.compiler.ByteBuilder
 import io.littlelanguages.bendu.compiler.Instructions
+import io.littlelanguages.bendu.compiler.PackageBinding
+import io.littlelanguages.bendu.compiler.PackageFunction
+import io.littlelanguages.bendu.compiler.ParameterBinding
+import io.littlelanguages.bendu.compiler.SymbolTable
 import io.littlelanguages.bendu.typeinference.*
 
 fun compile(script: List<Expression>, errors: Errors): ByteArray {
@@ -11,32 +15,15 @@ fun compile(script: List<Expression>, errors: Errors): ByteArray {
     return compiler.byteBuilder.toByteArray()
 }
 
-private sealed class NatureOfBinding {
-    open fun patch(byteBuilder: ByteBuilder) {}
-}
-
-private data class PackageBinding(val offset: Int) : NatureOfBinding()
-private data class ParameterBinding(val offset: Int) : NatureOfBinding()
-private data class PackageFunction(var offset: Int = 0, val patches: MutableList<Int> = mutableListOf()) :
-    NatureOfBinding() {
-    fun addPatch(patch: Int) =
-        patches.add(patch)
-
-    override fun patch(byteBuilder: ByteBuilder) {
-        patches.forEach { byteBuilder.writeIntAtPosition(it, offset) }
-    }
-}
-
 private class Compiler(val errors: Errors) {
     val byteBuilder = ByteBuilder()
-    val bindings = mutableMapOf<String, NatureOfBinding>()
-    var offset = 0
+    val symbolTable = SymbolTable(byteBuilder)
 
     fun compile(script: List<Expression>) {
         if (errors.hasNoErrors()) {
             compileStatements(script)
 
-            bindings.forEach { _, binding -> binding.patch(byteBuilder) }
+            symbolTable.closeScope()
         }
     }
 
@@ -90,7 +77,7 @@ private class Compiler(val errors: Errors) {
 
     private fun compileApplyExpression(expression: ApplyExpression, keepResult: Boolean) {
         if (expression.f is LowerIDExpression) {
-            val binding = bindings[expression.f.v.value] as PackageFunction
+            val binding = symbolTable.find(expression.f.v.value) as PackageFunction
             expression.arguments.forEach { e ->
                 compileExpression(e)
             }
@@ -295,7 +282,7 @@ private class Compiler(val errors: Errors) {
     }
 
     private fun compileLetExpression(e: LetStatement, keepResult: Boolean) {
-        e.terms.forEach { t -> bindings.put(t.id.value, PackageFunction()) }
+        e.terms.forEach { t -> symbolTable.bind(t.id.value, PackageFunction()) }
         e.terms.forEach { t -> compileLetStatementTerm(t, keepResult) }
     }
 
@@ -306,10 +293,10 @@ private class Compiler(val errors: Errors) {
             byteBuilder.appendInt(0)
 
             e.e.parameters.forEachIndexed { index, parameter ->
-                bindings.put(parameter.value, ParameterBinding(index - (e.e.parameters.size - 1)))
+                symbolTable.bind(parameter.value, ParameterBinding(index - (e.e.parameters.size - 1)))
             }
 
-            bindings[e.id.value]!!.let {
+            symbolTable.find(e.id.value)!!.let {
                 if (it is PackageFunction) {
                     it.offset = byteBuilder.size()
                 }
@@ -322,8 +309,7 @@ private class Compiler(val errors: Errors) {
             byteBuilder.writeIntAtPosition(jumpOffset, byteBuilder.size())
         } else {
             compileExpression(e.e)
-            bindings.put(e.id.value, PackageBinding(offset))
-            offset += 1
+            symbolTable.bindPackageBinding(e.id.value)
 
             if (keepResult) {
                 byteBuilder.appendInstruction(Instructions.PUSH_UNIT_LITERAL)
@@ -380,7 +366,7 @@ private class Compiler(val errors: Errors) {
 
     private fun compileLowerIDExpression(expression: LowerIDExpression, keepResult: Boolean) {
         if (keepResult) {
-            when (val binding = bindings[expression.v.value]) {
+            when (val binding = symbolTable.find(expression.v.value)) {
                 null -> throw IllegalArgumentException("${expression.v.value} referenced at ${expression.v.location} not found")
 
                 is PackageBinding -> {
@@ -473,6 +459,3 @@ private val validBinaryOperatorArguments = mapOf(
     Pair(Op.Power, setOf(typeChar, typeFloat, typeInt)),
     Pair(Op.Modulo, setOf(typeInt)),
 )
-
-
-
