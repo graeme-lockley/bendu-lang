@@ -77,13 +77,16 @@ private class Compiler(val errors: Errors) {
 
     private fun compileApplyExpression(expression: ApplyExpression, keepResult: Boolean) {
         if (expression.f is LowerIDExpression) {
-            val binding = symbolTable.find(expression.f.v.value) as PackageFunction
+            val (binding, depth) = symbolTable.findIndexed(expression.f.v.value)!! as Pair<PackageFunction, Int>
+
             expression.arguments.forEach { e ->
                 compileExpression(e)
             }
-            byteBuilder.appendInstruction(Instructions.CALL_LOCAL)
+            byteBuilder.appendInstruction(Instructions.CALL)
             binding.addPatch(byteBuilder.size())
             byteBuilder.appendInt(0)
+            byteBuilder.appendInt(expression.arguments.size)
+            byteBuilder.appendInt(depth)
         } else {
             TODO("Not implemented yet")
         }
@@ -292,8 +295,10 @@ private class Compiler(val errors: Errors) {
             val jumpOffset = byteBuilder.size()
             byteBuilder.appendInt(0)
 
+            symbolTable.openScope()
+
             e.e.parameters.forEachIndexed { index, parameter ->
-                symbolTable.bind(parameter.value, ParameterBinding(index - (e.e.parameters.size - 1)))
+                symbolTable.bindPackageBinding(parameter.value)
             }
 
             symbolTable.find(e.id.value)!!.let {
@@ -304,12 +309,16 @@ private class Compiler(val errors: Errors) {
 
             compileExpression(e.e.body)
             byteBuilder.appendInstruction(Instructions.RET)
-            byteBuilder.appendInt(e.e.parameters.size)
 
             byteBuilder.writeIntAtPosition(jumpOffset, byteBuilder.size())
+
+            symbolTable.closeScope()
         } else {
             compileExpression(e.e)
-            symbolTable.bindPackageBinding(e.id.value)
+            val binding = symbolTable.bindPackageBinding(e.id.value)
+            byteBuilder.appendInstruction(Instructions.STORE)
+            byteBuilder.appendInt(0)
+            byteBuilder.appendInt(binding.offset)
 
             if (keepResult) {
                 byteBuilder.appendInstruction(Instructions.PUSH_UNIT_LITERAL)
@@ -366,21 +375,27 @@ private class Compiler(val errors: Errors) {
 
     private fun compileLowerIDExpression(expression: LowerIDExpression, keepResult: Boolean) {
         if (keepResult) {
-            when (val binding = symbolTable.find(expression.v.value)) {
-                null -> throw IllegalArgumentException("${expression.v.value} referenced at ${expression.v.location} not found")
+            val symbol = symbolTable.findIndexed(expression.v.value)
+            if (symbol == null) {
+                throw IllegalArgumentException("${expression.v.value} referenced at ${expression.v.location} not found")
+            } else {
+                val (binding, depth) = symbol
 
-                is PackageBinding -> {
-                    byteBuilder.appendInstruction(Instructions.PUSH_STACK)
-                    byteBuilder.appendInt(binding.offset)
+                when (binding) {
+                    is PackageBinding -> {
+                        byteBuilder.appendInstruction(Instructions.LOAD)
+                        byteBuilder.appendInt(depth)
+                        byteBuilder.appendInt(binding.offset)
+                    }
+
+                    is ParameterBinding -> {
+                        byteBuilder.appendInstruction(Instructions.PUSH_PARAMETER)
+                        byteBuilder.appendInt(binding.offset)
+                    }
+
+                    is PackageFunction ->
+                        TODO("Not implemented yet")
                 }
-
-                is ParameterBinding -> {
-                    byteBuilder.appendInstruction(Instructions.PUSH_PARAMETER)
-                    byteBuilder.appendInt(binding.offset)
-                }
-
-                is PackageFunction ->
-                    TODO("Not implemented yet")
             }
         }
     }

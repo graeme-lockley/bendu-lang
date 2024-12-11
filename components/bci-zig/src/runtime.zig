@@ -1,36 +1,115 @@
 const std = @import("std");
 
+const Memory = @import("memory.zig");
 const Pointer = @import("pointer.zig");
 const SP = @import("string_pool.zig");
 
 const stdout = std.io.getStdOut().writer();
 
+const MAINTAIN_FREE_CHAIN = true;
+const INITIAL_HEAP_SIZE = 1;
+const HEAP_GROW_THRESHOLD = 0.25;
+
 pub const Runtime = struct {
     allocator: std.mem.Allocator,
     sp: SP.StringPool,
     stack: std.ArrayList(Pointer.Pointer),
+    colour: Memory.Colour,
+    root: ?*Memory.Value,
+    free: ?*Memory.Value,
+    memory_size: u32,
+    memory_capacity: u32,
+    allocations: u32,
 
-    pub fn init(allocator: std.mem.Allocator) Runtime {
-        return Runtime{
+    pub fn init(allocator: std.mem.Allocator) !Runtime {
+        var result = Runtime{
             .allocator = allocator,
             .sp = SP.StringPool.init(allocator),
             .stack = std.ArrayList(Pointer.Pointer).init(allocator),
+            .colour = Memory.Colour.White,
+            .root = null,
+            .free = null,
+            .memory_size = 0,
+            .memory_capacity = INITIAL_HEAP_SIZE,
+            .allocations = 0,
         };
+
+        _ = try result.push_frame(null);
+
+        return result;
     }
 
     pub fn deinit(self: *Runtime) void {
         while (self.stack.items.len > 0) {
             self.discard();
         }
+
+        var number_of_values: u32 = 0;
+        {
+            var runner: ?*Memory.Value = self.root;
+            while (runner != null) {
+                const next = runner.?.next;
+                number_of_values += 1;
+
+                runner.?.deinit();
+                self.allocator.destroy(runner.?);
+
+                runner = next;
+            }
+        }
+        // std.log.info("gc: memory state stack length: values: {d} vs {d}", .{ self.memory_size, number_of_values });
+
+        if (MAINTAIN_FREE_CHAIN) {
+            self.destroyFreeList();
+        }
+
         self.stack.deinit();
         self.sp.deinit();
+    }
+
+    fn destroyFreeList(self: *Runtime) void {
+        var runner: ?*Memory.Value = self.free;
+        while (runner != null) {
+            const next = runner.?.next;
+            self.allocator.destroy(runner.?);
+            runner = next;
+        }
+        self.free = null;
+    }
+
+    fn pushNewValue(self: *Runtime, vv: Memory.ValueValue) !*Memory.Value {
+        const v = if (self.free == null) try self.allocator.create(Memory.Value) else self.nextFreeValue();
+        self.memory_size += 1;
+        self.allocations += 1;
+
+        v.colour = self.colour;
+        v.v = vv;
+        v.next = self.root;
+
+        self.root = v;
+
+        try self.stack.append(@as(Pointer.Pointer, @intFromPtr(v)));
+
+        return v;
+    }
+
+    inline fn nextFreeValue(self: *Runtime) *Memory.Value {
+        const v: *Memory.Value = self.free.?;
+        self.free = v.next;
+
+        return v;
     }
 
     pub inline fn pop(self: *Runtime) Pointer.Pointer {
         return self.stack.pop();
     }
+
     pub inline fn peek(self: *Runtime) Pointer.Pointer {
         return self.stack.items[self.stack.items.len - 1];
+    }
+
+    pub inline fn push(self: *Runtime, value: Pointer.Pointer) !void {
+        try self.stack.append(value);
     }
 
     pub inline fn push_bool_true(self: *Runtime) !void {
@@ -43,6 +122,10 @@ pub const Runtime = struct {
 
     pub inline fn push_f32_literal(self: *Runtime, value: f32) !void {
         try self.stack.append(Pointer.fromFloat(value));
+    }
+
+    pub inline fn push_frame(self: *Runtime, previousFrame: ?*Memory.FrameValue) !*Memory.Value {
+        return try self.pushNewValue(Memory.ValueValue{ .FrameKind = try Memory.FrameValue.init(self.allocator, previousFrame) });
     }
 
     pub inline fn push_i32_literal(self: *Runtime, value: i32) !void {
@@ -69,6 +152,24 @@ pub const Runtime = struct {
         }
 
         try self.stack.append(value);
+    }
+
+    pub inline fn load(self: *Runtime, fp: usize, frame: usize, offset: usize) !void {
+        const f = @as(*Memory.Value, @ptrFromInt(self.stack.items[fp]));
+        const v = f.v.FrameKind.get(frame, offset);
+
+        if (Pointer.isString(v)) {
+            Pointer.asString(v).incRef();
+        }
+
+        try self.stack.append(v);
+    }
+
+    pub inline fn store(self: *Runtime, fp: usize, frame: usize, offset: usize) !void {
+        const f = @as(*Memory.Value, @ptrFromInt(self.stack.items[fp]));
+        const v = self.pop();
+
+        try f.v.FrameKind.set(frame, offset, v);
     }
 
     pub inline fn discard(self: *Runtime) void {

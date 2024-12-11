@@ -1,5 +1,6 @@
 const std = @import("std");
 
+const Memory = @import("memory.zig");
 const Op = @import("op.zig").Op;
 const Pointer = @import("pointer.zig");
 const Runtime = @import("runtime.zig");
@@ -88,25 +89,47 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.push_string_literal(data);
                 ip += 4 + @as(usize, @intCast(len));
             },
-            .push_stack => {
-                const index = readi32(bc, ip);
+            // .push_stack => {
+            //     const index = readi32(bc, ip);
+
+            //     if (DEBUG) {
+            //         std.debug.print("{d} {d}: push_stack: offset={d}\n", .{ ip - 1, fp, index });
+            //     }
+
+            //     try runtime.push_stack(index);
+            //     ip += 4;
+            // },
+            // .push_parameter => {
+            //     const index = readi32(bc, ip);
+
+            //     if (DEBUG) {
+            //         std.debug.print("{d} {d}: push_parameter: offset={d}\n", .{ ip - 1, fp, index });
+            //     }
+
+            //     try runtime.push_stack(@intCast(@as(i32, @intCast(fp)) + index));
+            //     ip += 4;
+            // },
+            .load => {
+                const frame = readi32(bc, ip);
+                const offset = readi32(bc, ip + 4);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d}: push_stack: offset={d}\n", .{ ip - 1, fp, index });
+                    std.debug.print("{d} {d}: load: frame={d}, offset={d}\n", .{ ip - 1, fp, frame, offset });
                 }
 
-                try runtime.push_stack(index);
-                ip += 4;
+                try runtime.load(fp, @intCast(frame), @intCast(offset));
+                ip += 8;
             },
-            .push_parameter => {
-                const index = readi32(bc, ip);
+            .store => {
+                const frame = readi32(bc, ip);
+                const offset = readi32(bc, ip + 4);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d}: push_parameter: offset={d}\n", .{ ip - 1, fp, index });
+                    std.debug.print("{d} {d}: store: frame={d}, offset={d}\n", .{ ip - 1, fp, frame, offset });
                 }
 
-                try runtime.push_stack(@intCast(@as(i32, @intCast(fp)) + index));
-                ip += 4;
+                try runtime.store(fp, @intCast(frame), @intCast(offset));
+                ip += 8;
             },
             .discard => {
                 if (DEBUG) {
@@ -167,39 +190,82 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                     ip += 4;
                 }
             },
-            .call_local => {
-                const offset = readi32(bc, ip);
+            // .call_local => {
+            //     const offset = readi32(bc, ip);
+
+            //     if (DEBUG) {
+            //         std.debug.print("{d} {d}: call_local: offset={d}\n", .{ ip - 1, fp, offset });
+            //     }
+
+            //     const newFP = runtime.stack.items.len - 1;
+
+            //     try runtime.push_i32_literal(@intCast(ip + 4));
+            //     try runtime.push_i32_literal(@intCast(fp));
+
+            //     fp = newFP;
+            //     ip = @intCast(offset);
+            // },
+
+            .call => {
+                const offset: usize = @intCast(readi32(bc, ip));
+                const arity: usize = @intCast(readi32(bc, ip + 4));
+                const frame: usize = @intCast(readi32(bc, ip + 8));
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d}: call_local: offset={d}\n", .{ ip - 1, fp, offset });
+                    std.debug.print("{d} {d}: call: offset={d}, arity={d}, frame={d}\n", .{ ip - 1, fp, offset, arity, frame });
                 }
 
-                const newFP = runtime.stack.items.len - 1;
+                const previousFrame = &@as(*Memory.Value, @ptrFromInt(runtime.stack.items[fp])).v.FrameKind;
 
-                try runtime.push_i32_literal(@intCast(ip + 4));
-                try runtime.push_i32_literal(@intCast(fp));
+                _ = try runtime.push_frame(previousFrame.skip(frame));
 
-                fp = newFP;
-                ip = @intCast(offset);
+                const newFramePointer = runtime.pop();
+                // std.debug.print("newFramePointer: {d}\n", .{newFramePointer});
+
+                const newFrame: *Memory.Value = @as(*Memory.Value, @ptrFromInt(newFramePointer));
+                for (0..arity) |i| {
+                    // std.debug.print("index: {d}, offset={d}\n", .{ i, arity - i - 1 });
+                    try newFrame.v.FrameKind.set(0, arity - i - 1, runtime.pop());
+                }
+                const oldFP = fp;
+                fp = runtime.stack.items.len;
+                try runtime.push(newFramePointer);
+                try runtime.push(ip + 12);
+                try runtime.push(oldFP);
+
+                ip = offset;
             },
+
             .ret => {
-                const items = readi32(bc, ip);
-
                 if (DEBUG) {
-                    std.debug.print("{d} {d}: ret: items={d}\n", .{ ip - 1, fp, items });
+                    std.debug.print("{d} {d}: ret\n", .{ ip - 1, fp });
                 }
 
-                const result = runtime.pop();
-
-                ip = @intCast(Pointer.asInt(runtime.stack.items[fp + 1]));
-                fp = @intCast(Pointer.asInt(runtime.stack.items[fp + 2]));
-
-                for (@as(usize, @intCast(items + 2))) |_| {
-                    runtime.discard();
-                }
-
-                try runtime.stack.append(result);
+                const v = runtime.pop();
+                fp = runtime.pop();
+                ip = runtime.pop();
+                _ = runtime.discard();
+                try runtime.push(v);
             },
+
+            // .ret => {
+            //     const items = readi32(bc, ip);
+
+            //     if (DEBUG) {
+            //         std.debug.print("{d} {d}: ret: items={d}\n", .{ ip - 1, fp, items });
+            //     }
+
+            //     const result = runtime.pop();
+
+            //     ip = @intCast(Pointer.asInt(runtime.stack.items[fp + 1]));
+            //     fp = @intCast(Pointer.asInt(runtime.stack.items[fp + 2]));
+
+            //     for (@as(usize, @intCast(items + 2))) |_| {
+            //         runtime.discard();
+            //     }
+
+            //     try runtime.stack.append(result);
+            // },
 
             .not_bool => {
                 if (DEBUG) {
@@ -573,7 +639,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.print_unit();
             },
 
-            else => std.debug.panic("unknown op code\n", .{}),
+            else => std.debug.panic("unknown op code: {d}\n", .{bc[ip - 1]}),
         }
     }
 }
@@ -600,66 +666,99 @@ fn readf32(bc: []const u8, ip: usize) f32 {
 
 test "push_bool_true" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.push_bool_true)};
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
     try run(&bc, &runtime);
 
-    try std.testing.expectEqual(runtime.stack.items.len, 1);
+    try std.testing.expectEqual(runtime.stack.items.len, 2);
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
 
 test "push_bool_false" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.push_bool_false)};
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
     try run(&bc, &runtime);
 
-    try std.testing.expectEqual(runtime.stack.items.len, 1);
+    try std.testing.expectEqual(runtime.stack.items.len, 2);
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), false);
 }
 
 test "push_f32_literal" {
     const bc: [5]u8 = [_]u8{ @intFromEnum(Op.push_f32_literal), 0, 1, 0, 0 };
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
     try run(&bc, &runtime);
 
-    try std.testing.expectEqual(runtime.stack.items.len, 1);
+    try std.testing.expectEqual(runtime.stack.items.len, 2);
     try std.testing.expectEqual(Pointer.asFloat(runtime.pop()), 9.1835e-41);
 }
 
 test "push_i32_literal" {
     const bc: [5]u8 = [_]u8{ @intFromEnum(Op.push_i32_literal), 0, 0, 0, 42 };
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
     try run(&bc, &runtime);
 
-    try std.testing.expectEqual(runtime.stack.items.len, 1);
+    try std.testing.expectEqual(runtime.stack.items.len, 2);
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 42);
 }
 
 test "push_u8_literal" {
     const bc: [2]u8 = [_]u8{ @intFromEnum(Op.push_u8_literal), 42 };
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
     try run(&bc, &runtime);
 
-    try std.testing.expectEqual(runtime.stack.items.len, 1);
+    try std.testing.expectEqual(runtime.stack.items.len, 2);
     try std.testing.expectEqual(Pointer.asChar(runtime.pop()), 42);
 }
 
-test "push_stack" {
-    const bc: [5]u8 = [_]u8{ @intFromEnum(Op.push_stack), 0, 0, 0, 0 };
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+// test "push_stack" {
+//     const bc: [5]u8 = [_]u8{ @intFromEnum(Op.push_stack), 0, 0, 0, 0 };
+//     var runtime = try Runtime.Runtime.init(std.testing.allocator);
+//     defer runtime.deinit();
+//     try runtime.push_i32_literal(100);
+//     try run(&bc, &runtime);
+//     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 100);
+// }
+
+test "store and load - int" {
+    const bc: [18]u8 = [_]u8{ @intFromEnum(Op.store), 0, 0, 0, 0, 0, 0, 0, 10, @intFromEnum(Op.load), 0, 0, 0, 0, 0, 0, 0, 10 };
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
-    try runtime.push_i32_literal(100);
+    try runtime.push_i32_literal(42);
     try run(&bc, &runtime);
-    try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 100);
+
+    try std.testing.expectEqual(runtime.stack.items.len, 2);
+    try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 42);
+}
+
+test "store and load - int 2" {
+    const bc: [18]u8 = [_]u8{ @intFromEnum(Op.store), 0, 0, 0, 0, 0, 0, 0, 0, @intFromEnum(Op.load), 0, 0, 0, 0, 0, 0, 0, 0 };
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+    try runtime.push_i32_literal(42);
+    try run(&bc, &runtime);
+
+    try std.testing.expectEqual(runtime.stack.items.len, 2);
+    try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 42);
+}
+
+test "store and load - string" {
+    const bc: [18]u8 = [_]u8{ @intFromEnum(Op.store), 0, 0, 0, 0, 0, 0, 0, 10, @intFromEnum(Op.load), 0, 0, 0, 0, 0, 0, 0, 10 };
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
+    defer runtime.deinit();
+    try runtime.push_string_literal("hello world");
+    try run(&bc, &runtime);
+
+    try std.testing.expectEqual(runtime.stack.items.len, 2);
+    try std.testing.expect(std.mem.eql(u8, Pointer.asString(runtime.peek()).slice(), "hello world"));
 }
 
 test "not_bool" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.not_bool)};
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
     try runtime.push_bool_true();
     try run(&bc, &runtime);
@@ -668,7 +767,7 @@ test "not_bool" {
 }
 
 test "add_f32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.add_f32)};
@@ -679,7 +778,7 @@ test "add_f32" {
     try std.testing.expectEqual(Pointer.asFloat(runtime.pop()), 142.0);
 }
 test "add_i32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.add_i32)};
@@ -690,7 +789,7 @@ test "add_i32" {
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 142);
 }
 test "add_string" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.add_string)};
@@ -698,11 +797,11 @@ test "add_string" {
     try runtime.push_string_literal(" world");
     try run(&bc, &runtime);
 
-    try std.testing.expectEqual(runtime.stack.items.len, 1);
+    try std.testing.expectEqual(runtime.stack.items.len, 2);
     try std.testing.expect(std.mem.eql(u8, Pointer.asString(runtime.peek()).slice(), "hello world"));
 }
 test "add_u8" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.add_u8)};
@@ -714,7 +813,7 @@ test "add_u8" {
 }
 
 test "sub_f32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.sub_f32)};
@@ -725,7 +824,7 @@ test "sub_f32" {
     try std.testing.expectEqual(Pointer.asFloat(runtime.pop()), 58.0);
 }
 test "sub_i32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.sub_i32)};
@@ -736,7 +835,7 @@ test "sub_i32" {
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 58);
 }
 test "sub_u8" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.sub_u8)};
@@ -748,7 +847,7 @@ test "sub_u8" {
 }
 
 test "mul_f32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.mul_f32)};
@@ -759,7 +858,7 @@ test "mul_f32" {
     try std.testing.expectEqual(Pointer.asFloat(runtime.pop()), 4200.0);
 }
 test "mul_i32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.mul_i32)};
@@ -770,7 +869,7 @@ test "mul_i32" {
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 4200);
 }
 test "mul_u8" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.mul_u8)};
@@ -782,7 +881,7 @@ test "mul_u8" {
 }
 
 test "div_f32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.div_f32)};
@@ -794,7 +893,7 @@ test "div_f32" {
 }
 
 test "div_i32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.div_i32)};
@@ -806,7 +905,7 @@ test "div_i32" {
 }
 
 test "div_u8" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.div_u8)};
@@ -818,7 +917,7 @@ test "div_u8" {
 }
 
 test "mod_i32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.mod_i32)};
@@ -830,7 +929,7 @@ test "mod_i32" {
 }
 
 test "pow_f32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.pow_f32)};
@@ -842,7 +941,7 @@ test "pow_f32" {
 }
 
 test "pow_i32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.pow_i32)};
@@ -854,7 +953,7 @@ test "pow_i32" {
 }
 
 test "eq_bool" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.eq_bool)};
@@ -866,7 +965,7 @@ test "eq_bool" {
 }
 
 test "eq_f32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.eq_f32)};
@@ -878,7 +977,7 @@ test "eq_f32" {
 }
 
 test "eq_i32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.eq_i32)};
@@ -890,7 +989,7 @@ test "eq_i32" {
 }
 
 test "eq_string" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.eq_string)};
@@ -902,7 +1001,7 @@ test "eq_string" {
 }
 
 test "eq_u8" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.eq_u8)};
@@ -914,7 +1013,7 @@ test "eq_u8" {
 }
 
 test "neq_bool" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.neq_bool)};
@@ -926,7 +1025,7 @@ test "neq_bool" {
 }
 
 test "neq_f32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.neq_f32)};
@@ -938,7 +1037,7 @@ test "neq_f32" {
 }
 
 test "neq_i32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.neq_i32)};
@@ -950,7 +1049,7 @@ test "neq_i32" {
 }
 
 test "neq_string" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.neq_string)};
@@ -962,7 +1061,7 @@ test "neq_string" {
 }
 
 test "neq_u8" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.neq_u8)};
@@ -974,7 +1073,7 @@ test "neq_u8" {
 }
 
 test "lt_f32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.lt_f32)};
@@ -986,7 +1085,7 @@ test "lt_f32" {
 }
 
 test "lt_i32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.lt_i32)};
@@ -998,7 +1097,7 @@ test "lt_i32" {
 }
 
 test "lt_string" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.lt_string)};
@@ -1010,7 +1109,7 @@ test "lt_string" {
 }
 
 test "lt_u8" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.lt_u8)};
@@ -1022,7 +1121,7 @@ test "lt_u8" {
 }
 
 test "le_f32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.le_f32)};
@@ -1034,7 +1133,7 @@ test "le_f32" {
 }
 
 test "le_i32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.le_i32)};
@@ -1046,7 +1145,7 @@ test "le_i32" {
 }
 
 test "le_string" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.le_string)};
@@ -1058,7 +1157,7 @@ test "le_string" {
 }
 
 test "le_u8" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.le_u8)};
@@ -1070,7 +1169,7 @@ test "le_u8" {
 }
 
 test "gt_f32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.gt_f32)};
@@ -1082,7 +1181,7 @@ test "gt_f32" {
 }
 
 test "gt_i32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.gt_i32)};
@@ -1094,7 +1193,7 @@ test "gt_i32" {
 }
 
 test "gt_string" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.gt_string)};
@@ -1106,7 +1205,7 @@ test "gt_string" {
 }
 
 test "gt_u8" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.gt_u8)};
@@ -1118,7 +1217,7 @@ test "gt_u8" {
 }
 
 test "ge_f32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.ge_f32)};
@@ -1130,7 +1229,7 @@ test "ge_f32" {
 }
 
 test "ge_i32" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.ge_i32)};
@@ -1142,7 +1241,7 @@ test "ge_i32" {
 }
 
 test "ge_string" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.ge_string)};
@@ -1154,7 +1253,7 @@ test "ge_string" {
 }
 
 test "ge_u8" {
-    var runtime = Runtime.Runtime.init(std.testing.allocator);
+    var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
 
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.ge_u8)};

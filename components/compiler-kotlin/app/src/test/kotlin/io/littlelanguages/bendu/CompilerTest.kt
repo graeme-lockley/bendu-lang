@@ -70,8 +70,15 @@ class CompilerTest {
             byteArrayOf(
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 1, // 1
-                Instructions.PUSH_STACK.op,
+                Instructions.STORE.op,
+                0, 0, 0, 0, // 0
                 0, 0, 0, 0, // x
+                Instructions.LOAD.op,
+                0, 0, 0, 0, // 0
+                0, 0, 0, 0, // x
+                Instructions.STORE.op,
+                0, 0, 0, 0, // 0
+                0, 0, 0, 1, // x
                 Instructions.PUSH_UNIT_LITERAL.op,
             ),
             "let x = 1 ; let y = x"
@@ -342,28 +349,33 @@ class CompilerTest {
             byteArrayOf(
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 10, // 10
-                Instructions.PUSH_STACK.op,
+                Instructions.STORE.op,
+                0, 0, 0, 0, // 0
+                0, 0, 0, 0, // 0
+                Instructions.LOAD.op,
+                0, 0, 0, 0, // 0
                 0, 0, 0, 0, // x
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 1, // 1
                 Instructions.EQ_I32.op,
                 Instructions.JMP_FALSE.op,
-                0, 0, 0, 31,
+                0, 0, 0, 44,
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 10, // 10
                 Instructions.JMP.op,
-                0, 0, 0, 62,
-                Instructions.PUSH_STACK.op,
+                0, 0, 0, 79,
+                Instructions.LOAD.op,
+                0, 0, 0, 0, // 0
                 0, 0, 0, 0, // x
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 2, // 1
                 Instructions.EQ_I32.op,
                 Instructions.JMP_FALSE.op,
-                0, 0, 0, 57,
+                0, 0, 0, 74,
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 20, // 20
                 Instructions.JMP.op,
-                0, 0, 0, 62,
+                0, 0, 0, 79,
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 30, // 30
             ),
@@ -377,19 +389,46 @@ class CompilerTest {
             byteArrayOf(
                 Instructions.JMP.op,
                 0, 0, 0, 21,
-                Instructions.PUSH_PARAMETER.op,
+                Instructions.LOAD.op,
                 0, 0, 0, 0,
+                0, 0, 0, 0, // a
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 1,
                 Instructions.ADD_I32.op,
                 Instructions.RET.op,
-                0, 0, 0, 1,
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 1,
-                Instructions.CALL_LOCAL.op,
-                0, 0, 0, 5,
+                Instructions.CALL.op,
+                0, 0, 0, 5, // offset: 5
+                0, 0, 0, 1, // arity: 1
+                0, 0, 0, 0, // depth: 0
             ),
             "let inc(a) = a + 1 ; inc(1)"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.JMP.op,
+                0, 0, 0, 34,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0, // a
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1,
+                Instructions.ADD_I32.op,
+                Instructions.CALL.op,
+                0, 0, 0, 5, // offset: 5
+                0, 0, 0, 1, // arity: 1
+                0, 0, 0, 1, // depth: 1
+                Instructions.RET.op,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1,
+                Instructions.CALL.op,
+                0, 0, 0, 5, // offset: 5
+                0, 0, 0, 1, // arity: 1
+                0, 0, 0, 0, // depth: 0
+            ),
+            "let inc(a) = inc(a + 1) ; inc(1)"
         )
     }
 }

@@ -100,3 +100,15 @@ test "String Pointer" {
     try std.testing.expect(isString(p));
     try std.testing.expectEqual(asString(p), s);
 }
+
+test "Real Pointer" {
+    const allocator = std.heap.page_allocator;
+    const data = try allocator.dupe(u8, "Hello World");
+    defer allocator.free(data);
+
+    const p = @as(Pointer, @intFromPtr(&data));
+    const pDeref = as(*[]u8, p);
+
+    try std.testing.expect(isPointer(p));
+    try std.testing.expectEqual(pDeref, &data);
+}

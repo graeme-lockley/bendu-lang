@@ -50,6 +50,24 @@ class SymbolTable(val byteBuilder: ByteBuilder) {
         return null
     }
 
+    fun findIndexed(name: String): Pair<NatureOfBinding, Int>? {
+        var currentScope: SymbolScope? = scope
+        var depth = 0
+
+        while (currentScope != null) {
+            val binding = currentScope.bindings[name]
+
+            if (binding != null) {
+                return Pair(binding, depth)
+            }
+
+            currentScope = currentScope.parent
+            depth += 1
+        }
+
+        return null
+    }
+
     fun bind(name: String, binding: NatureOfBinding) {
         scope.bindings[name] = binding
     }
@@ -59,6 +77,9 @@ class SymbolTable(val byteBuilder: ByteBuilder) {
         scope.bindings[name] = binding
         return binding
     }
+
+    fun depth() =
+        depth
 }
 
 private class SymbolScope(val parent: SymbolScope? = null) {

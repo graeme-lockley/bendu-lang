@@ -212,12 +212,7 @@
     },
     {
       "name": "RET",
-      "args": [
-        {
-          "name": "arg_count",
-          "type": "u32"
-        }
-      ],
+      "args": [ ],
       "description": "Returns from the current function, keeping the value at the top of the stack and popping the specified number of arguments from the stack immediately the stack top."
     },
     {

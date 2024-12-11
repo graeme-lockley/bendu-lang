@@ -1,84 +1,63 @@
 This is a sample file to build bendu-test.
 
+```bendu-dis
+> let inc(x) = x + 1
+> inc(4)
+
+ 0: JMP 21
+ 5: LOAD 0 0
+14: PUSH_I32_LITERAL 1
+19: ADD_I32
+20: RET
+21: PUSH_I32_LITERAL 4
+26: CALL 5 1 0
+```
+
+Now we need to get the actual code working...
+
+```bendu-repl
+> let inc(x) = x + 1
+
+> inc(4)
+5: Int
+```
 
 ```bendu-dis
-> let x = 10
-> x + 5
+> let concat(x, y) = "" + x + y
+> concat(concat("hello", " "), "world")
 
- 0: PUSH_I32_LITERAL 10
- 5: PUSH_STACK 0
-10: PUSH_I32_LITERAL 5
-15: ADD_I32
-```
-
-```bendu-dis
-> let x = 10
-> if x == 1 -> 10 | x == 2 -> 20 | 30
-
- 0: PUSH_I32_LITERAL 10
- 5: PUSH_STACK 0
-10: PUSH_I32_LITERAL 1
-15: EQ_I32
-16: JMP_FALSE 31
-21: PUSH_I32_LITERAL 10
-26: JMP 62
-31: PUSH_STACK 0
-36: PUSH_I32_LITERAL 2
-41: EQ_I32
-42: JMP_FALSE 57
-47: PUSH_I32_LITERAL 20
-52: JMP 62
-57: PUSH_I32_LITERAL 30
+ 0: JMP 31
+ 5: PUSH_STRING_LITERAL
+10: LOAD 0 0
+19: ADD_STRING
+20: LOAD 0 1
+29: ADD_STRING
+30: RET
+31: PUSH_STRING_LITERAL hello
+41: PUSH_STRING_LITERAL
+47: CALL 5 2 0
+60: PUSH_STRING_LITERAL world
+70: CALL 5 2 0
 ```
 
 ```bendu-repl
-> let x = 10
-> if x == 1 -> 10 | x == 2 -> 20 | 30
-30: Int
-```
+> let concat(x, y) = "" + x + y
 
-```bendu-error
-> x
-Unknown Identifier: x at 1:13
+> concat(concat("hello", " "), "world")
+"hello world": String
 ```
 
 ```bendu-repl
-> 'a'
-'a': Char
+> let factorial(n) = if n < 2 -> 1 | n * factorial(n - 1)
+
+> factorial(3)
+6: Int
+
+> factorial(10)
+3628800: Int
 ```
 
 ```bendu-repl
-> "Hello"
-"Hello": String
-```
-
-```bendu-repl
-> ()
-(): Unit
-```
-
-```bendu-repl
-> True
-True: Bool
-
-> False
-False: Bool
-```
-
-```bendu-repl
-> let identity(x) = x
-
-> identity(10)
-10: Int
-
-> identity(3.14)
-3.14: Float
-
-> identity("Hello World")
-"Hello World": String
-```
-
-```xbendu-repl
 > let ackermann(m, n) = 
 .   if m == 0 -> n + 1 
 .    | n == 0 -> ackermann(m - 1, 1) 
@@ -94,70 +73,51 @@ False: Bool
 29: Int
 ```
 
-```sbendu-repl
-> 40 + 2
-42: Int
+```bendu-repl
+> let odd(n) = if n == 0 -> False | even(n - 1)
+. and even(n) = if n == 0 -> True | odd(n - 1)
 
-> 49 - 7
-42: Int
-
-> 6 * 7
-42: Int
-
-> 2 ** 8
-256: Int
-
-> 84 / 2
-42: Int
-
-> 84 % 5
-4: Int
-
-> 23 == (20 + 3)
+> odd(5)
 True: Bool
 
-> 23 == (20 + 2)
+> even(5)
 False: Bool
+```
 
-> 23 != (20 + 3)
-False: Bool
+```bendu-dis
+> let odd(n) = if n == 0 -> False | even(n - 1)
+. and even(n) = if n == 0 -> True | odd(n - 1)
 
-> 23 != (20 + 2)
-True: Bool
+> odd(5)
+> even(5)
 
-> 1 < 1
-False: Bool
-
-> 1 < 2
-True: Bool
-
-> 2 < 1
-False: Bool
-
-> 1 <= 1
-True: Bool
-
-> 1 <= 2
-True: Bool
-
-> 2 <= 1
-False: Bool
-
-> 1 > 1
-False: Bool
-
-> 1 > 2
-False: Bool
-
-> 2 > 1
-True: Bool
-
-> 1 >= 1
-True: Bool
-
-> 1 >= 2
-False: Bool
-
-> 2 >= 1
-True: Bool
+ 0: JMP 60
+ 5: LOAD 0 0
+14: PUSH_I32_LITERAL 0
+19: EQ_I32
+20: JMP_FALSE 31
+25: PUSH_BOOL_FALSE
+26: JMP 59
+31: LOAD 0 0
+40: PUSH_I32_LITERAL 1
+45: SUB_I32
+46: CALL 65 1 1
+59: RET
+60: JMP 120
+65: LOAD 0 0
+74: PUSH_I32_LITERAL 0
+79: EQ_I32
+80: JMP_FALSE 91
+85: PUSH_BOOL_TRUE
+86: JMP 119
+91: LOAD 0 0
+100: PUSH_I32_LITERAL 1
+105: SUB_I32
+106: CALL 5 1 1
+119: RET
+120: PUSH_I32_LITERAL 5
+125: CALL 5 1 0
+138: DISCARD
+139: PUSH_I32_LITERAL 5
+144: CALL 65 1 0
 ```

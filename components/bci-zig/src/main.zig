@@ -30,7 +30,7 @@ fn runInterpreter(allocator: std.mem.Allocator, fileName: []const u8) !void {
     const bc = try loadBinary(allocator, fileName);
     defer allocator.free(bc);
 
-    var runtime = Runtime.Runtime.init(allocator);
+    var runtime = try Runtime.Runtime.init(allocator);
     defer runtime.deinit();
 
     try Interpreter.run(bc, &runtime);

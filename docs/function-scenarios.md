@@ -35,15 +35,15 @@ The generated code is shown in the following snippet.
 > inc(10)
 
  0: JMP 21
- 5: PUSH_PARAMETER 0
-10: PUSH_I32_LITERAL 1
-15: ADD_I32
-16: RET 1
+ 5: LOAD 0 0
+14: PUSH_I32_LITERAL 1
+19: ADD_I32
+20: RET
 21: PUSH_I32_LITERAL 1
-26: CALL_LOCAL 5
-31: DISCARD
-32: PUSH_I32_LITERAL 10
-37: CALL_LOCAL 5
+26: CALL 5 1 0
+39: DISCARD
+40: PUSH_I32_LITERAL 10
+45: CALL 5 1 0
 ```
 
 ## In package, recursive, non-higher order, private function without closure
@@ -64,6 +64,12 @@ calculate factorial is an excellent example of this recursion.
 > let factorial(n) =
 .   if n < 2 -> 1
 .    | n * factorial(n - 1)
+
+> factorial(2)
+2: Int
+
+> factorial(3)
+6: Int
 
 > factorial(10)
 3628800: Int
@@ -112,33 +118,33 @@ Looking at the generated code the the odd/even functions are implemented as foll
 > odd(5)
 > even(5)
 
- 0: JMP 48
- 5: PUSH_PARAMETER 0
-10: PUSH_I32_LITERAL 0
-15: EQ_I32
-16: JMP_FALSE 27
-21: PUSH_BOOL_FALSE
-22: JMP 43
-27: PUSH_PARAMETER 0
-32: PUSH_I32_LITERAL 1
-37: SUB_I32
-38: CALL_LOCAL 53
-43: RET 1
-48: JMP 96
-53: PUSH_PARAMETER 0
-58: PUSH_I32_LITERAL 0
-63: EQ_I32
-64: JMP_FALSE 75
-69: PUSH_BOOL_TRUE
-70: JMP 91
-75: PUSH_PARAMETER 0
-80: PUSH_I32_LITERAL 1
-85: SUB_I32
-86: CALL_LOCAL 5
-91: RET 1
-96: PUSH_I32_LITERAL 5
-101: CALL_LOCAL 5
-106: DISCARD
-107: PUSH_I32_LITERAL 5
-112: CALL_LOCAL 53
+  0: JMP 60
+  5: LOAD 0 0
+ 14: PUSH_I32_LITERAL 0
+ 19: EQ_I32
+ 20: JMP_FALSE 31
+ 25: PUSH_BOOL_FALSE
+ 26: JMP 59
+ 31: LOAD 0 0
+ 40: PUSH_I32_LITERAL 1
+ 45: SUB_I32
+ 46: CALL 65 1 1
+ 59: RET
+ 60: JMP 120
+ 65: LOAD 0 0
+ 74: PUSH_I32_LITERAL 0
+ 79: EQ_I32
+ 80: JMP_FALSE 91
+ 85: PUSH_BOOL_TRUE
+ 86: JMP 119
+ 91: LOAD 0 0
+100: PUSH_I32_LITERAL 1
+105: SUB_I32
+106: CALL 5 1 1
+119: RET
+120: PUSH_I32_LITERAL 5
+125: CALL 5 1 0
+138: DISCARD
+139: PUSH_I32_LITERAL 5
+144: CALL 65 1 0
 ```
