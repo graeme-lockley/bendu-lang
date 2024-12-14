@@ -15,5 +15,6 @@ cd "$PROJECT_HOME"
 (
     cd ./components/compiler-kotlin
     ./tasks/generate_parser || exit 1
+    ./gradlew test || exit 1
     ./tasks/build_fat_jar || exit 1
 ) || exit 1
