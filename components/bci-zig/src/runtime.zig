@@ -124,7 +124,7 @@ pub const Runtime = struct {
         try self.stack.append(Pointer.fromFloat(value));
     }
 
-    pub inline fn push_frame(self: *Runtime, previousFrame: ?*Memory.FrameValue) !*Memory.Value {
+    pub inline fn push_frame(self: *Runtime, previousFrame: ?*Memory.Value) !*Memory.Value {
         return try self.pushNewValue(Memory.ValueValue{ .FrameKind = try Memory.FrameValue.init(self.allocator, previousFrame) });
     }
 
@@ -156,7 +156,7 @@ pub const Runtime = struct {
 
     pub inline fn load(self: *Runtime, fp: usize, frame: usize, offset: usize) !void {
         const f = @as(*Memory.Value, @ptrFromInt(self.stack.items[fp]));
-        const v = f.v.FrameKind.get(frame, offset);
+        const v = Memory.FrameValue.get(f, frame, offset);
 
         if (Pointer.isString(v)) {
             Pointer.asString(v).incRef();
@@ -169,7 +169,7 @@ pub const Runtime = struct {
         const f = @as(*Memory.Value, @ptrFromInt(self.stack.items[fp]));
         const v = self.pop();
 
-        try f.v.FrameKind.set(frame, offset, v);
+        try Memory.FrameValue.set(f, frame, offset, v);
     }
 
     pub inline fn discard(self: *Runtime) void {

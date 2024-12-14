@@ -1,11 +1,6 @@
 package io.littlelanguages.bendu
 
-import io.littlelanguages.bendu.compiler.ByteBuilder
-import io.littlelanguages.bendu.compiler.Instructions
-import io.littlelanguages.bendu.compiler.PackageBinding
-import io.littlelanguages.bendu.compiler.PackageFunction
-import io.littlelanguages.bendu.compiler.ParameterBinding
-import io.littlelanguages.bendu.compiler.SymbolTable
+import io.littlelanguages.bendu.compiler.*
 import io.littlelanguages.bendu.typeinference.*
 
 fun compile(script: List<Expression>, errors: Errors): ByteArray {
@@ -77,19 +72,33 @@ private class Compiler(val errors: Errors) {
 
     private fun compileApplyExpression(expression: ApplyExpression, keepResult: Boolean) {
         if (expression.f is LowerIDExpression) {
-            val (binding, depth) = symbolTable.findIndexed(expression.f.v.value)!! as Pair<PackageFunction, Int>
+            val (binding, depth) = symbolTable.findIndexed(expression.f.v.value)!!
 
-            expression.arguments.forEach { e ->
-                compileExpression(e)
+            if (binding is PackageFunction) {
+                expression.arguments.forEach { e ->
+                    compileExpression(e)
+                }
+                byteBuilder.appendInstruction(Instructions.CALL)
+                binding.addPatch(byteBuilder.size())
+                byteBuilder.appendInt(0)
+                byteBuilder.appendInt(expression.arguments.size)
+                byteBuilder.appendInt(depth)
+
+                if (!keepResult) {
+                    byteBuilder.appendInstruction(Instructions.DISCARD)
+                }
+
+                return
+
             }
-            byteBuilder.appendInstruction(Instructions.CALL)
-            binding.addPatch(byteBuilder.size())
-            byteBuilder.appendInt(0)
-            byteBuilder.appendInt(expression.arguments.size)
-            byteBuilder.appendInt(depth)
-        } else {
-            TODO("Not implemented yet")
         }
+
+        compileExpression(expression.f)
+        expression.arguments.forEach { e ->
+            compileExpression(e)
+        }
+        byteBuilder.appendInstruction(Instructions.CALL_CLOSURE)
+        byteBuilder.appendInt(expression.arguments.size)
 
         if (!keepResult) {
             byteBuilder.appendInstruction(Instructions.DISCARD)
@@ -393,8 +402,13 @@ private class Compiler(val errors: Errors) {
                         byteBuilder.appendInt(binding.offset)
                     }
 
-                    is PackageFunction ->
-                        TODO("Not implemented yet")
+                    is PackageFunction -> {
+                        byteBuilder.appendInstruction(Instructions.CREATE_CLOSURE)
+
+                        binding.addPatch(byteBuilder.size())
+                        byteBuilder.appendInt(0)
+                        byteBuilder.appendInt(depth)
+                    }
                 }
             }
         }

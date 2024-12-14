@@ -148,3 +148,26 @@ Looking at the generated code the the odd/even functions are implemented as foll
 139: PUSH_I32_LITERAL 5
 144: CALL 65 1 0
 ```
+
+### Higher order functions
+
+Higher order functions are functions that take other functions as arguments.  Firstly, let's look at a simple example of a higher order function.
+
+```bendu-dis
+> let inc(n) = n + 1
+> inc
+
+ 0: JMP 21
+ 5: LOAD 0 0
+14: PUSH_I32_LITERAL 1
+19: ADD_I32
+20: RET
+21: CREATE_CLOSURE 5 0
+```
+
+```bendus-repl
+> let inc(n) = n + 1
+> let x = inc
+> x(10)
+11: Int
+```

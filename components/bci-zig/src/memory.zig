@@ -39,10 +39,10 @@ pub const ValueValue = union(ValueKind) {
 };
 
 pub const FrameValue = struct {
-    enclosing: ?*FrameValue,
+    enclosing: ?*Value,
     values: std.ArrayList(Pointer.Pointer),
 
-    pub fn init(allocator: std.mem.Allocator, enclosing: ?*FrameValue) !FrameValue {
+    pub fn init(allocator: std.mem.Allocator, enclosing: ?*Value) !FrameValue {
         const result = FrameValue{
             .enclosing = enclosing,
             .values = std.ArrayList(Pointer.Pointer).init(allocator),
@@ -60,23 +60,23 @@ pub const FrameValue = struct {
         self.values.deinit();
     }
 
-    pub inline fn skip(self: *FrameValue, depth: usize) ?*FrameValue {
+    pub inline fn skip(self: *Value, depth: usize) ?*Value {
         var frame = self;
         var i = depth;
 
         while (i > 0) {
-            frame = frame.enclosing.?;
+            frame = frame.v.FrameKind.enclosing.?;
             i -= 1;
         }
 
         return frame;
     }
 
-    pub fn set(self: *FrameValue, depth: usize, offset: usize, value: Pointer.Pointer) !void {
-        var frame = self.skip(depth).?;
+    pub fn set(self: *Value, depth: usize, offset: usize, value: Pointer.Pointer) !void {
+        var frame = skip(self, depth).?;
 
-        while (frame.values.items.len <= offset) {
-            try frame.values.append(Pointer.fromInt(0));
+        while (frame.v.FrameKind.values.items.len <= offset) {
+            try frame.v.FrameKind.values.append(Pointer.fromInt(0));
         }
 
         // The string reference count is not incremented as this is only called from the interpreter
@@ -87,13 +87,13 @@ pub const FrameValue = struct {
         //     Pointer.asString(value).incRef();
         // }
 
-        frame.values.items[offset] = value;
+        frame.v.FrameKind.values.items[offset] = value;
     }
 
-    pub fn get(self: *FrameValue, depth: usize, offset: usize) Pointer.Pointer {
-        const frame = self.skip(depth).?;
+    pub fn get(self: *Value, depth: usize, offset: usize) Pointer.Pointer {
+        const frame = skip(self, depth).?;
 
-        return frame.values.items[offset];
+        return frame.v.FrameKind.values.items[offset];
     }
 };
 

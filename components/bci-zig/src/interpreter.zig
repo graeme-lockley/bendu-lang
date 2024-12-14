@@ -215,9 +215,9 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                     std.debug.print("{d} {d}: call: offset={d}, arity={d}, frame={d}\n", .{ ip - 1, fp, offset, arity, frame });
                 }
 
-                const previousFrame = &@as(*Memory.Value, @ptrFromInt(runtime.stack.items[fp])).v.FrameKind;
+                const previousFrame = @as(*Memory.Value, @ptrFromInt(runtime.stack.items[fp]));
 
-                _ = try runtime.push_frame(previousFrame.skip(frame));
+                _ = try runtime.push_frame(Memory.FrameValue.skip(previousFrame, frame));
 
                 const newFramePointer = runtime.pop();
                 // std.debug.print("newFramePointer: {d}\n", .{newFramePointer});
@@ -225,7 +225,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 const newFrame: *Memory.Value = @as(*Memory.Value, @ptrFromInt(newFramePointer));
                 for (0..arity) |i| {
                     // std.debug.print("index: {d}, offset={d}\n", .{ i, arity - i - 1 });
-                    try newFrame.v.FrameKind.set(0, arity - i - 1, runtime.pop());
+                    try Memory.FrameValue.set(newFrame, 0, arity - i - 1, runtime.pop());
                 }
                 const oldFP = fp;
                 fp = runtime.stack.items.len;

@@ -204,7 +204,7 @@
       "name": "CALL_CLOSURE",
       "args": [
         {
-          "name": "frame",
+          "name": "arity",
           "type": "u32"
         }
       ],
