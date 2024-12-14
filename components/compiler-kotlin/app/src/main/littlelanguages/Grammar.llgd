@@ -52,12 +52,16 @@ Multiplicative
     ;
 
 Power
-    : Factor {"**" Factor}
+    : Application {"**" Application}
+    ;
+
+Application
+    : Factor {"(" [Expression {"," Expression}] ")"}
     ;
 
 Factor
     : "(" [Expression] ")"
-    | LowerID ["(" [Expression {"," Expression}] ")"]
+    | LowerID
     | LiteralChar
     | LiteralFloat
     | LiteralInt
@@ -66,4 +70,5 @@ Factor
     | "False"
     | "!" Factor
     | "@" Factor
+    | "fn" "(" [LowerID {"," LowerID}] ")" ["="] Expression
     ;

@@ -222,7 +222,7 @@ enum class Op { Or, And, Plus, Minus, Multiply, Divide, Modulo, Power, EqualEqua
 enum class UnaryOp { Not, TypeOf }
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression> {
+    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression> {
     override fun visitProgram(a: List<Tuple2<Expression, Token?>>): List<Expression> =
         a.map { it.a }
 
@@ -393,21 +393,22 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     ): Expression =
         a2.fold(a1) { acc, e -> BinaryExpression(acc, OpLocation(Op.Power, e.a.location), e.b) }
 
+    override fun visitApplication(
+        a1: Expression,
+        a2: List<Tuple3<Token, Tuple2<Expression, List<Tuple2<Token, Expression>>>?, Token>>
+    ): Expression =
+        a2.fold(a1) { acc: Expression, e: Tuple3<Token, Tuple2<Expression, List<Tuple2<Token, Expression>>>?, Token> ->
+            ApplyExpression(
+                acc,
+                if (e.b == null) emptyList() else listOf(e.b.a, *e.b.b.map { it.b }.toTypedArray())
+            )
+        }
+
     override fun visitFactor1(a1: Token, a2: Expression?, a3: Token): Expression =
         a2 ?: LiteralUnitExpression(a1.location + a3.location)
 
-    override fun visitFactor2(
-        a1: Token,
-        a2: Tuple3<Token, Tuple2<Expression, List<Tuple2<Token, Expression>>>?, Token>?
-    ): Expression =
-        if (a2 == null)
-            LowerIDExpression(StringLocation(a1.lexeme, a1.location))
-        else
-            ApplyExpression(
-                LowerIDExpression(StringLocation(a1.lexeme, a1.location)),
-                if (a2.b == null) emptyList() else listOf(a2.b.a, *a2.b.b.map { it.b }.toTypedArray())
-            )
-
+    override fun visitFactor2(a: Token): Expression =
+        LowerIDExpression(StringLocation(a.lexeme, a.location))
 
     override fun visitFactor3(a: Token): Expression =
         when {
@@ -474,6 +475,18 @@ private class ParserVisitor(val errors: Errors = Errors()) :
 
     override fun visitFactor8(a: Token): Expression =
         LiteralBoolExpression(BoolLocation(false, a.location))
+
+    override fun visitFactor11(
+        a1: Token,
+        a2: Token,
+        a3: Tuple2<Token, List<Tuple2<Token, Token>>>?,
+        a4: Token,
+        a5: Token?,
+        a6: Expression
+    ): Expression {
+        val parameters = if (a3 == null) emptyList() else listOf(StringLocation(a3.a.lexeme, a3.a.location)) + a3.b.map { StringLocation(it.b.lexeme, it.b.location) }
+        return LiteralFunctionExpression(parameters, a6)
+    }
 
     override fun visitFactor9(a1: Token, a2: Expression): Expression =
         UnaryExpression(UnaryOpLocation(UnaryOp.Not, a1.location), a2)

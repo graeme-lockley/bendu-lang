@@ -228,3 +228,60 @@ Looking at the byte-code.
 140: PUSH_I32_LITERAL 2
 145: CALL 5 3 0
 ```
+
+## Anonymous Functions
+
+The composition function above is a little messy in that, what is preferred, is using an anonymous function so that
+the composition accepts two arguments and returns a function than is requiring a single argument.  This is illustrated with the following code.
+
+```bendu-repl
+> let compose(f, g) = fn(n) = f(g(n))
+> let double(n) = 2 * n
+> let inc(n) = n + 1
+
+> compose(double, inc)(2)
+6: Int
+
+> compose(inc, double)(2)
+5: Int
+```
+
+Of course this can be written as a composition of anonymous functions.
+
+```bendu-repl
+> (fn(f, g) = fn(n) = f(g(n)))(fn(n) = 2 * n, fn(n) = n + 1)(2)
+6: Int
+```
+
+For interest sake, the last one's disassembly is as the following.
+
+```bendu-dis
+> (fn(f, g) = fn(n) = f(g(n)))(fn(n) = 2 * n, fn(n) = n + 1)(2)
+
+  0: PUSH_CLOSURE 14 0
+  9: JMP 67
+ 14: PUSH_CLOSURE 28 0
+ 23: JMP 66
+ 28: LOAD 1 0
+ 37: LOAD 1 1
+ 46: LOAD 0 0
+ 55: CALL_CLOSURE 1
+ 60: CALL_CLOSURE 1
+ 65: RET
+ 66: RET
+ 67: PUSH_CLOSURE 81 0
+ 76: JMP 97
+ 81: PUSH_I32_LITERAL 2
+ 86: LOAD 0 0
+ 95: MUL_I32
+ 96: RET
+ 97: PUSH_CLOSURE 111 0
+106: JMP 127
+111: LOAD 0 0
+120: PUSH_I32_LITERAL 1
+125: ADD_I32
+126: RET
+127: CALL_CLOSURE 2
+132: PUSH_I32_LITERAL 2
+137: CALL_CLOSURE 1
+```

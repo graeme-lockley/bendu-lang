@@ -18,6 +18,20 @@ class InferenceTest {
     }
 
     @Test
+    fun `infer literal function`() {
+//        assertInferExpressionEquals("fn(n) = n + 1", "(Int) -> Int")
+//        assertInferExpressionEquals("fn(n) = 2 * n", "(Int) -> Int")
+//        assertInferExpressionEquals("fn(a, b) = a + b", "('5, '5) -> '5")
+//
+//        // Good old composition function
+//        assertInferExpressionEquals("fn(a, b) = fn(c) = a(b(c))", "(('6) -> '7, ('5) -> '6) -> ('5) -> '7")
+//        assertInferExpressionEquals("(fn(a, b) = fn(c) = a(b(c)))(fn(n) = n + 1, fn(n) = n * 2)", "(Int) -> Int")
+
+        assertInferExpressionEquals("let compose(f, g) = fn(n) = f(g(n)) ;" +
+                "compose(fn(n) = 2 * n, fn(n) n + 1)", "(Int) -> Int")
+    }
+
+    @Test
     fun `infer literal int`() {
         assertInferExpressionEquals("1", "Int")
     }
@@ -121,7 +135,7 @@ private fun assertInferExpressionEquals(expr: String, expected: String, typeEnv:
     val ast = infer(expr, errors = errors, typeEnv = typeEnv)
 
     assertTrue(errors.hasNoErrors())
-    assertEquals(expected, ast[0].type.toString())
+    assertEquals(expected, ast.last().type.toString())
 }
 
 private fun assertInferFunctionEquals(expr: String, expected: String, typeEnv: TypeEnv = emptyTypeEnv) {
@@ -129,7 +143,7 @@ private fun assertInferFunctionEquals(expr: String, expected: String, typeEnv: T
     val ast = infer(expr, errors = errors, typeEnv = typeEnv)
 
     assertTrue(errors.hasNoErrors())
-    assertEquals(expected, (ast[0] as LetStatement).terms[0].e.type.toString())
+    assertEquals(expected, (ast.last() as LetStatement).terms[0].e.type.toString())
 }
 
 private fun inferErrorExpression(expr: String, typeEnv: TypeEnv = emptyTypeEnv): Errors {

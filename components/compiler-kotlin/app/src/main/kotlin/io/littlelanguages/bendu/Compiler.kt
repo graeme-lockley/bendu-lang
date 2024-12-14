@@ -46,6 +46,7 @@ private class Compiler(val errors: Errors) {
             is LiteralBoolExpression -> compileLiteralBoolExpression(expression, keepResult)
             is LiteralCharExpression -> compileLiteralCharExpression(expression, keepResult)
             is LiteralFloatExpression -> compileLiteralFloatExpression(expression, keepResult)
+            is LiteralFunctionExpression -> compileLiteralFunctionExpression(expression, keepResult)
             is LiteralIntExpression -> compileLiteralIntExpression(expression, keepResult)
             is LiteralStringExpression -> compileLiteralStringExpression(expression, keepResult)
             is LiteralUnitExpression -> compileLiteralUnitExpression(expression, keepResult)
@@ -355,6 +356,34 @@ private class Compiler(val errors: Errors) {
         if (keepResult) {
             byteBuilder.appendInstruction(Instructions.PUSH_F32_LITERAL)
             byteBuilder.appendFloat(expression.v.value)
+        }
+    }
+
+    private fun compileLiteralFunctionExpression(expression: LiteralFunctionExpression, keepResult: Boolean) {
+        if (keepResult) {
+            byteBuilder.appendInstruction(Instructions.PUSH_CLOSURE)
+            val jumpOffset = byteBuilder.size()
+            byteBuilder.appendInt(0)
+            byteBuilder.appendInt(0)
+
+            byteBuilder.appendInstruction(Instructions.JMP)
+            val jumpOffset2 = byteBuilder.size()
+            byteBuilder.appendInt(0)
+
+            symbolTable.openScope()
+
+            expression.parameters.forEach { parameter ->
+                symbolTable.bindPackageBinding(parameter.value)
+            }
+
+            byteBuilder.writeIntAtPosition(jumpOffset, byteBuilder.size())
+
+            compileExpression(expression.body)
+            byteBuilder.appendInstruction(Instructions.RET)
+
+            symbolTable.closeScope()
+
+            byteBuilder.writeIntAtPosition(jumpOffset2, byteBuilder.size())
         }
     }
 

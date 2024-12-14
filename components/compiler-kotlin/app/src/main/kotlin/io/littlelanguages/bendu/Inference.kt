@@ -56,7 +56,6 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
             env.addConstraint(expression.f.type!!, TArr(domain, tv))
             expression.type = tv
-
         }
 
         is BinaryExpression -> {
