@@ -104,8 +104,12 @@ pub const Runtime = struct {
         return self.stack.pop();
     }
 
+    pub inline fn peekN(self: *Runtime, n: usize) Pointer.Pointer {
+        return self.stack.items[self.stack.items.len - 1 - n];
+    }
+
     pub inline fn peek(self: *Runtime) Pointer.Pointer {
-        return self.stack.items[self.stack.items.len - 1];
+        return self.peekN(0);
     }
 
     pub inline fn push(self: *Runtime, value: Pointer.Pointer) !void {
@@ -118,6 +122,10 @@ pub const Runtime = struct {
 
     pub inline fn push_bool_false(self: *Runtime) !void {
         try self.stack.append(Pointer.fromInt(0));
+    }
+
+    pub inline fn push_closure(self: *Runtime, function: usize, frame: *Memory.Value) !void {
+        _ = try self.pushNewValue(Memory.ValueValue{ .ClosureKind = Memory.ClosureValue.init(function, frame) });
     }
 
     pub inline fn push_f32_literal(self: *Runtime, value: f32) !void {

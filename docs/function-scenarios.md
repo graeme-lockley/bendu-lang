@@ -165,7 +165,7 @@ Higher order functions are functions that take other functions as arguments.  Fi
 21: CREATE_CLOSURE 5 0
 ```
 
-```bendus-repl
+```bendu-repl
 > let inc(n) = n + 1
 > let x = inc
 > x(10)

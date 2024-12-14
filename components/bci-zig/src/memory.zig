@@ -15,6 +15,7 @@ pub const Value = struct {
 
     pub fn deinit(self: *Value) void {
         switch (self.v) {
+            .ClosureKind => self.v.ClosureKind.deinit(),
             .FrameKind => self.v.FrameKind.deinit(),
             .SequenceKind => self.v.SequenceKind.deinit(),
         }
@@ -22,11 +23,13 @@ pub const Value = struct {
 };
 
 pub const ValueKind = enum {
+    ClosureKind,
     FrameKind,
     SequenceKind,
 
     pub fn toString(self: ValueKind) []const u8 {
         return switch (self) {
+            ValueKind.ClosureKind => "Closure",
             ValueKind.FrameKind => "Frame",
             ValueKind.SequenceKind => "Sequence",
         };
@@ -34,8 +37,25 @@ pub const ValueKind = enum {
 };
 
 pub const ValueValue = union(ValueKind) {
+    ClosureKind: ClosureValue,
     FrameKind: FrameValue,
     SequenceKind: SequenceValue,
+};
+
+pub const ClosureValue = struct {
+    function: usize,
+    frame: *Value,
+
+    pub fn init(function: usize, frame: *Value) ClosureValue {
+        return ClosureValue{
+            .function = function,
+            .frame = frame,
+        };
+    }
+
+    pub fn deinit(self: *ClosureValue) void {
+        _ = self;
+    }
 };
 
 pub const FrameValue = struct {

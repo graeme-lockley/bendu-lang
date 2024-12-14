@@ -131,6 +131,20 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.store(fp, @intCast(frame), @intCast(offset));
                 ip += 8;
             },
+            .create_closure => {
+                const offset: usize = @intCast(readi32(bc, ip));
+                const frame: usize = @intCast(readi32(bc, ip + 4));
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: create_closure: offset={d}, frame={d}\n", .{ ip - 1, fp, offset, frame });
+                }
+
+                const previousFrame = Memory.FrameValue.skip(@as(*Memory.Value, @ptrFromInt(runtime.stack.items[fp])), frame);
+
+                try runtime.push_closure(@intCast(offset), previousFrame.?);
+
+                ip += 8;
+            },
             .discard => {
                 if (DEBUG) {
                     std.debug.print("{d} {d}: discard\n", .{ ip - 1, fp });
@@ -234,6 +248,32 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.push(oldFP);
 
                 ip = offset;
+            },
+
+            .call_closure => {
+                const arity: usize = @intCast(readi32(bc, ip));
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: call_closure: arity={d}\n", .{ ip - 1, fp, arity });
+                }
+
+                const closure = @as(*Memory.Value, @ptrFromInt(runtime.peekN(arity)));
+
+                _ = try runtime.push_frame(closure.v.ClosureKind.frame);
+
+                const newFramePointer = runtime.pop();
+                const newFrame: *Memory.Value = @as(*Memory.Value, @ptrFromInt(newFramePointer));
+                for (0..arity) |i| {
+                    try Memory.FrameValue.set(newFrame, 0, arity - i - 1, runtime.pop());
+                }
+                runtime.discard(); // discard the closure
+                const oldFP = fp;
+                fp = runtime.stack.items.len;
+                try runtime.push(newFramePointer);
+                try runtime.push(ip + 4);
+                try runtime.push(oldFP);
+
+                ip = closure.v.ClosureKind.function;
             },
 
             .ret => {
