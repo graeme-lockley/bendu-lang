@@ -469,6 +469,13 @@ private class Compiler(val errors: Errors) {
                 byteBuilder.appendInstruction(Instructions.PRINT_U8)
             else if (e.type!!.isFloat())
                 byteBuilder.appendInstruction(Instructions.PRINT_F32)
+            else if (e.type!!.isFunction()) {
+                byteBuilder.appendInstruction(Instructions.DISCARD)
+                byteBuilder.appendInstruction(Instructions.PUSH_STRING_LITERAL)
+                byteBuilder.appendInt(2)
+                byteBuilder.append("fn".toByteArray())
+                byteBuilder.appendInstruction(Instructions.PRINT_STRING)
+            }
             else if (e.type!!.isInt())
                 byteBuilder.appendInstruction(Instructions.PRINT_I32)
             else if (e.type!!.isString())
@@ -476,7 +483,7 @@ private class Compiler(val errors: Errors) {
             else if (e.type!!.isUnit())
                 byteBuilder.appendInstruction(Instructions.PRINT_UNIT)
             else
-                errors.addError(UnificationError(e.type!!, setOf(typeBool, typeChar, typeFloat, typeInt, typeString)))
+                errors.addError(UnificationError(e.type!!.withLocation(e.location()), setOf(typeBool, typeChar, typeFloat, typeInt, typeString)))
         }
     }
 

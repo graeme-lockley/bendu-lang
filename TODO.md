@@ -19,10 +19,10 @@ complete:
 The following is the list of big features that need to be implemented.
 
 - [x] Basic types
-- [ ] Control flow
-- [ ] Functions
+- [x] Functions
 - [ ] Type annotation
 - [ ] Mutable variables
+- [ ] Control flow
 - [ ] Tuples
 - [ ] Arrays
 - [ ] Records

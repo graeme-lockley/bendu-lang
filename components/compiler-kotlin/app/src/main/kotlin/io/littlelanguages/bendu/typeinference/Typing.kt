@@ -15,6 +15,7 @@ sealed class Type(open val location: Location?) {
     open fun isBool(): Boolean = false
     open fun isChar(): Boolean = false
     open fun isFloat(): Boolean = false
+    open fun isFunction(): Boolean = false
     open fun isInt(): Boolean = false
     open fun isString(): Boolean = false
     open fun isUnit(): Boolean = false
@@ -104,6 +105,9 @@ data class TArr(val domain: List<Type>, val range: Type, override val location: 
 
     override fun toString(): String =
         "(${domain.joinToString(", ")}) -> $range"
+
+    override fun isFunction(): Boolean =
+        true
 }
 
 val typeError = TCon("Error")

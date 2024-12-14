@@ -96,7 +96,7 @@ data class MultipleUnificationError(val e1: List<Type>, val e2: List<Type>) : Be
 
 data class UnificationError(val found: Type, val expected: Set<Type>) : BenduError() {
     override fun printError(colours: Boolean) {
-        printMessage("Unification Error", "found $found, expected $expected", colours)
+        printMessage("Unification Error", "found $found${if (found.location == null) "" else " ${locationToString(found.location!!)}"}, expected $expected", colours)
     }
 }
 

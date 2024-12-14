@@ -78,20 +78,24 @@ private fun assembleScript(expression: String, startLineNumber: Int): List<Strin
                 exitProcess(1)
             }
             script.add(it.substring(1))
-        } else if (!it.isEmpty()) {
+        } else if (it.isNotEmpty()) {
             if (state == 1) {
                 val line = it.trim()
                 if (line.contains(":")) {
                     val indexOfColon = line.indexOf(':')
                     val valuePart = line.substring(0, indexOfColon).trim()
                     val typePart = line.substring(indexOfColon + 1).trim()
-                    script.add(
-                        "if $variableName != $valuePart || @$variableName != \"$typePart\" -> abort(\"Error: Line ${index + startLineNumber}: Expected ${
-                            markupLiteral(
-                                line
-                            )
-                        }, got \", $variableName, \": \", @$variableName)"
-                    )
+                    if (valuePart == "fn") {
+                        script.add("if @$variableName != \"$typePart\" -> abort(\"Error: Line ${index + startLineNumber}: Expected ${markupLiteral(line)}, got fn: \", @$variableName)")
+                    } else {
+                        script.add(
+                            "if $variableName != $valuePart || @$variableName != \"$typePart\" -> abort(\"Error: Line ${index + startLineNumber}: Expected ${
+                                markupLiteral(
+                                    line
+                                )
+                            }, got \", $variableName, \": \", @$variableName)"
+                        )
+                    }
                 } else {
                     script.add(
                         "if $variableName != $line -> abort(\"Error: Line ${index + startLineNumber}: Expected ${
@@ -200,16 +204,19 @@ private fun disassembleExpression(expression: String) {
                     print(value)
                     offset += 1
                 }
+
                 Args.F32 -> {
                     val value = readF32(bc, offset)
                     print(value)
                     offset += 4
                 }
+
                 Args.I32 -> {
                     val value = readI32(bc, offset)
                     print(value)
                     offset += 4
                 }
+
                 Args.STRING -> {
                     val (value, length) = readString(bc, offset)
                     print(value)
@@ -226,7 +233,7 @@ private fun disassembleExpression(expression: String) {
 private fun readU8(bc: ByteArray, offset: Int): Int = bc[offset].toInt()
 
 private fun readI32(bc: ByteArray, offset: Int): Int =
-     (bc[offset].toInt() shl 24) or (bc[offset + 1].toInt() shl 16) or (bc[offset + 2].toInt() shl 8) or bc[offset + 3].toInt()
+    (bc[offset].toInt() shl 24) or (bc[offset + 1].toInt() shl 16) or (bc[offset + 2].toInt() shl 8) or bc[offset + 3].toInt()
 
 private fun readU32(bc: ByteArray, offset: Int): Int =
     (bc[offset].toInt() shl 24) or (bc[offset + 1].toInt() shl 16) or (bc[offset + 2].toInt() shl 8) or bc[offset + 3].toInt()
