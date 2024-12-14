@@ -21,6 +21,20 @@
       "description": "Places the value 'false' onto the stack."
     },
     {
+      "name": "PUSH_CLOSURE",
+      "args": [
+        {
+          "name": "offset",
+          "type": "u32"
+        },
+        {
+          "name": "frame",
+          "type": "u32"
+        }
+      ],
+      "description": "Create a closure for a function with the frame.  The frame, starting at 0 indicates how many frames to traverse to get to the correct frame."
+    },
+    {
       "name": "PUSH_F32_LITERAL",
       "args": [
         {
@@ -76,16 +90,6 @@
       "description": "Pushes a value from a specific position in the stack onto the top."
     },
     {
-      "name": "PUSH_PARAMETER",
-      "args": [
-        {
-          "name": "parameter_index",
-          "type": "u32"
-        }
-      ],
-      "description": "Pushes a parameter from a specific position in the parameter list onto the top."
-    },
-    {
       "name": "LOAD",
       "args": [
         {
@@ -112,20 +116,6 @@
         }
       ],
       "description": "Store the value on the stack into the frame at the offset.  The frame, starting at 0 indicates how many frames to traverse to get to the correct frame. The offset is the offset from the start of the frame."
-    },
-    {
-      "name": "CREATE_CLOSURE",
-      "args": [
-        {
-          "name": "offset",
-          "type": "u32"
-        },
-        {
-          "name": "frame",
-          "type": "u32"
-        }
-      ],
-      "description": "Create a closure for a function with the frame.  The frame, starting at 0 indicates how many frames to traverse to get to the correct frame."
     },
     {
       "name": "DISCARD",
@@ -173,16 +163,6 @@
       "description": "Jumps to a given instruction offset if the top value of the stack is 'true', without modifying the stack."
     },
     {
-      "name": "CALL_LOCAL",
-      "args": [
-        {
-          "name": "offset",
-          "type": "u32"
-        }
-      ],
-      "description": "Calls a function at a given instruction offset."
-    },
-    {
       "name": "CALL",
       "args": [
         {
@@ -198,7 +178,7 @@
           "type": "u32"
         }
       ],
-      "description": "Call the function ats offset with the arity number of arguments from the stack. The frame, starting at 0 indicates how many frames to traverse to get to the correct frame. A new frame is created for the function call and the arguments are stored in the frame. These arguments are removed from the call stack and replaced with the return address and the new frame pointer."
+      "description": "Call the function at offset with the arity number of arguments from the stack. The frame, starting at 0 indicates how many frames to traverse to get to the correct frame. A new frame is created for the function call and the arguments are stored in the frame. These arguments are removed from the call stack and replaced with the return address and the new frame pointer."
     },
     {
       "name": "CALL_CLOSURE",

@@ -163,7 +163,7 @@ Higher order functions are functions that take other functions as arguments.  Fi
 14: PUSH_I32_LITERAL 1
 19: ADD_I32
 20: RET
-21: CREATE_CLOSURE 5 0
+21: PUSH_CLOSURE 5 0
 30: STORE 0 0
 39: LOAD 0 0
 48: PUSH_I32_LITERAL 10

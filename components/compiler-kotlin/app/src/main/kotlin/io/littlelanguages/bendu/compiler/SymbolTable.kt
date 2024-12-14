@@ -4,10 +4,8 @@ sealed class NatureOfBinding {
     open fun patch(byteBuilder: ByteBuilder) {}
 }
 
-data class PackageBinding(val offset: Int) : NatureOfBinding()
-data class ParameterBinding(val offset: Int) : NatureOfBinding()
-data class PackageFunction(var offset: Int = 0, val patches: MutableList<Int> = mutableListOf()) :
-    NatureOfBinding() {
+data class IdentifierBinding(val offset: Int) : NatureOfBinding()
+data class FunctionBinding(var offset: Int = 0, val patches: MutableList<Int> = mutableListOf()) : NatureOfBinding() {
     fun addPatch(patch: Int) =
         patches.add(patch)
 
@@ -72,8 +70,8 @@ class SymbolTable(val byteBuilder: ByteBuilder) {
         scope.bindings[name] = binding
     }
 
-    fun bindPackageBinding(name: String): PackageBinding {
-        val binding = PackageBinding(scope.offset++)
+    fun bindPackageBinding(name: String): IdentifierBinding {
+        val binding = IdentifierBinding(scope.offset++)
         scope.bindings[name] = binding
         return binding
     }

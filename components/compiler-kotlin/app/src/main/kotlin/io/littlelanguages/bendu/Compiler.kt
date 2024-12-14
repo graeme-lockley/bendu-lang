@@ -74,7 +74,7 @@ private class Compiler(val errors: Errors) {
         if (expression.f is LowerIDExpression) {
             val (binding, depth) = symbolTable.findIndexed(expression.f.v.value)!!
 
-            if (binding is PackageFunction) {
+            if (binding is FunctionBinding) {
                 expression.arguments.forEach { e ->
                     compileExpression(e)
                 }
@@ -294,7 +294,7 @@ private class Compiler(val errors: Errors) {
     }
 
     private fun compileLetExpression(e: LetStatement, keepResult: Boolean) {
-        e.terms.forEach { t -> symbolTable.bind(t.id.value, PackageFunction()) }
+        e.terms.forEach { t -> symbolTable.bind(t.id.value, FunctionBinding()) }
         e.terms.forEach { t -> compileLetStatementTerm(t, keepResult) }
     }
 
@@ -311,7 +311,7 @@ private class Compiler(val errors: Errors) {
             }
 
             symbolTable.find(e.id.value)!!.let {
-                if (it is PackageFunction) {
+                if (it is FunctionBinding) {
                     it.offset = byteBuilder.size()
                 }
             }
@@ -391,19 +391,14 @@ private class Compiler(val errors: Errors) {
                 val (binding, depth) = symbol
 
                 when (binding) {
-                    is PackageBinding -> {
+                    is IdentifierBinding -> {
                         byteBuilder.appendInstruction(Instructions.LOAD)
                         byteBuilder.appendInt(depth)
                         byteBuilder.appendInt(binding.offset)
                     }
 
-                    is ParameterBinding -> {
-                        byteBuilder.appendInstruction(Instructions.PUSH_PARAMETER)
-                        byteBuilder.appendInt(binding.offset)
-                    }
-
-                    is PackageFunction -> {
-                        byteBuilder.appendInstruction(Instructions.CREATE_CLOSURE)
+                    is FunctionBinding -> {
+                        byteBuilder.appendInstruction(Instructions.PUSH_CLOSURE)
 
                         binding.addPatch(byteBuilder.size())
                         byteBuilder.appendInt(0)

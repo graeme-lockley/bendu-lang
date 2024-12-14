@@ -41,6 +41,20 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
                 try runtime.push_bool_false();
             },
+            .push_closure => {
+                const offset: usize = @intCast(readi32(bc, ip));
+                const frame: usize = @intCast(readi32(bc, ip + 4));
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: create_closure: offset={d}, frame={d}\n", .{ ip - 1, fp, offset, frame });
+                }
+
+                const previousFrame = Memory.FrameValue.skip(@as(*Memory.Value, @ptrFromInt(runtime.stack.items[fp])), frame);
+
+                try runtime.push_closure(@intCast(offset), previousFrame.?);
+
+                ip += 8;
+            },
             .push_f32_literal => {
                 const value = readf32(bc, ip);
 
@@ -89,26 +103,6 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.push_string_literal(data);
                 ip += 4 + @as(usize, @intCast(len));
             },
-            // .push_stack => {
-            //     const index = readi32(bc, ip);
-
-            //     if (DEBUG) {
-            //         std.debug.print("{d} {d}: push_stack: offset={d}\n", .{ ip - 1, fp, index });
-            //     }
-
-            //     try runtime.push_stack(index);
-            //     ip += 4;
-            // },
-            // .push_parameter => {
-            //     const index = readi32(bc, ip);
-
-            //     if (DEBUG) {
-            //         std.debug.print("{d} {d}: push_parameter: offset={d}\n", .{ ip - 1, fp, index });
-            //     }
-
-            //     try runtime.push_stack(@intCast(@as(i32, @intCast(fp)) + index));
-            //     ip += 4;
-            // },
             .load => {
                 const frame = readi32(bc, ip);
                 const offset = readi32(bc, ip + 4);
@@ -129,20 +123,6 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 }
 
                 try runtime.store(fp, @intCast(frame), @intCast(offset));
-                ip += 8;
-            },
-            .create_closure => {
-                const offset: usize = @intCast(readi32(bc, ip));
-                const frame: usize = @intCast(readi32(bc, ip + 4));
-
-                if (DEBUG) {
-                    std.debug.print("{d} {d}: create_closure: offset={d}, frame={d}\n", .{ ip - 1, fp, offset, frame });
-                }
-
-                const previousFrame = Memory.FrameValue.skip(@as(*Memory.Value, @ptrFromInt(runtime.stack.items[fp])), frame);
-
-                try runtime.push_closure(@intCast(offset), previousFrame.?);
-
                 ip += 8;
             },
             .discard => {
@@ -204,21 +184,6 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                     ip += 4;
                 }
             },
-            // .call_local => {
-            //     const offset = readi32(bc, ip);
-
-            //     if (DEBUG) {
-            //         std.debug.print("{d} {d}: call_local: offset={d}\n", .{ ip - 1, fp, offset });
-            //     }
-
-            //     const newFP = runtime.stack.items.len - 1;
-
-            //     try runtime.push_i32_literal(@intCast(ip + 4));
-            //     try runtime.push_i32_literal(@intCast(fp));
-
-            //     fp = newFP;
-            //     ip = @intCast(offset);
-            // },
 
             .call => {
                 const offset: usize = @intCast(readi32(bc, ip));
@@ -249,7 +214,6 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
                 ip = offset;
             },
-
             .call_closure => {
                 const arity: usize = @intCast(readi32(bc, ip));
 
@@ -287,25 +251,6 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 _ = runtime.discard();
                 try runtime.push(v);
             },
-
-            // .ret => {
-            //     const items = readi32(bc, ip);
-
-            //     if (DEBUG) {
-            //         std.debug.print("{d} {d}: ret: items={d}\n", .{ ip - 1, fp, items });
-            //     }
-
-            //     const result = runtime.pop();
-
-            //     ip = @intCast(Pointer.asInt(runtime.stack.items[fp + 1]));
-            //     fp = @intCast(Pointer.asInt(runtime.stack.items[fp + 2]));
-
-            //     for (@as(usize, @intCast(items + 2))) |_| {
-            //         runtime.discard();
-            //     }
-
-            //     try runtime.stack.append(result);
-            // },
 
             .not_bool => {
                 if (DEBUG) {

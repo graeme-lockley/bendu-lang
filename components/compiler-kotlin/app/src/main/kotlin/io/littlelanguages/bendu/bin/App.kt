@@ -239,7 +239,7 @@ private fun readString(bc: ByteArray, offset: Int): Pair<String, Int> {
 
     val result = StringBuilder()
     for (i in 0 until length) {
-        result.append(bc[offset + 4 + i].toChar())
+        result.append(bc[offset + 4 + i].toInt().toChar())
     }
 
     return Pair(result.toString(), length + 4)
