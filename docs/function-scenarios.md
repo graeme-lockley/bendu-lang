@@ -155,7 +155,8 @@ Higher order functions are functions that take other functions as arguments.  Fi
 
 ```bendu-dis
 > let inc(n) = n + 1
-> inc
+> let x = inc
+> x(10)
 
  0: JMP 21
  5: LOAD 0 0
@@ -163,6 +164,10 @@ Higher order functions are functions that take other functions as arguments.  Fi
 19: ADD_I32
 20: RET
 21: CREATE_CLOSURE 5 0
+30: STORE 0 0
+39: LOAD 0 0
+48: PUSH_I32_LITERAL 10
+53: CALL_CLOSURE 1
 ```
 
 ```bendu-repl
