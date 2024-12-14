@@ -1,7 +1,0 @@
-#!/bin/bash
-
-PROJECT_HOME=$(dirname "$0")/..
-
-cd "$PROJECT_HOME"
-
-ls **/*.zig **/*.kt **/*.kts **/*.md **/*.json **/*.llgd **/*.llld | entr -c -s "./tasks/build && bendu-test"
