@@ -80,7 +80,7 @@ let process(path, test, silent = false) {
 
       let result = evalBendu(script, startLine + 1) catch e -> e
 
-      suite.eq(Str.trim(code[0][1:]) + "...", join(code |> filter(fn(l) !Str.startsWith?(l, ">")), "\\n"), result)
+      suite.eq(Str.trim(code[0][1:]) + "...", join(code |> filter(fn(l) !Str.startsWith?(l, ">") && !Str.startsWith?(l, ".")) |> map(fn(l) Str.trim(l)) |> filter(fn(l) len(l) > 0), "\\n"), result)
    }
 
    let executeBenduDis(suite, path, startLine, endLine, code) {      
