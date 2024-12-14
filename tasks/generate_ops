@@ -9,26 +9,35 @@ let Str = import("str")
 
 let projectHome = (Path.join(cwd(), rebo.args[1]) |> Path.dir()) + "/.."
 
-let instructions = FS.readFile(Path.join(projectHome, "docs/bytecode-instructions.json")) |> JSON.parse()
-
-let zigOut = ["pub const Op = enum(u8) {"]
-each(instructions.instructions, fn (instruction) zigOut <! "    " + Str.lower(instruction.name) + ",")
-zigOut <! "};"
+let instructionsFileName = Path.join(projectHome, "docs/bytecode-instructions.json")
+let instructions = FS.readFile(instructionsFileName) |> JSON.parse()
 
 let zigFileName = "components/bci-zig/src/op.zig"
-println("Writing to "+ zigFileName)
-FS.writeFile(Path.join(projectHome, zigFileName), zigOut |> join("\n"))
+let fullZigFileName = Path.join(projectHome, zigFileName)
 
-let kotlinOut = [
-    "package io.littlelanguages.bendu.compiler",
-    "",
-    "enum class Args {U32, I32, F32, STRING, U8}",
-    "",
-    "enum class Instructions(val op: Byte, val args: List<Args>) {"
-]
-each(instructions.instructions, fn (instruction, idx) kotlinOut <! "    " + Str.upper(instruction.name) + "(" + str(idx) + ", listOf(" + join(map(instruction.args, fn(a) "Args." + Str.upper(a.type)), ", ") + ")),")
-kotlinOut <! "}"
+if !fexists(fullZigFileName) || rebo.os.fstat(fullZigFileName).mtime < rebo.os.fstat(instructionsFileName).mtime -> {
+    let zigOut = ["pub const Op = enum(u8) {"]
+    each(instructions.instructions, fn (instruction) zigOut <! "    " + Str.lower(instruction.name) + ",")
+    zigOut <! "};"
+        
+    println("Writing to "+ zigFileName)
+    FS.writeFile(fullZigFileName, zigOut |> join("\n"))
+}
 
 let kotlinFileName = "components/compiler-kotlin/app/src/main/kotlin/io/littlelanguages/bendu/compiler/Instructions.kt"
-println("Writing to "+ kotlinFileName)
-FS.writeFile(Path.join(projectHome, kotlinFileName), kotlinOut |> join("\n"))
+let fullKotlinFileName = Path.join(projectHome, kotlinFileName)
+    
+if !fexists(fullKotlinFileName) || rebo.os.fstat(fullKotlinFileName).mtime < rebo.os.fstat(instructionsFileName).mtime -> {
+    let kotlinOut = [
+        "package io.littlelanguages.bendu.compiler",
+        "",
+        "enum class Args {U32, I32, F32, STRING, U8}",
+        "",
+        "enum class Instructions(val op: Byte, val args: List<Args>) {"
+    ]
+    each(instructions.instructions, fn (instruction, idx) kotlinOut <! "    " + Str.upper(instruction.name) + "(" + str(idx) + ", listOf(" + join(map(instruction.args, fn(a) "Args." + Str.upper(a.type)), ", ") + ")),")
+    kotlinOut <! "}"
+
+    println("Writing to "+ kotlinFileName)
+    FS.writeFile(fullKotlinFileName, kotlinOut |> join("\n"))
+}
