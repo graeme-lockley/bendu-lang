@@ -285,3 +285,22 @@ For interest sake, the last one's disassembly is as the following.
 132: PUSH_I32_LITERAL 2
 137: CALL_CLOSURE 1
 ```
+
+## Binding Scope
+
+Whenever one encounters a declaration, it is required that there does not existing a declaration with the same name.  This ensures that there is no chance of hiding a previous binding accidentally.
+
+The following code snippets illustrate the scenarios with their error messages.
+
+```bendu-error
+> let x = 10
+> let inc(x) = x + 1
+
+Identifier Redefinition: x declared at 1:5 redeclared at 2:9
+```
+
+```bendu-error
+> let add(a, a) = a + a
+
+Identifier Redefinition: a declared at 1:9 redeclared at 1:12
+```

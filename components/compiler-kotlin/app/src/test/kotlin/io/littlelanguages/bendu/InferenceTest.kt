@@ -1,12 +1,15 @@
 package io.littlelanguages.bendu
 
 import io.littlelanguages.bendu.typeinference.*
+import io.littlelanguages.scanpiler.LocationCoordinate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class InferenceTest {
+    val location = LocationCoordinate(0, 0, 0)
+
     @Test
     fun `infer literal char`() {
         assertInferExpressionEquals("'x'", "Char")
@@ -19,13 +22,13 @@ class InferenceTest {
 
     @Test
     fun `infer literal function`() {
-//        assertInferExpressionEquals("fn(n) = n + 1", "(Int) -> Int")
-//        assertInferExpressionEquals("fn(n) = 2 * n", "(Int) -> Int")
-//        assertInferExpressionEquals("fn(a, b) = a + b", "('5, '5) -> '5")
-//
-//        // Good old composition function
-//        assertInferExpressionEquals("fn(a, b) = fn(c) = a(b(c))", "(('6) -> '7, ('5) -> '6) -> ('5) -> '7")
-//        assertInferExpressionEquals("(fn(a, b) = fn(c) = a(b(c)))(fn(n) = n + 1, fn(n) = n * 2)", "(Int) -> Int")
+        assertInferExpressionEquals("fn(n) = n + 1", "(Int) -> Int")
+        assertInferExpressionEquals("fn(n) = 2 * n", "(Int) -> Int")
+        assertInferExpressionEquals("fn(a, b) = a + b", "('5, '5) -> '5")
+
+        // Good old composition function
+        assertInferExpressionEquals("fn(a, b) = fn(c) = a(b(c))", "(('6) -> '7, ('5) -> '6) -> ('5) -> '7")
+        assertInferExpressionEquals("(fn(a, b) = fn(c) = a(b(c)))(fn(n) = n + 1, fn(n) = n * 2)", "(Int) -> Int")
 
         assertInferExpressionEquals("let compose(f, g) = fn(n) = f(g(n)) ;" +
                 "compose(fn(n) = 2 * n, fn(n) n + 1)", "(Int) -> Int")
@@ -48,7 +51,7 @@ class InferenceTest {
 
     @Test
     fun `infer known lower ID`() {
-        assertInferExpressionEquals("a", "Int", emptyTypeEnv + ("a" to emptyTypeEnv.generalise(typeInt)))
+        assertInferExpressionEquals("a", "Int", emptyTypeEnv + ("a" to Binding(location, emptyTypeEnv.generalise(typeInt))))
     }
 
     @Test
@@ -112,7 +115,7 @@ class InferenceTest {
         assertInferExpressionEquals(
             "if a == 0 -> 1 | a == 2 -> 2 | a == 3 -> 4 | -1",
             "Int",
-            emptyTypeEnv + ("a" to emptyTypeEnv.generalise(typeInt))
+            emptyTypeEnv + ("a" to Binding(location, emptyTypeEnv.generalise(typeInt)))
         )
         inferErrorExpression("if 1 -> 1 | 2")
         inferErrorExpression("if True -> 1 | 'x'")
@@ -125,8 +128,8 @@ class InferenceTest {
         assertInferFunctionEquals("let add(a, b) = a + b + 1", "(Int, Int) -> Int")
         assertInferFunctionEquals("let add(a, b) = a + b + 1.0", "(Float, Float) -> Float")
         assertInferFunctionEquals("let f(x) = if x == 0 -> 0 | x + f(x - 1)", "(Int) -> Int")
-        assertInferFunctionEquals("let f(x) = g(x)", "(Int) -> Int", emptyTypeEnv + ("g" to Scheme(setOf(), TArr(listOf(typeInt), typeInt))))
-        assertInferFunctionEquals("let f(x) = g(1) + x", "(Int) -> Int", emptyTypeEnv + ("g" to Scheme(setOf(), TArr(listOf(typeInt), typeInt))))
+        assertInferFunctionEquals("let f(x) = g(x)", "(Int) -> Int", emptyTypeEnv + ("g" to Binding(location, Scheme(setOf(), TArr(listOf(typeInt), typeInt)))))
+        assertInferFunctionEquals("let f(x) = g(1) + x", "(Int) -> Int", emptyTypeEnv + ("g" to Binding(location, Scheme(setOf(), TArr(listOf(typeInt), typeInt)))))
     }
 }
 

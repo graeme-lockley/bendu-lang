@@ -1,21 +1,23 @@
 package io.littlelanguages.bendu.typeinference
 
-data class TypeEnv(private val items: Map<String, Scheme>) {
+import io.littlelanguages.scanpiler.Location
+
+data class TypeEnv(private val items: Map<String, Binding>) {
     private var ftv: Set<Var>? = null
 
-    fun extend(name: String, scheme: Scheme): TypeEnv =
-        TypeEnv(items + Pair(name, scheme))
+    private fun extend(name: String, binding: Binding): TypeEnv =
+        TypeEnv(items + Pair(name, binding))
 
-    operator fun plus(v: Pair<String, Scheme>): TypeEnv =
+    operator fun plus(v: Pair<String, Binding>): TypeEnv =
         this.extend(v.first, v.second)
 
-    operator fun plus(v: List<Pair<String, Scheme>>): TypeEnv =
+    operator fun plus(v: List<Pair<String, Binding>>): TypeEnv =
         v.fold(this) { acc, p -> acc + p }
 
     fun apply(s: Subst): TypeEnv =
-        TypeEnv(items.mapValues { it.value.apply(s) })
+        TypeEnv(items.mapValues { Binding(it.value.location, it.value.scheme.apply(s)) })
 
-    operator fun get(name: String): Scheme? = items[name]
+    operator fun get(name: String): Binding? = items[name]
 
     fun generalise(type: Type): Scheme {
         val typeFtv = type.ftv()
@@ -25,11 +27,13 @@ data class TypeEnv(private val items: Map<String, Scheme>) {
         }
 
         if (ftv == null) {
-            ftv = items.toList().flatMap { it.second.ftv() }.toSet()
+            ftv = items.toList().flatMap { it.second.scheme.ftv() }.toSet()
         }
 
         return Scheme(typeFtv - ftv!!, type)
     }
 }
+
+data class Binding(val location: Location, val scheme: Scheme)
 
 val emptyTypeEnv = TypeEnv(emptyMap())

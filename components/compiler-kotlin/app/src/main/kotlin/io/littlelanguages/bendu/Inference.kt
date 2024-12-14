@@ -1,6 +1,7 @@
 package io.littlelanguages.bendu
 
 import io.littlelanguages.bendu.typeinference.*
+import io.littlelanguages.scanpiler.Location
 
 fun infer(
     script: String,
@@ -31,7 +32,7 @@ private fun inferStatement(statement: Expression, env: Environment) {
     statement.apply(env.solveConstraints(), env.errors)
 
     if (statement is LetStatement) {
-        statement.terms.forEach { term -> env.bind(term.id.value, Scheme(emptySet(), term.e.type!!)) }
+        statement.terms.forEach { term -> env.rebind(term.id.value, term.id.location, Scheme(emptySet(), term.e.type!!)) }
     }
 }
 
@@ -92,7 +93,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             val tv = env.nextVars(expression.terms.size)
             expression.terms.forEachIndexed { i, term ->
                 val scheme = Scheme(emptySet(), tv[i])
-                env.bind(term.id.value, scheme)
+                env.bind(term.id.value, term.id.location, scheme)
             }
 
             val declarationType = fix(
@@ -125,7 +126,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             val domain = env.nextVars(expression.parameters.size)
 
             expression.parameters.forEachIndexed { index, parameter ->
-                env.bind(parameter.value, Scheme(emptySet(), domain[index]))
+                env.bind(parameter.value, parameter.location, Scheme(emptySet(), domain[index]))
             }
 
             inferExpression(expression.body, env)
@@ -243,12 +244,18 @@ data class Environment(
 ) {
     private val typeEnvs = mutableListOf(typeEnv)
 
-//    fun bind(name: String, type: Type) {
-//        typeEnv = typeEnv + (name to typeEnv.generalise(type))
-//    }
+    fun bind(name: String, location: Location, scheme: Scheme) {
+        val binding = typeEnv[name]
 
-    fun bind(name: String, scheme: Scheme) {
-        typeEnv += (name to scheme)
+        if (binding != null) {
+            errors.addError(IdentifierRedefinitionError(StringLocation(name, location), binding.location))
+        }
+
+        typeEnv += (name to Binding(location, scheme))
+    }
+
+    fun rebind(name: String, location: Location, scheme: Scheme) {
+        typeEnv += (name to Binding(location, scheme))
     }
 
     fun openTypeEnv() {
@@ -259,7 +266,7 @@ data class Environment(
         typeEnv = typeEnvs.removeAt(typeEnvs.size - 1)
     }
 
-    operator fun get(name: String): Scheme? = typeEnv[name]
+    operator fun get(name: String): Scheme? = typeEnv[name]?.scheme
 
     fun solveConstraints(): Subst = constraints.solve(errors)
 
