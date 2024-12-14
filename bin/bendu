@@ -5,7 +5,9 @@ rebo.lang["import.verbose"] := false
 let Path = import("path")
 let Str = import("str")
 
-let projectHome = (Path.join(cwd(), rebo.args[1]) |> Path.dir()) + "/.."
+let projectHome = 
+   if Str.startsWith?(rebo.args[1], "/") -> Path.dir(rebo.args[1]) + "/.."
+   | (Path.join(cwd(), rebo.args[1]) |> Path.dir()) + "/.."
 
 if len(rebo.args) != 3 -> {
    println("Usage: bendu <file>")
