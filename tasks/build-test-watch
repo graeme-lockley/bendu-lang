@@ -4,4 +4,4 @@ PROJECT_HOME=$(dirname "$0")/..
 
 cd "$PROJECT_HOME"
 
-ls **/*.zig **/*.kt **/*.kts **/*.md | entr -c -s "./tasks/build && bendu-test"
+ls **/*.zig **/*.kt **/*.kts **/*.md **/*.json | entr -c -s "./tasks/build && bendu-test"
