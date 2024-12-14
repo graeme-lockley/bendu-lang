@@ -149,7 +149,7 @@ Looking at the generated code the the odd/even functions are implemented as foll
 144: CALL 65 1 0
 ```
 
-### Higher order functions
+## Higher order functions
 
 Higher order functions are functions that take other functions as arguments.  Firstly, let's look at a simple example of a higher order function.
 
@@ -175,4 +175,56 @@ Higher order functions are functions that take other functions as arguments.  Fi
 > let x = inc
 > x(10)
 11: Int
+```
+
+The classic function composition can be illustrated as follows.
+
+```bendu-repl
+> let compose(f, g, n) = f(g(n))
+> let double(n) = 2 * n
+> let inc(n) = n + 1
+
+> compose(double, inc, 2)
+6: Int
+
+> compose(inc, double, 2)
+5: Int
+```
+
+Looking at the byte-code.
+
+```bendu-dis
+> let compose(f, g, n) = f(g(n))
+> let double(n) = 2 * n
+> let inc(n) = n + 1
+
+> compose(double, inc, 2)
+> compose(inc, double, 2)
+
+  0: JMP 43
+  5: LOAD 0 0
+ 14: LOAD 0 1
+ 23: LOAD 0 2
+ 32: CALL_CLOSURE 1
+ 37: CALL_CLOSURE 1
+ 42: RET
+ 43: JMP 64
+ 48: PUSH_I32_LITERAL 2
+ 53: LOAD 0 0
+ 62: MUL_I32
+ 63: RET
+ 64: JMP 85
+ 69: LOAD 0 0
+ 78: PUSH_I32_LITERAL 1
+ 83: ADD_I32
+ 84: RET
+ 85: PUSH_CLOSURE 48 0
+ 94: PUSH_CLOSURE 69 0
+103: PUSH_I32_LITERAL 2
+108: CALL 5 3 0
+121: DISCARD
+122: PUSH_CLOSURE 69 0
+131: PUSH_CLOSURE 48 0
+140: PUSH_I32_LITERAL 2
+145: CALL 5 3 0
 ```
