@@ -1,0 +1,19 @@
+#!/bin/bash
+
+PROJECT_HOME=$(dirname "$0")/..
+
+cd "$PROJECT_HOME"
+
+./tasks/generate_ops || exit 1
+
+(
+    cd ./components/bci-zig
+    zig build test || exit 1
+    zig build || exit 1
+) || exit 1
+
+(
+    cd ./components/compiler-kotlin
+    ./tasks/generate_parser || exit 1
+    ./tasks/build_fat_jar || exit 1
+) || exit 1
