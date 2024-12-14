@@ -14,7 +14,7 @@ data class FunctionBinding(var offset: Int = 0, val patches: MutableList<Int> = 
     }
 }
 
-class SymbolTable(val byteBuilder: ByteBuilder) {
+class SymbolTable(private val byteBuilder: ByteBuilder) {
     private var scope = SymbolScope()
     private var depth = 0
 
@@ -24,7 +24,7 @@ class SymbolTable(val byteBuilder: ByteBuilder) {
     }
 
     fun closeScope() {
-        scope.bindings.forEach { _, binding -> binding.patch(byteBuilder) }
+        scope.bindings.forEach { (_, binding) -> binding.patch(byteBuilder) }
 
         if (scope.parent != null) {
             scope = scope.parent!!
@@ -75,9 +75,6 @@ class SymbolTable(val byteBuilder: ByteBuilder) {
         scope.bindings[name] = binding
         return binding
     }
-
-    fun depth() =
-        depth
 }
 
 private class SymbolScope(val parent: SymbolScope? = null) {

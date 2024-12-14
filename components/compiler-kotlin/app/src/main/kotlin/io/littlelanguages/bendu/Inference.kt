@@ -20,7 +20,6 @@ fun infer(
     return ast
 }
 
-
 private fun inferStatements(statements: List<Expression>, env: Environment) =
     statements.forEach { statement -> inferStatement(statement, env) }
 
@@ -249,7 +248,7 @@ data class Environment(
 //    }
 
     fun bind(name: String, scheme: Scheme) {
-        typeEnv = typeEnv + (name to scheme)
+        typeEnv += (name to scheme)
     }
 
     fun openTypeEnv() {

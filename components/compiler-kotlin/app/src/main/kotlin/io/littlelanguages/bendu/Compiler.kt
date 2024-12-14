@@ -295,7 +295,11 @@ private class Compiler(val errors: Errors) {
     }
 
     private fun compileLetExpression(e: LetStatement, keepResult: Boolean) {
-        e.terms.forEach { t -> symbolTable.bind(t.id.value, FunctionBinding()) }
+        e.terms.forEach { t ->
+            if (t.e is LiteralFunctionExpression) {
+                symbolTable.bind(t.id.value, FunctionBinding())
+            }
+        }
         e.terms.forEach { t -> compileLetStatementTerm(t, keepResult) }
     }
 
@@ -307,7 +311,7 @@ private class Compiler(val errors: Errors) {
 
             symbolTable.openScope()
 
-            e.e.parameters.forEachIndexed { index, parameter ->
+            e.e.parameters.forEach { parameter ->
                 symbolTable.bindPackageBinding(parameter.value)
             }
 
