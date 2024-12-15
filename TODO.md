@@ -52,6 +52,10 @@ The following is the list of big features that need to be implemented.
 
 - [x] Implement the `if` expression in the BC interpreter
 
+## Sequence Blocks
+
+- [ ] Implement the sequence block
+
 ## while
 
 - [ ] Implement the `while` expression in the BC interpreter
