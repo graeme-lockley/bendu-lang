@@ -71,12 +71,11 @@ private class Compiler(val errors: Errors) {
         }
     }
 
-
     private fun compileApplyExpression(expression: ApplyExpression, keepResult: Boolean) {
         if (expression.f is LowerIDExpression) {
             val (binding, depth) = symbolTable.findIndexed(expression.f.v.value)!!
 
-            if (binding is FunctionBinding) {
+            if (binding is FunctionBinding && binding.frameOffset == null) {
                 expression.arguments.forEach { e ->
                     compileExpression(e)
                 }
@@ -91,7 +90,6 @@ private class Compiler(val errors: Errors) {
                 }
 
                 return
-
             }
         }
 
@@ -122,11 +120,14 @@ private class Compiler(val errors: Errors) {
                 is IdentifierBinding -> {
                     byteBuilder.appendInstruction(Instructions.STORE)
                     byteBuilder.appendInt(depth)
-                    byteBuilder.appendInt(binding.offset)
+                    byteBuilder.appendInt(binding.frameOffset)
                 }
 
-                is FunctionBinding ->
-                    TODO("Assignment to function binding")
+                is FunctionBinding -> {
+                    byteBuilder.appendInstruction(Instructions.STORE)
+                    byteBuilder.appendInt(depth)
+                    byteBuilder.appendInt(binding.frameOffset!!)
+                }
             }
         } else {
             errors.addError(AssignmentError(expression.lhs.location()))
@@ -324,7 +325,7 @@ private class Compiler(val errors: Errors) {
     private fun compileLetExpression(e: LetStatement, keepResult: Boolean) {
         e.terms.forEach { t ->
             if (t is LetFunctionStatementTerm) {
-                symbolTable.bind(t.id.value, FunctionBinding())
+                symbolTable.bindFunctionBinding(t.id.value, t.mutable)
             }
         }
         e.terms.forEach { t -> compileLetStatementTerm(t, keepResult) }
@@ -337,7 +338,7 @@ private class Compiler(val errors: Errors) {
                 val binding = symbolTable.bindPackageBinding(e.id.value)
                 byteBuilder.appendInstruction(Instructions.STORE)
                 byteBuilder.appendInt(0)
-                byteBuilder.appendInt(binding.offset)
+                byteBuilder.appendInt(binding.frameOffset)
             }
 
             is LetFunctionStatementTerm -> {
@@ -351,16 +352,23 @@ private class Compiler(val errors: Errors) {
                     symbolTable.bindPackageBinding(parameter.value)
                 }
 
-                symbolTable.find(e.id.value)!!.let {
-                    if (it is FunctionBinding) {
-                        it.offset = byteBuilder.size()
-                    }
-                }
+                val binding = symbolTable.find(e.id.value)!! as FunctionBinding
+                binding.codeOffset = byteBuilder.size()
 
                 compileExpression(e.body)
                 byteBuilder.appendInstruction(Instructions.RET)
 
                 byteBuilder.writeIntAtPosition(jumpOffset, byteBuilder.size())
+
+                if (e.mutable) {
+                    byteBuilder.appendInstruction(Instructions.PUSH_CLOSURE)
+                    byteBuilder.appendInt(binding.codeOffset)
+                    byteBuilder.appendInt(0)
+
+                    byteBuilder.appendInstruction(Instructions.STORE)
+                    byteBuilder.appendInt(0)
+                    byteBuilder.appendInt(binding.frameOffset!!)
+                }
 
                 symbolTable.closeScope()
             }
@@ -458,15 +466,20 @@ private class Compiler(val errors: Errors) {
                     is IdentifierBinding -> {
                         byteBuilder.appendInstruction(Instructions.LOAD)
                         byteBuilder.appendInt(depth)
-                        byteBuilder.appendInt(binding.offset)
+                        byteBuilder.appendInt(binding.frameOffset)
                     }
 
                     is FunctionBinding -> {
-                        byteBuilder.appendInstruction(Instructions.PUSH_CLOSURE)
-
-                        binding.addPatch(byteBuilder.size())
-                        byteBuilder.appendInt(0)
-                        byteBuilder.appendInt(depth)
+                        if (binding.frameOffset == null) {
+                            byteBuilder.appendInstruction(Instructions.PUSH_CLOSURE)
+                            binding.addPatch(byteBuilder.size())
+                            byteBuilder.appendInt(0)
+                            byteBuilder.appendInt(depth)
+                        } else {
+                            byteBuilder.appendInstruction(Instructions.LOAD)
+                            byteBuilder.appendInt(depth)
+                            byteBuilder.appendInt(binding.frameOffset)
+                        }
                     }
                 }
             }

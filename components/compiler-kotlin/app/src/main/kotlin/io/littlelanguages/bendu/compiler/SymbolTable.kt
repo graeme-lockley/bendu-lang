@@ -4,13 +4,17 @@ sealed class NatureOfBinding {
     open fun patch(byteBuilder: ByteBuilder) {}
 }
 
-data class IdentifierBinding(val offset: Int) : NatureOfBinding()
-data class FunctionBinding(var offset: Int = 0, val patches: MutableList<Int> = mutableListOf()) : NatureOfBinding() {
+data class IdentifierBinding(val frameOffset: Int) : NatureOfBinding()
+data class FunctionBinding(
+    var codeOffset: Int = 0,
+    val frameOffset: Int? = null,
+    val patches: MutableList<Int> = mutableListOf()
+) : NatureOfBinding() {
     fun addPatch(patch: Int) =
         patches.add(patch)
 
     override fun patch(byteBuilder: ByteBuilder) {
-        patches.forEach { byteBuilder.writeIntAtPosition(it, offset) }
+        patches.forEach { byteBuilder.writeIntAtPosition(it, codeOffset) }
     }
 }
 
@@ -66,14 +70,19 @@ class SymbolTable(private val byteBuilder: ByteBuilder) {
         return null
     }
 
-    fun bind(name: String, binding: NatureOfBinding) {
-        scope.bindings[name] = binding
-    }
-
     fun bindPackageBinding(name: String): IdentifierBinding {
         val binding = IdentifierBinding(scope.offset++)
         scope.bindings[name] = binding
         return binding
+    }
+
+    fun bindFunctionBinding(name: String, mutable: Boolean) {
+        val binding = if (mutable)
+            FunctionBinding(frameOffset = scope.offset++)
+        else
+            FunctionBinding()
+
+        scope.bindings[name] = binding
     }
 }
 

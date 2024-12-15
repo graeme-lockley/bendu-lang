@@ -48,6 +48,12 @@ data class AssignmentError(val lhs: Location) : BenduError() {
         )
     }
 }
+
+data class IdentifierImmutableError(val id: StringLocation, val location: Location) : BenduError() {
+    override fun printError(colours: Boolean) {
+        printMessage("Assignment Error", "Attempt to assign a value at ${locationToString(location)} to ${id.value} declared at ${locationToString(id.location)}", colours)
+    }
+}
 data class IdentifierRedefinitionError(val id: StringLocation, val otherLocation: Location) : BenduError() {
     override fun printError(colours: Boolean) {
         printMessage(

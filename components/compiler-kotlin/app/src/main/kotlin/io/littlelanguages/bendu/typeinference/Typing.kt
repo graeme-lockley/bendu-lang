@@ -38,6 +38,7 @@ sealed class Type(open val location: Location?) {
 
     open fun isBool(): Boolean = false
     open fun isChar(): Boolean = false
+    open fun isError(): Boolean = false
     open fun isFloat(): Boolean = false
     open fun isFunction(): Boolean = false
     open fun isInt(): Boolean = false
@@ -112,6 +113,9 @@ data class TCon(val name: String, val args: List<Type> = emptyList(), override v
 
     override fun isChar(): Boolean =
         name == "Char"
+
+    override fun isError(): Boolean =
+        name == "Error"
 
     override fun isFloat(): Boolean =
         name == "Float"

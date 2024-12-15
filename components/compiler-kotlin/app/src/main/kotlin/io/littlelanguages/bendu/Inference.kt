@@ -64,6 +64,21 @@ private fun inferExpression(expression: Expression, env: Environment) {
         }
 
         is AssignmentExpression -> {
+            if (expression.lhs is LowerIDExpression) {
+                val binding = env.binding(expression.lhs.v.value)
+                if (binding != null && !binding.mutable) {
+                    env.errors.addError(
+                        IdentifierImmutableError(
+                            StringLocation(
+                                expression.lhs.v.value,
+                                binding.location
+                            ), expression.lhs.location()
+                        )
+                    )
+                }
+            } else {
+                env.errors.addError(AssignmentError(expression.lhs.location()))
+            }
             inferExpression(expression.lhs, env)
             inferExpression(expression.rhs, env)
 
@@ -330,7 +345,10 @@ data class Environment(
         typeVariables.removeAt(typeVariables.size - 1)
     }
 
-    operator fun get(name: String): Scheme? = typeEnv[name]?.scheme
+    operator fun get(name: String): Scheme? =
+        binding(name)?.scheme
+
+    fun binding(name: String): Binding? = typeEnv[name]
 
     fun parameter(name: String): Type? {
         var i = typeVariables.size - 1

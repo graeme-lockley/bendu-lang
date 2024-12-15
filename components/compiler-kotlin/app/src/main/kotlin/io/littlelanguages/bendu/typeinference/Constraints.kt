@@ -16,9 +16,6 @@ data class Constraints(private val constraints: MutableList<Constraint> = mutabl
 
     override fun toString(): String = constraints.joinToString(", ") { "${it.first} ~ ${it.second}" }
 
-//    fun clone(): Constraints =
-//        Constraints(constraints.toMutableList())
-
     fun reset() {
         constraints.clear()
     }
@@ -41,7 +38,10 @@ private fun unifies(t1: Type, t2: Type, errors: Errors): Unifier =
         t1 is TTuple && t2 is TTuple -> unifyMany(t1.types, t2.types, errors)
         t1 is TCon && t2 is TCon && t1.name == t2.name -> unifyMany(t1.args, t2.args, errors)
         else -> {
-            errors.addError(SingleUnificationError(t1, t2))
+            if (!t1.isError() && !t2.isError()) {
+                errors.addError(SingleUnificationError(t1, t2))
+            }
+
             emptyUnifier
         }
     }
