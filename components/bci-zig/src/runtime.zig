@@ -180,6 +180,16 @@ pub const Runtime = struct {
         try Memory.FrameValue.set(f, frame, offset, v);
     }
 
+    pub inline fn duplicate(self: *Runtime) !void {
+        const value = self.stack.items[self.stack.items.len - 1];
+
+        if (Pointer.isString(value)) {
+            Pointer.asString(value).incRef();
+        }
+
+        try self.stack.append(value);
+    }
+
     pub inline fn discard(self: *Runtime) void {
         const value = self.stack.pop();
 

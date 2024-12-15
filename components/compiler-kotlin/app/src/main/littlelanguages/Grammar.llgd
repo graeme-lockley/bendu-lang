@@ -15,7 +15,7 @@ Expression
     ;
 
 LetDeclaration
-    : LowerID [TypeParameters] [FunctionParameters] [TypeQualifier] "=" Expression
+    : LowerID ["!"] [TypeParameters] [FunctionParameters] [TypeQualifier] "=" Expression
     ;
 
 OrExpression
@@ -60,7 +60,11 @@ TypedExpression
     ;
 
 Application
-    : Factor {"(" [Expression {"," Expression}] ")"}
+    : Assignment {"(" [Expression {"," Expression}] ")"}
+    ;
+
+Assignment
+    : Factor [":=" Expression]
     ;
 
 Factor

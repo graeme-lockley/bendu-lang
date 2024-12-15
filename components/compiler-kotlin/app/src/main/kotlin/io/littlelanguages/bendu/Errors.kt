@@ -39,6 +39,15 @@ sealed class BenduError {
     abstract fun printError(colours: Boolean = true)
 }
 
+data class AssignmentError(val lhs: Location) : BenduError() {
+    override fun printError(colours: Boolean) {
+        printMessage(
+            "Assignment Error",
+            "Unable to assign to expression ${locationToString(lhs)}",
+            colours
+        )
+    }
+}
 data class IdentifierRedefinitionError(val id: StringLocation, val otherLocation: Location) : BenduError() {
     override fun printError(colours: Boolean) {
         printMessage(

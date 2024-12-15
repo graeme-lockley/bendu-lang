@@ -35,7 +35,6 @@ private fun inferStatement(statement: Expression, env: Environment) {
         statement.terms.forEach { term ->
             env.rebind(
                 term.id.value,
-                term.id.location,
                 env.generalise(term.type!!)
             )
         }
@@ -62,6 +61,14 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
             env.addConstraint(expression.f.type!!, TArr(domain, tv))
             expression.type = tv
+        }
+
+        is AssignmentExpression -> {
+            inferExpression(expression.lhs, env)
+            inferExpression(expression.rhs, env)
+
+            env.addConstraint(expression.lhs.type!!, expression.rhs.type!!)
+            expression.type = expression.rhs.type!!.withLocation(expression.location())
         }
 
         is BinaryExpression -> {
@@ -99,7 +106,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             val tv = env.nextVars(expression.terms.size)
             expression.terms.forEachIndexed { i, term ->
                 val scheme = Scheme(emptySet(), tv[i])
-                env.bind(term.id.value, term.id.location, scheme)
+                env.bind(term.id.value, term.id.location, term.mutable, scheme)
                 expression.terms[i].type = tv[i]
 
                 if (term is LetValueStatementTerm && term.typeQualifier != null) {
@@ -153,7 +160,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             }
 
             expression.parameters.forEachIndexed { index, parameter ->
-                env.bind(parameter.value, parameter.location, Scheme(emptySet(), domain[index]))
+                env.bind(parameter.value, parameter.location, false, Scheme(emptySet(), domain[index]))
 
                 if (parameter.typeQualifier != null) {
                     env.addConstraint(domain[index], parameter.typeQualifier.toType(env))
@@ -288,18 +295,19 @@ data class Environment(
     private val typeEnvs = mutableListOf(typeEnv)
     private val typeVariables = mutableListOf<MutableMap<String, Pair<Location, Type>>>(mutableMapOf())
 
-    fun bind(name: String, location: Location, scheme: Scheme) {
+    fun bind(name: String, location: Location, mutable: Boolean, scheme: Scheme) {
         val binding = typeEnv[name]
 
         if (binding != null) {
             errors.addError(IdentifierRedefinitionError(StringLocation(name, location), binding.location))
         }
 
-        typeEnv += (name to Binding(location, scheme))
+        typeEnv += (name to Binding(location, mutable, scheme))
     }
 
-    fun rebind(name: String, location: Location, scheme: Scheme) {
-        typeEnv += (name to Binding(location, scheme))
+    fun rebind(name: String, scheme: Scheme) {
+        val binding = typeEnv[name]!!
+        typeEnv += (name to Binding(binding.location, binding.mutable, scheme))
     }
 
     fun bindParameter(name: String, location: Location) {

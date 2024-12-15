@@ -8,7 +8,7 @@ import io.littlelanguages.data.Union3
 import java.io.StringReader
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, List<TypeQualifiedIDLocation>, List<StringLocation>, TypeFactor, TypeFactor> {
+    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, Expression, List<TypeQualifiedIDLocation>, List<StringLocation>, TypeFactor, TypeFactor> {
     override fun visitProgram(a: List<Tuple2<Expression, Token?>>): List<Expression> =
         a.map { it.a }
 
@@ -82,31 +82,33 @@ private class ParserVisitor(val errors: Errors = Errors()) :
 
     override fun visitExpression7(a: Expression): Expression =
         a
-
     override fun visitLetDeclaration(
         a1: Token,
-        a2: List<StringLocation>?,
-        a3: List<TypeQualifiedIDLocation>?,
-        a4: TypeFactor?,
-        a5: Token,
-        a6: Expression
+        a2: Token?,
+        a3: List<StringLocation>?,
+        a4: List<TypeQualifiedIDLocation>?,
+        a5: TypeFactor?,
+        a6: Token,
+        a7: Expression
     ): LetStatementTerm =
-        if (a3 == null)
+        if (a4 == null)
             LetValueStatementTerm(
                 StringLocation(a1.lexeme, a1.location),
-                a2 ?: emptyList(),
-                a4,
-                a6,
-                a1.location + a6.location()
+                a2 != null,
+                a3 ?: emptyList(),
+                a5,
+                a7,
+                a1.location + a7.location()
             )
         else
             LetFunctionStatementTerm(
                 StringLocation(a1.lexeme, a1.location),
-                a2 ?: emptyList(),
-                a3,
+                a2 != null,
+                a3 ?: emptyList(),
                 a4,
-                a6,
-                a1.location + a6.location()
+                a5,
+                a7,
+                a1.location + a7.location()
             )
 
     override fun visitOrExpression(a: Expression): Expression =
@@ -195,6 +197,12 @@ private class ParserVisitor(val errors: Errors = Errors()) :
             a1
         else
             TypedExpression(a1, a2.b)
+
+    override fun visitAssignment(a1: Expression, a2: Tuple2<Token, Expression>?): Expression =
+        if (a2 == null)
+            a1
+        else
+            AssignmentExpression(a1, a2.b)
 
     override fun visitFactor1(a1: Token, a2: Expression?, a3: Token): Expression =
         a2 ?: LiteralUnitExpression(a1.location + a3.location)

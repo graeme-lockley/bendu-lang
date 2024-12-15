@@ -40,6 +40,7 @@ private class Compiler(val errors: Errors) {
         when (expression) {
             is AbortStatement -> compileAbortExpression(expression, keepResult)
             is ApplyExpression -> compileApplyExpression(expression, keepResult)
+            is AssignmentExpression -> compileAssignmentExpression(expression, keepResult)
             is BinaryExpression -> compileBinaryExpression(expression, keepResult)
             is IfExpression -> compileIfExpression(expression, keepResult)
             is LetStatement -> compileLetExpression(expression, keepResult)
@@ -103,6 +104,32 @@ private class Compiler(val errors: Errors) {
 
         if (!keepResult) {
             byteBuilder.appendInstruction(Instructions.DISCARD)
+        }
+    }
+
+    private fun compileAssignmentExpression(expression: AssignmentExpression, keepResult: Boolean) {
+        compileExpression(expression.rhs)
+
+        if (keepResult) {
+            byteBuilder.appendInstruction(Instructions.DUP)
+        }
+
+        if (expression.lhs is LowerIDExpression) {
+            val symbol = symbolTable.findIndexed(expression.lhs.v.value)!!
+            val (binding, depth) = symbol
+
+            when (binding) {
+                is IdentifierBinding -> {
+                    byteBuilder.appendInstruction(Instructions.STORE)
+                    byteBuilder.appendInt(depth)
+                    byteBuilder.appendInt(binding.offset)
+                }
+
+                is FunctionBinding ->
+                    TODO("Assignment to function binding")
+            }
+        } else {
+            errors.addError(AssignmentError(expression.lhs.location()))
         }
     }
 

@@ -34,6 +34,18 @@ data class ApplyExpression(val f: Expression, val arguments: List<Expression>, o
         arguments.map { it.location() }.fold(f.location(), Location::plus)
 }
 
+data class AssignmentExpression(val lhs: Expression, val rhs: Expression, override var type: Type? = null) :
+    Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        super.apply(s, errors)
+        lhs.apply(s, errors)
+        rhs.apply(s, errors)
+    }
+
+    override fun location(): Location =
+        lhs.location() + rhs.location()
+}
+
 data class BinaryExpression(
     val e1: Expression,
     val op: OpLocation,
@@ -87,6 +99,7 @@ data class LetStatement(
 
 sealed class LetStatementTerm(
     open val id: StringLocation,
+    open val mutable: Boolean,
     open val typeVariables: List<StringLocation>,
     open val typeQualifier: TypeFactor?,
     open val location: Location,
@@ -97,11 +110,12 @@ sealed class LetStatementTerm(
 
 data class LetValueStatementTerm(
     override val id: StringLocation,
+    override val mutable: Boolean,
     override val typeVariables: List<StringLocation>,
     override val typeQualifier: TypeFactor?,
     val e: Expression,
     override val location: Location, override var type: Type? = null
-) : LetStatementTerm(id, typeVariables, typeQualifier, location, type) {
+) : LetStatementTerm(id, mutable, typeVariables, typeQualifier, location, type) {
     override fun apply(s: Subst, errors: Errors) {
         type = type!!.apply(s)
         e.apply(s, errors)
@@ -110,13 +124,14 @@ data class LetValueStatementTerm(
 
 data class LetFunctionStatementTerm(
     override val id: StringLocation,
+    override val mutable: Boolean,
     override val typeVariables: List<StringLocation>,
     val parameters: List<TypeQualifiedIDLocation>,
     override val typeQualifier: TypeFactor?,
     val body: Expression,
     override val location: Location,
     override var type: Type? = null
-) : LetStatementTerm(id, typeVariables, typeQualifier, location, type) {
+) : LetStatementTerm(id, mutable, typeVariables, typeQualifier, location, type) {
     override fun apply(s: Subst, errors: Errors) {
         type = type!!.apply(s)
         body.apply(s, errors)

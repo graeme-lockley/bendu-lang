@@ -14,9 +14,6 @@ data class TypeEnv(private val items: Map<String, Binding>) {
     operator fun plus(v: List<Pair<String, Binding>>): TypeEnv =
         v.fold(this) { acc, p -> acc + p }
 
-    fun apply(s: Subst): TypeEnv =
-        TypeEnv(items.mapValues { Binding(it.value.location, it.value.scheme.apply(s)) })
-
     operator fun get(name: String): Binding? = items[name]
 
     fun generalise(type: Type): Scheme {
@@ -34,6 +31,6 @@ data class TypeEnv(private val items: Map<String, Binding>) {
     }
 }
 
-data class Binding(val location: Location, val scheme: Scheme)
+data class Binding(val location: Location, val mutable: Boolean, val scheme: Scheme)
 
 val emptyTypeEnv = TypeEnv(emptyMap())

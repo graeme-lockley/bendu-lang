@@ -125,6 +125,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.store(fp, @intCast(frame), @intCast(offset));
                 ip += 8;
             },
+            .dup => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: dup\n", .{ ip - 1, fp });
+                }
+
+                try runtime.duplicate();
+            },
             .discard => {
                 if (DEBUG) {
                     std.debug.print("{d} {d}: discard\n", .{ ip - 1, fp });

@@ -118,6 +118,11 @@
       "description": "Store the value on the stack into the frame at the offset.  The frame, starting at 0 indicates how many frames to traverse to get to the correct frame. The offset is the offset from the start of the frame."
     },
     {
+      "name": "DUP",
+      "args": [],
+      "description": "Duplicates the top of the stack."
+    },
+    {
       "name": "DISCARD",
       "args": [],
       "description": "Removes the top element from the stack."

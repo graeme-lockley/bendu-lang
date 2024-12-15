@@ -8,7 +8,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class InferenceTest {
-    val location = LocationCoordinate(0, 0, 0)
+    private val location = LocationCoordinate(0, 0, 0)
 
     @Test
     fun `infer literal char`() {
@@ -81,7 +81,7 @@ class InferenceTest {
         assertInferExpressionEquals(
             "a",
             "Int",
-            emptyTypeEnv + ("a" to Binding(location, emptyTypeEnv.generalise(typeInt)))
+            emptyTypeEnv + ("a" to Binding(location, false, emptyTypeEnv.generalise(typeInt)))
         )
     }
 
@@ -146,7 +146,7 @@ class InferenceTest {
         assertInferExpressionEquals(
             "if a == 0 -> 1 | a == 2 -> 2 | a == 3 -> 4 | -1",
             "Int",
-            emptyTypeEnv + ("a" to Binding(location, emptyTypeEnv.generalise(typeInt)))
+            emptyTypeEnv + ("a" to Binding(location, false, emptyTypeEnv.generalise(typeInt)))
         )
         inferErrorExpression("if 1 -> 1 | 2")
         inferErrorExpression("if True -> 1 | 'x'")
@@ -162,12 +162,12 @@ class InferenceTest {
         assertInferFunctionEquals(
             "let f(x) = g(x)",
             "(Int) -> Int",
-            emptyTypeEnv + ("g" to Binding(location, Scheme(setOf(), TArr(listOf(typeInt), typeInt))))
+            emptyTypeEnv + ("g" to Binding(location, false, Scheme(setOf(), TArr(listOf(typeInt), typeInt))))
         )
         assertInferFunctionEquals(
             "let f(x) = g(1) + x",
             "(Int) -> Int",
-            emptyTypeEnv + ("g" to Binding(location, Scheme(setOf(), TArr(listOf(typeInt), typeInt))))
+            emptyTypeEnv + ("g" to Binding(location, false, Scheme(setOf(), TArr(listOf(typeInt), typeInt))))
         )
     }
 
