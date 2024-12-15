@@ -13,10 +13,6 @@ sealed class Expression(open var type: Type? = null) {
     abstract fun location(): Location
 }
 
-sealed class TypeFactor {
-    abstract fun location(): Location
-}
-
 data class AbortStatement(val es: List<Expression>, private val location: Location, override var type: Type? = null) :
     Expression(type) {
     override fun apply(s: Subst, errors: Errors) {
@@ -90,15 +86,23 @@ data class LetStatement(
         terms.fold(terms[0].location) { acc, t -> acc + t.location }
 }
 
-sealed class LetStatementTerm(open val id: StringLocation, open val location: Location, open var type: Type? = null) {
+sealed class LetStatementTerm(
+    open val id: StringLocation,
+    open val typeVariables: List<StringLocation>,
+    open val typeQualifier: TypeFactor?,
+    open val location: Location,
+    open var type: Type? = null
+) {
     abstract fun apply(s: Subst, errors: Errors)
 }
 
 data class LetValueStatementTerm(
     override val id: StringLocation,
+    override val typeVariables: List<StringLocation>,
+    override val typeQualifier: TypeFactor?,
     val e: Expression,
     override val location: Location, override var type: Type? = null
-) : LetStatementTerm(id, location, type) {
+) : LetStatementTerm(id, typeVariables, typeQualifier, location, type) {
     override fun apply(s: Subst, errors: Errors) {
         type = type!!.apply(s)
         e.apply(s, errors)
@@ -107,11 +111,13 @@ data class LetValueStatementTerm(
 
 data class LetFunctionStatementTerm(
     override val id: StringLocation,
-    val parameters: List<StringLocation>,
+    override val typeVariables: List<StringLocation>,
+    val parameters: List<TypeQualifiedIDLocation>,
+    override val typeQualifier: TypeFactor?,
     val body: Expression,
     override val location: Location,
     override var type: Type? = null
-) : LetStatementTerm(id, location, type) {
+) : LetStatementTerm(id, typeVariables, typeQualifier, location, type) {
     override fun apply(s: Subst, errors: Errors) {
         type = type!!.apply(s)
         body.apply(s, errors)
@@ -139,7 +145,9 @@ data class LiteralFloatExpression(val v: FloatLocation, override var type: Type?
 }
 
 data class LiteralFunctionExpression(
-    val parameters: List<StringLocation>,
+    val typeParameters: List<StringLocation>,
+    val parameters: List<TypeQualifiedIDLocation>,
+    val returnTypeQualifier: TypeFactor?,
     val body: Expression,
     override var type: Type? = null
 ) : Expression(type) {
@@ -200,6 +208,17 @@ data class PrintlnStatement(val es: List<Expression>, private val location: Loca
         location
 }
 
+data class TypedExpression(val e: Expression, val typeQualifier: TypeFactor, override var type: Type? = null) :
+    Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        super.apply(s, errors)
+        e.apply(s, errors)
+    }
+
+    override fun location(): Location =
+        e.location() + typeQualifier.location()
+}
+
 data class UnaryExpression(
     val op: UnaryOpLocation,
     val e: Expression,
@@ -233,17 +252,23 @@ data class StringLocation(val value: String, val location: Location)
 data class OpLocation(val op: Op, val location: Location)
 data class UnaryOpLocation(val op: UnaryOp, val location: Location)
 
+data class TypeQualifiedIDLocation(val value: String, val location: Location, val typeQualifier: TypeFactor?)
+
 enum class Op { Or, And, Plus, Minus, Multiply, Divide, Modulo, Power, EqualEqual, NotEqual, LessThan, LessEqual, GreaterThan, GreaterEqual }
 enum class UnaryOp { Not, TypeOf }
 
-data class LowerIDType(val v: StringLocation, val location: Location) : TypeFactor() {
-    override fun location(): Location =
-        location
+sealed class TypeFactor {
+    abstract fun location(): Location
 }
 
-data class UpperIDType(val v: StringLocation, val location: Location) : TypeFactor() {
+data class LowerIDType(val v: StringLocation) : TypeFactor() {
     override fun location(): Location =
-        location
+        v.location
+}
+
+data class UpperIDType(val v: StringLocation) : TypeFactor() {
+    override fun location(): Location =
+        v.location
 }
 
 data class FunctionType(val parameters: List<TypeFactor>, val returnType: TypeFactor, val location: Location) :

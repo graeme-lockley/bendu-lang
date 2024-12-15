@@ -105,11 +105,18 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
             val declarationType = fix(
                 LiteralFunctionExpression(
-                    listOf(StringLocation("_bob", expression.location())),
+                    emptyList(),
+                    listOf(TypeQualifiedIDLocation("_bob", expression.location(), null)),
+                    null,
                     LiteralTupleExpression(expression.terms.map {
                         when (it) {
                             is LetValueStatementTerm -> it.e
-                            is LetFunctionStatementTerm -> LiteralFunctionExpression(it.parameters, it.body)
+                            is LetFunctionStatementTerm -> LiteralFunctionExpression(
+                                emptyList(),
+                                it.parameters,
+                                null,
+                                it.body
+                            )
                         }
                     })
                 ), env

@@ -8,7 +8,7 @@ import io.littlelanguages.data.Union3
 import java.io.StringReader
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression> {
+    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, List<TypeQualifiedIDLocation>, List<StringLocation>, TypeFactor, TypeFactor> {
     override fun visitProgram(a: List<Tuple2<Expression, Token?>>): List<Expression> =
         a.map { it.a }
 
@@ -85,26 +85,28 @@ private class ParserVisitor(val errors: Errors = Errors()) :
 
     override fun visitLetDeclaration(
         a1: Token,
-        a2: Tuple3<Token, Tuple2<Token, List<Tuple2<Token, Token>>>?, Token>?,
-        a3: Token,
-        a4: Expression
+        a2: List<StringLocation>?,
+        a3: List<TypeQualifiedIDLocation>?,
+        a4: TypeFactor?,
+        a5: Token,
+        a6: Expression
     ): LetStatementTerm =
-        if (a2 == null)
-            LetValueStatementTerm(StringLocation(a1.lexeme, a1.location), a4, a1.location + a4.location())
+        if (a3 == null)
+            LetValueStatementTerm(
+                StringLocation(a1.lexeme, a1.location),
+                a2 ?: emptyList(),
+                a4,
+                a6,
+                a1.location + a6.location()
+            )
         else
             LetFunctionStatementTerm(
                 StringLocation(a1.lexeme, a1.location),
-                if (a2.b == null)
-                    emptyList()
-                else
-                    listOf(StringLocation(a2.b.a.lexeme, a2.b.a.location)) + a2.b.b.map {
-                        StringLocation(
-                            it.b.lexeme,
-                            it.b.location
-                        )
-                    },
+                a2 ?: emptyList(),
+                a3,
                 a4,
-                a1.location + a4.location()
+                a6,
+                a1.location + a6.location()
             )
 
     override fun visitOrExpression(a: Expression): Expression =
@@ -188,6 +190,12 @@ private class ParserVisitor(val errors: Errors = Errors()) :
             )
         }
 
+    override fun visitTypedExpression(a1: Expression, a2: Tuple2<Token, TypeFactor>?): Expression =
+        if (a2 == null)
+            a1
+        else
+            TypedExpression(a1, a2.b)
+
     override fun visitFactor1(a1: Token, a2: Expression?, a3: Token): Expression =
         a2 ?: LiteralUnitExpression(a1.location + a3.location)
 
@@ -260,28 +268,70 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     override fun visitFactor8(a: Token): Expression =
         LiteralBoolExpression(BoolLocation(false, a.location))
 
-    override fun visitFactor11(
-        a1: Token,
-        a2: Token,
-        a3: Tuple2<Token, List<Tuple2<Token, Token>>>?,
-        a4: Token,
-        a5: Token?,
-        a6: Expression
-    ): Expression {
-        val parameters = if (a3 == null) emptyList() else listOf(
-            StringLocation(
-                a3.a.lexeme,
-                a3.a.location
-            )
-        ) + a3.b.map { StringLocation(it.b.lexeme, it.b.location) }
-        return LiteralFunctionExpression(parameters, a6)
-    }
-
     override fun visitFactor9(a1: Token, a2: Expression): Expression =
         UnaryExpression(UnaryOpLocation(UnaryOp.Not, a1.location), a2)
 
     override fun visitFactor10(a1: Token, a2: Expression): Expression =
         UnaryExpression(UnaryOpLocation(UnaryOp.TypeOf, a1.location), a2)
+
+    override fun visitFactor11(
+        a1: Token,
+        a2: List<StringLocation>?,
+        a3: List<TypeQualifiedIDLocation>,
+        a4: TypeFactor?,
+        a5: Token?,
+        a6: Expression
+    ): Expression =
+        LiteralFunctionExpression(a2 ?: emptyList(), a3, a4, a6)
+
+    override fun visitFunctionParameters(
+        a1: Token,
+        a2: Tuple3<Token, TypeFactor?, List<Tuple3<Token, Token, TypeFactor?>>>?,
+        a3: Token
+    ): List<TypeQualifiedIDLocation> =
+        if (a2 == null)
+            emptyList()
+        else
+            listOf(TypeQualifiedIDLocation(a2.a.lexeme, a2.a.location, a2.b)) +
+                    a2.c.map { TypeQualifiedIDLocation(it.b.lexeme, it.b.location, it.c) }
+
+    override fun visitTypeParameters(
+        a1: Token,
+        a2: Token,
+        a3: List<Tuple2<Token, Token>>,
+        a4: Token
+    ): List<StringLocation> =
+        listOf(StringLocation(a1.lexeme, a1.location)) +
+                a3.map { StringLocation(it.b.lexeme, it.b.location) }
+
+    override fun visitTypeQualifier(a1: Token, a2: TypeFactor): TypeFactor =
+        a2
+
+    override fun visitTypeFactor1(
+        a1: Token,
+        a2: Tuple2<TypeFactor, List<Tuple2<Token, TypeFactor>>>?,
+        a3: Token,
+        a4: Tuple2<Token, TypeFactor>?
+    ): TypeFactor =
+        when (a4) {
+            null -> {
+                if (a2 == null)
+                    UpperIDType(StringLocation("Unit", a1.location))
+                else if (a2.b.isEmpty())
+                    a2.a
+                else
+                    TODO("Syntax Error")
+            }
+
+            else -> FunctionType(listOf(a2!!.a) + a2.b.map { it.b }, a4.b, a1.location + a4.b.location())
+        }
+
+
+    override fun visitTypeFactor2(a: Token): TypeFactor =
+        UpperIDType(StringLocation(a.lexeme, a.location))
+
+    override fun visitTypeFactor3(a: Token): TypeFactor =
+        LowerIDType(StringLocation(a.lexeme, a.location))
 }
 
 fun parse(scanner: Scanner, errors: Errors): List<Expression> {

@@ -15,7 +15,7 @@ Expression
     ;
 
 LetDeclaration
-    : LowerID ["(" [LowerID {"," LowerID}] ")"] "=" Expression
+    : LowerID [TypeParameters] [FunctionParameters] [TypeQualifier] "=" Expression
     ;
 
 OrExpression
@@ -56,7 +56,11 @@ Power
     ;
 
 Application
-    : Factor {"(" [Expression {"," Expression}] ")"}
+    : TypedExpression {"(" [Expression {"," Expression}] ")"}
+    ;
+
+TypedExpression
+    : Factor [":" TypeFactor]
     ;
 
 Factor
@@ -70,5 +74,23 @@ Factor
     | "False"
     | "!" Factor
     | "@" Factor
-    | "fn" "(" [LowerID {"," LowerID}] ")" ["="] Expression
+    | "fn" [TypeParameters] FunctionParameters [TypeQualifier] ["="] Expression
+    ;
+
+FunctionParameters
+    : "(" [LowerID [TypeQualifier] {"," LowerID [TypeQualifier]}] ")"
+    ;
+
+TypeParameters
+    : "[" LowerID {"," LowerID} "]"
+    ;
+
+TypeQualifier
+    : ":" TypeFactor
+    ;
+
+TypeFactor
+    : "(" [TypeFactor {"," TypeFactor}] ")" ["->" TypeFactor]
+    | UpperID
+    | LowerID
     ;
