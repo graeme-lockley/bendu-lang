@@ -37,7 +37,7 @@ Similarly all of the branches in an `if` statement need to have the same type.
 
 ```bendu-error
 > if True -> 1 | "hello"
-Unification Error: Int 1:24, String  1:28-1:34
+Unification Error: Int 1:24, String 1:28-34
 ```
 
 From this we can see that the `if` has the following type rule.

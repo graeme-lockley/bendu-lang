@@ -301,7 +301,7 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         a3: List<Tuple2<Token, Token>>,
         a4: Token
     ): List<StringLocation> =
-        listOf(StringLocation(a1.lexeme, a1.location)) +
+        listOf(StringLocation(a2.lexeme, a2.location)) +
                 a3.map { StringLocation(it.b.lexeme, it.b.location) }
 
     override fun visitTypeQualifier(a1: Token, a2: TypeFactor): TypeFactor =

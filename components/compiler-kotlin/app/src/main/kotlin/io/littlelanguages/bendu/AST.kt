@@ -1,7 +1,6 @@
 package io.littlelanguages.bendu
 
-import io.littlelanguages.bendu.typeinference.Subst
-import io.littlelanguages.bendu.typeinference.Type
+import io.littlelanguages.bendu.typeinference.*
 import io.littlelanguages.scanpiler.Location
 import io.littlelanguages.scanpiler.LocationCoordinate
 
@@ -259,20 +258,39 @@ enum class UnaryOp { Not, TypeOf }
 
 sealed class TypeFactor {
     abstract fun location(): Location
+
+    abstract fun toType(env: Environment): Type
 }
 
 data class LowerIDType(val v: StringLocation) : TypeFactor() {
     override fun location(): Location =
         v.location
+
+    override fun toType(env: Environment): Type {
+        val parameter = env.parameter(v.value)
+
+        if (parameter == null) {
+            env.errors.addError(UnknownTypeVariableError(v.value, v.location))
+            return typeError
+        } else {
+            return parameter
+        }
+    }
 }
 
 data class UpperIDType(val v: StringLocation) : TypeFactor() {
     override fun location(): Location =
         v.location
+
+    override fun toType(env: Environment): Type =
+        TCon(v.value, emptyList(), v.location)
 }
 
 data class FunctionType(val parameters: List<TypeFactor>, val returnType: TypeFactor, val location: Location) :
     TypeFactor() {
     override fun location(): Location =
         location
+
+    override fun toType(env: Environment): Type =
+        TArr(parameters.map { it.toType(env) }, returnType.toType(env))
 }

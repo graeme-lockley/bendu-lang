@@ -41,7 +41,11 @@ sealed class BenduError {
 
 data class IdentifierRedefinitionError(val id: StringLocation, val otherLocation: Location) : BenduError() {
     override fun printError(colours: Boolean) {
-        printMessage("Identifier Redefinition", "${id.value} declared at ${locationToString(otherLocation)} redeclared at ${locationToString(id.location)}", colours)
+        printMessage(
+            "Identifier Redefinition",
+            "${id.value} declared at ${locationToString(otherLocation)} redeclared at ${locationToString(id.location)}",
+            colours
+        )
     }
 }
 
@@ -80,8 +84,8 @@ data class SingleUnificationError(val e1: Type, val e2: Type) : BenduError() {
     override fun printError(colours: Boolean) {
         printMessage(
             "Unification Error",
-            "$e1${if (e1.location == null) "" else " " + locationToString(e1.location!!)}, $e2 ${
-                if (e2.location == null) "" else " " + locationToString(e2.location!!)
+            "$e1${if (e1.location == null) "" else " " + locationToString(e1.location!!)}, $e2${
+                if (e2.location == null) "" else " ${locationToString(e2.location!!)}"
             }",
             colours
         )
@@ -96,13 +100,23 @@ data class MultipleUnificationError(val e1: List<Type>, val e2: List<Type>) : Be
 
 data class UnificationError(val found: Type, val expected: Set<Type>) : BenduError() {
     override fun printError(colours: Boolean) {
-        printMessage("Unification Error", "found $found${if (found.location == null) "" else " ${locationToString(found.location!!)}"}, expected $expected", colours)
+        printMessage(
+            "Unification Error",
+            "found $found${if (found.location == null) "" else " ${locationToString(found.location!!)}"}, expected $expected",
+            colours
+        )
     }
 }
 
 data class UnknownIdentifierError(val id: StringLocation) : BenduError() {
     override fun printError(colours: Boolean) {
         printMessage("Unknown Identifier", "${id.value} at ${locationToString(id.location)}", colours)
+    }
+}
+
+data class UnknownTypeVariableError(val id: String, val location: Location) : BenduError() {
+    override fun printError(colours: Boolean) {
+        printMessage("Unknown Type Variable", "${id} at ${locationToString(location)}", colours)
     }
 }
 
@@ -117,5 +131,9 @@ private fun printMessage(kind: String, message: String, colours: Boolean) =
 private fun locationToString(location: Location): String =
     when (location) {
         is LocationCoordinate -> "${location.line}:${location.column}"
-        is LocationRange -> "${locationToString(location.start)}-${locationToString(location.end)}"
+        is LocationRange ->
+            if (location.start.line == location.end.line)
+                "${location.start.line}:${location.start.column}-${location.end.column}"
+            else
+                "${locationToString(location.start)}-${locationToString(location.end)}"
     }

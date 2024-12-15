@@ -36,7 +36,7 @@ private fun inferStatement(statement: Expression, env: Environment) {
             env.rebind(
                 term.id.value,
                 term.id.location,
-                Scheme(emptySet(), term.type!!)
+                env.generalise(term.type!!)
             )
         }
     }
@@ -112,9 +112,9 @@ private fun inferExpression(expression: Expression, env: Environment) {
                         when (it) {
                             is LetValueStatementTerm -> it.e
                             is LetFunctionStatementTerm -> LiteralFunctionExpression(
-                                emptyList(),
+                                it.typeVariables,
                                 it.parameters,
-                                null,
+                                it.typeQualifier,
                                 it.body
                             )
                         }
@@ -144,11 +144,23 @@ private fun inferExpression(expression: Expression, env: Environment) {
             val tv = env.nextVar()
             val domain = env.nextVars(expression.parameters.size)
 
+            expression.typeParameters.forEach { parameter ->
+                env.bindParameter(parameter.value, parameter.location)
+            }
+
             expression.parameters.forEachIndexed { index, parameter ->
                 env.bind(parameter.value, parameter.location, Scheme(emptySet(), domain[index]))
+
+                if (parameter.typeQualifier != null) {
+                    env.addConstraint(domain[index], parameter.typeQualifier.toType(env))
+                }
             }
 
             inferExpression(expression.body, env)
+
+            if (expression.returnTypeQualifier != null) {
+                env.addConstraint(expression.body.type!!, expression.returnTypeQualifier.toType(env))
+            }
 
             env.closeTypeEnv()
 
@@ -193,6 +205,14 @@ private fun inferExpression(expression: Expression, env: Environment) {
             inferPrintArguments(expression.es, env)
 
             expression.type = typeUnit.withLocation(expression.location())
+        }
+
+        is TypedExpression -> {
+            inferExpression(expression.e, env)
+
+            expression.type = expression.typeQualifier.toType(env)
+
+            env.addConstraint(expression.e.type!!, expression.type!!)
         }
 
         is UnaryExpression -> {
@@ -262,6 +282,7 @@ data class Environment(
     private val constraints: Constraints
 ) {
     private val typeEnvs = mutableListOf(typeEnv)
+    private val typeVariables = mutableListOf<MutableMap<String, Pair<Location, Type>>>(mutableMapOf())
 
     fun bind(name: String, location: Location, scheme: Scheme) {
         val binding = typeEnv[name]
@@ -277,15 +298,42 @@ data class Environment(
         typeEnv += (name to Binding(location, scheme))
     }
 
+    fun bindParameter(name: String, location: Location) {
+        val variables = typeVariables[typeVariables.size - 1]
+
+        if (variables.containsKey(name)) {
+            errors.addError(IdentifierRedefinitionError(StringLocation(name, location), variables[name]!!.first))
+        }
+
+        variables[name] = Pair(location, nextVar())
+    }
+
     fun openTypeEnv() {
         typeEnvs.add(typeEnv)
+        typeVariables.add(mutableMapOf())
     }
 
     fun closeTypeEnv() {
         typeEnv = typeEnvs.removeAt(typeEnvs.size - 1)
+        typeVariables.removeAt(typeVariables.size - 1)
     }
 
     operator fun get(name: String): Scheme? = typeEnv[name]?.scheme
+
+    fun parameter(name: String): Type? {
+        var i = typeVariables.size - 1
+        while (i >= 0) {
+            val type = typeVariables[i][name]
+
+            if (type != null) {
+                return type.second
+            }
+
+            i -= 1
+        }
+
+        return null
+    }
 
     fun solveConstraints(): Subst = constraints.solve(errors)
 
@@ -302,5 +350,7 @@ data class Environment(
     fun addConstraint(t1: Type, t2: Type) {
         constraints.add(t1, t2)
     }
-}
 
+    fun generalise(type: Type): Scheme =
+        typeEnv.generalise(type)
+}

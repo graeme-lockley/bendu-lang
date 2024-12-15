@@ -52,15 +52,15 @@ Multiplicative
     ;
 
 Power
-    : Application {"**" Application}
-    ;
-
-Application
-    : TypedExpression {"(" [Expression {"," Expression}] ")"}
+    : TypedExpression {"**" TypedExpression}
     ;
 
 TypedExpression
-    : Factor [":" TypeFactor]
+    : Application [":" TypeFactor]
+    ;
+
+Application
+    : Factor {"(" [Expression {"," Expression}] ")"}
     ;
 
 Factor
