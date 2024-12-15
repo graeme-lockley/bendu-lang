@@ -20,7 +20,7 @@ The following is the list of big features that need to be implemented.
 
 - [x] Basic types
 - [x] Functions
-- [ ] Type annotation
+- [x] Type annotation
 - [ ] Mutable variables
 - [ ] Control flow
 - [ ] Tuples
@@ -39,11 +39,13 @@ The following is the list of big features that need to be implemented.
 - [ ] Produce accurate runtime errors by including the line number in the error as
       well as the file name
 - [ ] Add a utility that will run tests and include the type signature in the result
+- [x] Pretty print type variables
 
 # Language
 
 ## assignment
 
+- [ ] Add qualifier into grammar
 - [ ] Implement mutable package variables
 - [ ] Implement mutable local variables
 - [ ] Implement mutable parameters variables

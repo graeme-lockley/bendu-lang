@@ -24,7 +24,7 @@ class InferenceTest {
     fun `infer literal function`() {
         assertInferExpressionEquals("fn(n) = n + 1", "(Int) -> Int")
         assertInferExpressionEquals("fn(n) = 2 * n", "(Int) -> Int")
-        assertInferExpressionEquals("fn(a, b) = a + b", "('5, '5) -> '5")
+        assertInferExpressionEquals("fn(a, b) = a + b", "[a] (a, a) -> a")
 
         assertInferExpressionEquals("fn(a, b) = a : Int + b", "(Int, Int) -> Int")
         assertInferExpressionEquals("fn(a: Int, b) = a + b", "(Int, Int) -> Int")
@@ -32,7 +32,7 @@ class InferenceTest {
         assertInferExpressionEquals("fn(a, b): Int = a + b", "(Int, Int) -> Int")
 
         // Good old composition function
-        assertInferExpressionEquals("fn(a, b) = fn(c) = a(b(c))", "(('6) -> '7, ('5) -> '6) -> ('5) -> '7")
+        assertInferExpressionEquals("fn(a, b) = fn(c) = a(b(c))", "[a, b, c] ((a) -> b, (c) -> a) -> (c) -> b")
         assertInferExpressionEquals("(fn(a, b) = fn(c) = a(b(c)))(fn(n) = n + 1, fn(n) = n * 2)", "(Int) -> Int")
 
         assertInferExpressionEquals(
@@ -53,7 +53,7 @@ class InferenceTest {
             "((Int) -> Int, (Int) -> Int) -> (Int) -> Int"
         )
 
-        assertInferFunctionEquals("let identity[a](n: a): a = n", "('6) -> '6")
+        assertInferFunctionEquals("let identity[a](n: a): a = n", "[a] (a) -> a")
 
         assertInferExpressionEquals(
             "let identity[a](n: a): a = n ; if identity(\"Hello\") == \"Hello\" -> identity(1) | identity(2)",

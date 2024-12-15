@@ -4,6 +4,30 @@ import io.littlelanguages.scanpiler.Location
 
 typealias Var = Int
 
+data class ToStringHelper(
+    private val bindings: MutableMap<Var, String> = mutableMapOf(),
+    private var counter: Int = 0
+) {
+    fun names(): List<String> =
+        bindings.entries.map { it.value }.sorted()
+
+    fun variable(name: Var): String {
+        val v = bindings[name]
+
+        if (v == null) {
+            val newV = if (counter < 26)
+                ('a' + counter).toString()
+            else
+                "t$counter"
+
+            counter += 1
+            bindings[name] = newV
+            return newV
+        } else
+            return v
+    }
+}
+
 sealed class Type(open val location: Location?) {
     abstract fun apply(s: Subst): Type
     abstract fun ftv(): Set<Var>
@@ -19,6 +43,19 @@ sealed class Type(open val location: Location?) {
     open fun isInt(): Boolean = false
     open fun isString(): Boolean = false
     open fun isUnit(): Boolean = false
+
+    override fun toString(): String {
+        val helper = ToStringHelper()
+        val type = toStringHelper(helper)
+
+        val names = helper.names()
+        return if (names.isEmpty())
+            type
+        else
+            "[${names.joinToString(", ")}] $type"
+    }
+
+    abstract fun toStringHelper(env: ToStringHelper): String
 }
 
 data class TVar(val name: Var, override val location: Location? = null) : Type(location) {
@@ -34,7 +71,11 @@ data class TVar(val name: Var, override val location: Location? = null) : Type(l
     override fun isSimilar(other: Type): Boolean =
         other is TVar && other.name == name
 
-    override fun toString(): String = "'$name"
+    override fun toString(): String =
+        super.toString()
+
+    override fun toStringHelper(env: ToStringHelper): String =
+        env.variable(name)
 }
 
 data class TCon(val name: String, val args: List<Type> = emptyList(), override val location: Location? = null) :
@@ -51,9 +92,20 @@ data class TCon(val name: String, val args: List<Type> = emptyList(), override v
         other is TCon && other.name == name && other.args.size == args.size && args.zip(other.args)
             .all { (a, b) -> a.isSimilar(b) }
 
-    override fun toString(): String = if (args.isEmpty()) name else "$name ${
-        args.joinToString(" ") { if (it is TCon && it.args.isNotEmpty() || it is TArr) "($it)" else "$it" }
-    }"
+    override fun toString(): String =
+        super.toString()
+
+    override fun toStringHelper(env: ToStringHelper): String =
+        if (args.isEmpty())
+            name
+        else
+            "$name ${
+                args.joinToString(" ") {
+                    if (it is TCon && it.args.isNotEmpty() || it is TArr) "(${it.toStringHelper(env)})" else it.toStringHelper(
+                        env
+                    )
+                }
+            }"
 
     override fun isBool(): Boolean =
         name == "Bool"
@@ -87,7 +139,11 @@ data class TTuple(val types: List<Type>, override val location: Location? = null
     override fun isSimilar(other: Type): Boolean =
         other is TTuple && other.types.size == types.size && types.zip(other.types).all { (a, b) -> a.isSimilar(b) }
 
-    override fun toString(): String = "(${types.joinToString(" * ")})"
+    override fun toString(): String =
+        super.toString()
+
+    override fun toStringHelper(env: ToStringHelper): String =
+        "(${types.joinToString(" * ") { it.toStringHelper(env) }})"
 }
 
 data class TArr(val domain: List<Type>, val range: Type, override val location: Location? = null) : Type(location) {
@@ -104,7 +160,10 @@ data class TArr(val domain: List<Type>, val range: Type, override val location: 
         other is TArr && domain.zip(other.domain).all { it.first.isSimilar(it.second) } && range.isSimilar(other.range)
 
     override fun toString(): String =
-        "(${domain.joinToString(", ")}) -> $range"
+        super.toString()
+
+    override fun toStringHelper(env: ToStringHelper): String =
+        "(${domain.joinToString(", ") { it.toStringHelper(env) }}) -> ${range.toStringHelper(env)}"
 
     override fun isFunction(): Boolean =
         true
