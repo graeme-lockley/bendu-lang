@@ -32,7 +32,13 @@ private fun inferStatement(statement: Expression, env: Environment) {
     statement.apply(env.solveConstraints(), env.errors)
 
     if (statement is LetStatement) {
-        statement.terms.forEach { term -> env.rebind(term.id.value, term.id.location, Scheme(emptySet(), term.e.type!!)) }
+        statement.terms.forEach { term ->
+            env.rebind(
+                term.id.value,
+                term.id.location,
+                Scheme(emptySet(), term.type!!)
+            )
+        }
     }
 }
 
@@ -94,12 +100,18 @@ private fun inferExpression(expression: Expression, env: Environment) {
             expression.terms.forEachIndexed { i, term ->
                 val scheme = Scheme(emptySet(), tv[i])
                 env.bind(term.id.value, term.id.location, scheme)
+                expression.terms[i].type = tv[i]
             }
 
             val declarationType = fix(
                 LiteralFunctionExpression(
                     listOf(StringLocation("_bob", expression.location())),
-                    LiteralTupleExpression(expression.terms.map { it.e })
+                    LiteralTupleExpression(expression.terms.map {
+                        when (it) {
+                            is LetValueStatementTerm -> it.e
+                            is LetFunctionStatementTerm -> LiteralFunctionExpression(it.parameters, it.body)
+                        }
+                    })
                 ), env
             )
             env.addConstraint(declarationType, TTuple(tv))

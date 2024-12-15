@@ -30,8 +30,10 @@ class InferenceTest {
         assertInferExpressionEquals("fn(a, b) = fn(c) = a(b(c))", "(('6) -> '7, ('5) -> '6) -> ('5) -> '7")
         assertInferExpressionEquals("(fn(a, b) = fn(c) = a(b(c)))(fn(n) = n + 1, fn(n) = n * 2)", "(Int) -> Int")
 
-        assertInferExpressionEquals("let compose(f, g) = fn(n) = f(g(n)) ;" +
-                "compose(fn(n) = 2 * n, fn(n) n + 1)", "(Int) -> Int")
+        assertInferExpressionEquals(
+            "let compose(f, g) = fn(n) = f(g(n)) ;" +
+                    "compose(fn(n) = 2 * n, fn(n) n + 1)", "(Int) -> Int"
+        )
     }
 
     @Test
@@ -51,7 +53,11 @@ class InferenceTest {
 
     @Test
     fun `infer known lower ID`() {
-        assertInferExpressionEquals("a", "Int", emptyTypeEnv + ("a" to Binding(location, emptyTypeEnv.generalise(typeInt))))
+        assertInferExpressionEquals(
+            "a",
+            "Int",
+            emptyTypeEnv + ("a" to Binding(location, emptyTypeEnv.generalise(typeInt)))
+        )
     }
 
     @Test
@@ -128,8 +134,16 @@ class InferenceTest {
         assertInferFunctionEquals("let add(a, b) = a + b + 1", "(Int, Int) -> Int")
         assertInferFunctionEquals("let add(a, b) = a + b + 1.0", "(Float, Float) -> Float")
         assertInferFunctionEquals("let f(x) = if x == 0 -> 0 | x + f(x - 1)", "(Int) -> Int")
-        assertInferFunctionEquals("let f(x) = g(x)", "(Int) -> Int", emptyTypeEnv + ("g" to Binding(location, Scheme(setOf(), TArr(listOf(typeInt), typeInt)))))
-        assertInferFunctionEquals("let f(x) = g(1) + x", "(Int) -> Int", emptyTypeEnv + ("g" to Binding(location, Scheme(setOf(), TArr(listOf(typeInt), typeInt)))))
+        assertInferFunctionEquals(
+            "let f(x) = g(x)",
+            "(Int) -> Int",
+            emptyTypeEnv + ("g" to Binding(location, Scheme(setOf(), TArr(listOf(typeInt), typeInt))))
+        )
+        assertInferFunctionEquals(
+            "let f(x) = g(1) + x",
+            "(Int) -> Int",
+            emptyTypeEnv + ("g" to Binding(location, Scheme(setOf(), TArr(listOf(typeInt), typeInt))))
+        )
     }
 }
 
@@ -146,7 +160,7 @@ private fun assertInferFunctionEquals(expr: String, expected: String, typeEnv: T
     val ast = infer(expr, errors = errors, typeEnv = typeEnv)
 
     assertTrue(errors.hasNoErrors())
-    assertEquals(expected, (ast.last() as LetStatement).terms[0].e.type.toString())
+    assertEquals(expected, (ast.last() as LetStatement).terms[0].type!!.toString())
 }
 
 private fun inferErrorExpression(expr: String, typeEnv: TypeEnv = emptyTypeEnv): Errors {

@@ -90,22 +90,20 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         a4: Expression
     ): LetStatementTerm =
         if (a2 == null)
-            LetStatementTerm(StringLocation(a1.lexeme, a1.location), a4, a1.location + a4.location())
+            LetValueStatementTerm(StringLocation(a1.lexeme, a1.location), a4, a1.location + a4.location())
         else
-            LetStatementTerm(
+            LetFunctionStatementTerm(
                 StringLocation(a1.lexeme, a1.location),
-                LiteralFunctionExpression(
-                    if (a2.b == null)
-                        emptyList()
-                    else
-                        listOf(StringLocation(a2.b.a.lexeme, a2.b.a.location)) + a2.b.b.map {
-                            StringLocation(
-                                it.b.lexeme,
-                                it.b.location
-                            )
-                        },
-                    a4
-                ),
+                if (a2.b == null)
+                    emptyList()
+                else
+                    listOf(StringLocation(a2.b.a.lexeme, a2.b.a.location)) + a2.b.b.map {
+                        StringLocation(
+                            it.b.lexeme,
+                            it.b.location
+                        )
+                    },
+                a4,
                 a1.location + a4.location()
             )
 

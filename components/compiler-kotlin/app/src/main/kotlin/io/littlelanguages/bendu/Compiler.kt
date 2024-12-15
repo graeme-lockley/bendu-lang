@@ -264,7 +264,7 @@ private class Compiler(val errors: Errors) {
 
         expression.guards.forEach { guard ->
             if (guardJump != null) {
-                byteBuilder.writeIntAtPosition(guardJump, byteBuilder.size())
+                byteBuilder.writeIntAtPosition(guardJump!!, byteBuilder.size())
             }
             compileExpression(guard.first)
             byteBuilder.appendInstruction(Instructions.JMP_FALSE)
@@ -278,7 +278,7 @@ private class Compiler(val errors: Errors) {
         }
 
         if (guardJump != null) {
-            byteBuilder.writeIntAtPosition(guardJump, byteBuilder.size())
+            byteBuilder.writeIntAtPosition(guardJump!!, byteBuilder.size())
         }
         if (expression.elseBranch != null) {
             compileExpression(expression.elseBranch)
@@ -296,7 +296,7 @@ private class Compiler(val errors: Errors) {
 
     private fun compileLetExpression(e: LetStatement, keepResult: Boolean) {
         e.terms.forEach { t ->
-            if (t.e is LiteralFunctionExpression) {
+            if (t is LetFunctionStatementTerm) {
                 symbolTable.bind(t.id.value, FunctionBinding())
             }
         }
@@ -304,39 +304,43 @@ private class Compiler(val errors: Errors) {
     }
 
     private fun compileLetStatementTerm(e: LetStatementTerm, keepResult: Boolean) {
-        if (e.e is LiteralFunctionExpression) {
-            byteBuilder.appendInstruction(Instructions.JMP)
-            val jumpOffset = byteBuilder.size()
-            byteBuilder.appendInt(0)
-
-            symbolTable.openScope()
-
-            e.e.parameters.forEach { parameter ->
-                symbolTable.bindPackageBinding(parameter.value)
+        when (e) {
+            is LetValueStatementTerm -> {
+                compileExpression(e.e)
+                val binding = symbolTable.bindPackageBinding(e.id.value)
+                byteBuilder.appendInstruction(Instructions.STORE)
+                byteBuilder.appendInt(0)
+                byteBuilder.appendInt(binding.offset)
             }
 
-            symbolTable.find(e.id.value)!!.let {
-                if (it is FunctionBinding) {
-                    it.offset = byteBuilder.size()
+            is LetFunctionStatementTerm -> {
+                byteBuilder.appendInstruction(Instructions.JMP)
+                val jumpOffset = byteBuilder.size()
+                byteBuilder.appendInt(0)
+
+                symbolTable.openScope()
+
+                e.parameters.forEach { parameter ->
+                    symbolTable.bindPackageBinding(parameter.value)
                 }
+
+                symbolTable.find(e.id.value)!!.let {
+                    if (it is FunctionBinding) {
+                        it.offset = byteBuilder.size()
+                    }
+                }
+
+                compileExpression(e.body)
+                byteBuilder.appendInstruction(Instructions.RET)
+
+                byteBuilder.writeIntAtPosition(jumpOffset, byteBuilder.size())
+
+                symbolTable.closeScope()
             }
+        }
 
-            compileExpression(e.e.body)
-            byteBuilder.appendInstruction(Instructions.RET)
-
-            byteBuilder.writeIntAtPosition(jumpOffset, byteBuilder.size())
-
-            symbolTable.closeScope()
-        } else {
-            compileExpression(e.e)
-            val binding = symbolTable.bindPackageBinding(e.id.value)
-            byteBuilder.appendInstruction(Instructions.STORE)
-            byteBuilder.appendInt(0)
-            byteBuilder.appendInt(binding.offset)
-
-            if (keepResult) {
-                byteBuilder.appendInstruction(Instructions.PUSH_UNIT_LITERAL)
-            }
+        if (keepResult) {
+            byteBuilder.appendInstruction(Instructions.PUSH_UNIT_LITERAL)
         }
     }
 
@@ -475,15 +479,19 @@ private class Compiler(val errors: Errors) {
                 byteBuilder.appendInt(2)
                 byteBuilder.append("fn".toByteArray())
                 byteBuilder.appendInstruction(Instructions.PRINT_STRING)
-            }
-            else if (e.type!!.isInt())
+            } else if (e.type!!.isInt())
                 byteBuilder.appendInstruction(Instructions.PRINT_I32)
             else if (e.type!!.isString())
                 byteBuilder.appendInstruction(Instructions.PRINT_STRING)
             else if (e.type!!.isUnit())
                 byteBuilder.appendInstruction(Instructions.PRINT_UNIT)
             else
-                errors.addError(UnificationError(e.type!!.withLocation(e.location()), setOf(typeBool, typeChar, typeFloat, typeInt, typeString)))
+                errors.addError(
+                    UnificationError(
+                        e.type!!.withLocation(e.location()),
+                        setOf(typeBool, typeChar, typeFloat, typeInt, typeString)
+                    )
+                )
         }
     }
 
