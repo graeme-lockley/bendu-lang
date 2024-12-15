@@ -170,6 +170,18 @@ class InferenceTest {
             emptyTypeEnv + ("g" to Binding(location, Scheme(setOf(), TArr(listOf(typeInt), typeInt))))
         )
     }
+
+    @Test
+    fun `infer value declaration`() {
+        assertInferFunctionEquals("let a = 1", "Int")
+        assertInferFunctionEquals("let a = 1.0", "Float")
+        assertInferFunctionEquals("let a = 'x'", "Char")
+        assertInferFunctionEquals("let a = \"Hello\"", "String")
+        assertInferFunctionEquals("let a = True", "Bool")
+        assertInferFunctionEquals("let a = ()", "Unit")
+
+        inferErrorExpression("let a: Int = 1.0")
+    }
 }
 
 private fun assertInferExpressionEquals(expr: String, expected: String, typeEnv: TypeEnv = emptyTypeEnv) {

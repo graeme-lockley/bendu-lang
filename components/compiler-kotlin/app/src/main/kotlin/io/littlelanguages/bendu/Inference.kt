@@ -101,6 +101,10 @@ private fun inferExpression(expression: Expression, env: Environment) {
                 val scheme = Scheme(emptySet(), tv[i])
                 env.bind(term.id.value, term.id.location, scheme)
                 expression.terms[i].type = tv[i]
+
+                if (term is LetValueStatementTerm && term.typeQualifier != null) {
+                    env.addConstraint(tv[i], term.typeQualifier!!.toType(env))
+                }
             }
 
             val declarationType = fix(
