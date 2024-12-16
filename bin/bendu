@@ -9,36 +9,44 @@ let projectHome =
    if Str.startsWith?(rebo.args[1], "/") -> Path.dir(rebo.args[1]) + "/.."
    | (Path.join(cwd(), rebo.args[1]) |> Path.dir()) + "/.."
 
-if len(rebo.args) != 3 -> {
-   println("Usage: bendu <file>")
+if len(rebo.args) == 4 && rebo.args[2] == "dis" -> {
+   let result = rebo.os.exec(["java", "-jar", projectHome + "/components/compiler-kotlin/app/build/libs/app.jar", "dis", "--file", rebo.args[3]])
+   print(result.stdout + result.stderr)
+
+   exit(result.code)
+}
+| len(rebo.args) == 3 -> {
+   let fileName = rebo.args[2]
+
+   if !Str.endsWith?(fileName, ".bendu") -> {
+      println("File \"", fileName, "\" must have a .bendu extension")
+      exit(1)
+   }
+
+   let targetName = Str.dropEnd(fileName, 6) + ".bc"
+
+   if !fexists(targetName) || rebo.os.fstat(targetName).mtime < rebo.os.fstat(fileName).mtime -> {   
+      print(ansi.foreground.green, "Info: ", "\x27;[37m", "Compiling ", fileName, " to ", targetName)
+
+      let startTime = milliTimestamp()
+      let result = rebo.os.exec(["java", "-jar", projectHome + "/components/compiler-kotlin/app/build/libs/app.jar", "--script", fileName])
+      let endTime = milliTimestamp()
+
+      println(" (", endTime - startTime, "ms)", ansi.control.reset)
+
+      if result.code != 0 || result.stderr != "" -> {
+         println(ansi.foreground.red, "Error: ", ansi.control.reset, result.stderr)
+         exit(1)
+      }
+   }
+
+   let execResult = rebo.os.exec([projectHome + "/components/bci-zig/zig-out/bin/bci-zig", targetName])
+   print(execResult.stdout + execResult.stderr)
+
+   exit(execResult.code)
+}
+| {
+   println("Usage: bendu [dis] <file>")
    exit(1)
 }
 
-let fileName = rebo.args[2]
-
-if !Str.endsWith?(fileName, ".bendu") -> {
-    println("File \"", fileName, "\" must have a .bendu extension")
-    exit(1)
-}
-
-let targetName = Str.dropEnd(fileName, 6) + ".bc"
-
-if !fexists(targetName) || rebo.os.fstat(targetName).mtime < rebo.os.fstat(fileName).mtime -> {   
-   print(ansi.foreground.green, "Info: ", "\x27;[37m", "Compiling ", fileName, " to ", targetName)
-
-   let startTime = milliTimestamp()
-   let result = rebo.os.exec(["java", "-jar", projectHome + "/components/compiler-kotlin/app/build/libs/app.jar", "--script", fileName])
-   let endTime = milliTimestamp()
-
-   println(" (", endTime - startTime, "ms)", ansi.control.reset)
-
-   if result.code != 0 || result.stderr != "" -> {
-      println(ansi.foreground.red, "Error: ", ansi.control.reset, result.stderr)
-      exit(1)
-   }
-}
-
-let execResult = rebo.os.exec([projectHome + "/components/bci-zig/zig-out/bin/bci-zig", targetName])
-print(execResult.stdout + execResult.stderr)
-
-exit(execResult.code)

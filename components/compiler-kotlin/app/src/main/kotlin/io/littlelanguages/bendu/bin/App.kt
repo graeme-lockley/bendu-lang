@@ -86,7 +86,13 @@ private fun assembleScript(expression: String, startLineNumber: Int): List<Strin
                     val valuePart = line.substring(0, indexOfColon).trim()
                     val typePart = line.substring(indexOfColon + 1).trim()
                     if (valuePart == "fn") {
-                        script.add("if @$variableName != \"$typePart\" -> abort(\"Error: Line ${index + startLineNumber}: Expected ${markupLiteral(line)}, got fn: \", @$variableName)")
+                        script.add(
+                            "if @$variableName != \"$typePart\" -> abort(\"Error: Line ${index + startLineNumber}: Expected ${
+                                markupLiteral(
+                                    line
+                                )
+                            }, got fn: \", @$variableName)"
+                        )
                     } else {
                         script.add(
                             "if $variableName != $valuePart || @$variableName != \"$typePart\" -> abort(\"Error: Line ${index + startLineNumber}: Expected ${
@@ -153,27 +159,37 @@ private fun processDis(args: Array<String>) {
     val parser = ArgParser("bendu-compiler dis")
     val expression by parser.option(ArgType.String, description = "Test expression to be compiled and disassembled")
         .default("1 + 1")
+    val file by parser.option(ArgType.String, description = "Bytecode file to be disassembled")
 
     parser.parse(args)
 
-    val script = assembleDisScript(expression).joinToString("\n")
+    if (file != null) {
+        disassembleFile(file!!)
+    } else {
+        val script = assembleDisScript(expression).joinToString("\n")
+        val bc = compileExpression(script)
 
-    disassembleExpression(script)
+
+        disassembleExpression(bc)
+    }
+}
+private fun disassembleFile(file: String) {
+    val bc = File(file).readBytes()
+
+    disassembleExpression(bc)
 }
 
 private fun assembleDisScript(expression: String): List<String> {
     val script = mutableListOf<String>()
 
-    expression.split("\\n").forEachIndexed { index, it ->
+    expression.split("\\n").forEach { it ->
         script.add(it.trim())
     }
 
     return script
 }
 
-private fun disassembleExpression(expression: String) {
-    val bc = compileExpression(expression)
-
+private fun disassembleExpression(bc: ByteArray) {
     var offset = 0
 
     while (offset < bc.size) {
