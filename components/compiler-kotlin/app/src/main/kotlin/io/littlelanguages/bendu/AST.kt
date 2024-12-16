@@ -109,7 +109,7 @@ sealed class LetStatementTerm(
     open val id: StringLocation,
     open val mutable: Boolean,
     open val typeVariables: List<StringLocation>,
-    open val typeQualifier: TypeFactor?,
+    open val typeQualifier: TypeTerm?,
     open val location: Location,
     open var type: Type? = null
 ) {
@@ -120,7 +120,7 @@ data class LetValueStatementTerm(
     override val id: StringLocation,
     override val mutable: Boolean,
     override val typeVariables: List<StringLocation>,
-    override val typeQualifier: TypeFactor?,
+    override val typeQualifier: TypeTerm?,
     val e: Expression,
     override val location: Location, override var type: Type? = null
 ) : LetStatementTerm(id, mutable, typeVariables, typeQualifier, location, type) {
@@ -135,7 +135,7 @@ data class LetFunctionStatementTerm(
     override val mutable: Boolean,
     override val typeVariables: List<StringLocation>,
     val parameters: List<TypeQualifiedIDLocation>,
-    override val typeQualifier: TypeFactor?,
+    override val typeQualifier: TypeTerm?,
     val body: Expression,
     override val location: Location,
     override var type: Type? = null
@@ -169,7 +169,7 @@ data class LiteralFloatExpression(val v: FloatLocation, override var type: Type?
 data class LiteralFunctionExpression(
     val typeParameters: List<StringLocation>,
     val parameters: List<TypeQualifiedIDLocation>,
-    val returnTypeQualifier: TypeFactor?,
+    val returnTypeQualifier: TypeTerm?,
     val body: Expression,
     override var type: Type? = null
 ) : Expression(type) {
@@ -230,7 +230,7 @@ data class PrintlnStatement(val es: List<Expression>, private val location: Loca
         location
 }
 
-data class TypedExpression(val e: Expression, val typeQualifier: TypeFactor, override var type: Type? = null) :
+data class TypedExpression(val e: Expression, val typeQualifier: TypeTerm, override var type: Type? = null) :
     Expression(type) {
     override fun apply(s: Subst, errors: Errors) {
         super.apply(s, errors)
@@ -278,20 +278,20 @@ data class TypeQualifiedIDLocation(
     val value: String,
     val location: Location,
     val mutable: Boolean,
-    val typeQualifier: TypeFactor?
+    val typeQualifier: TypeTerm?
 )
 
 enum class Op { Or, And, Plus, Minus, Multiply, Divide, Modulo, Power, EqualEqual, NotEqual, LessThan, LessEqual, GreaterThan, GreaterEqual }
 enum class UnaryOp { Not, TypeOf }
 
-sealed class TypeFactor {
+sealed class TypeTerm {
     abstract fun location(): Location
 
     abstract fun toType(env: Environment): Type
 }
 
-data class FunctionType(val parameters: List<TypeFactor>, val returnType: TypeFactor, val location: Location) :
-    TypeFactor() {
+data class FunctionType(val parameters: List<TypeTerm>, val returnType: TypeTerm, val location: Location) :
+    TypeTerm() {
     override fun location(): Location =
         location
 
@@ -299,7 +299,7 @@ data class FunctionType(val parameters: List<TypeFactor>, val returnType: TypeFa
         TArr(parameters.map { it.toType(env) }, returnType.toType(env))
 }
 
-data class LowerIDType(val v: StringLocation) : TypeFactor() {
+data class LowerIDType(val v: StringLocation) : TypeTerm() {
     override fun location(): Location =
         v.location
 
@@ -315,7 +315,7 @@ data class LowerIDType(val v: StringLocation) : TypeFactor() {
     }
 }
 
-data class TupleType(val types: List<TypeFactor>, val location: Location) : TypeFactor() {
+data class TupleType(val types: List<TypeTerm>, val location: Location) : TypeTerm() {
     override fun location(): Location =
         location
 
@@ -323,7 +323,7 @@ data class TupleType(val types: List<TypeFactor>, val location: Location) : Type
         TTuple(types.map { it.toType(env) })
 }
 
-data class UpperIDType(val v: StringLocation) : TypeFactor() {
+data class UpperIDType(val v: StringLocation) : TypeTerm() {
     override fun location(): Location =
         v.location
 
