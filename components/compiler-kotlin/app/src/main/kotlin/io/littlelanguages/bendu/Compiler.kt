@@ -2,7 +2,6 @@ package io.littlelanguages.bendu
 
 import io.littlelanguages.bendu.compiler.*
 import io.littlelanguages.bendu.typeinference.*
-import io.littlelanguages.scanpiler.Location
 
 fun compile(script: List<Expression>, errors: Errors): ByteArray {
     val compiler = Compiler(errors)
