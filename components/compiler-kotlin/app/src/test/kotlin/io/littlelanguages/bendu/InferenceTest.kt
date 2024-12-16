@@ -72,6 +72,11 @@ class InferenceTest {
     }
 
     @Test
+    fun `infer literal tuple`() {
+        assertInferExpressionEquals("\"Hello\", 1", "String * Int")
+    }
+
+    @Test
     fun `infer literal unit`() {
         assertInferExpressionEquals("()", "Unit")
     }

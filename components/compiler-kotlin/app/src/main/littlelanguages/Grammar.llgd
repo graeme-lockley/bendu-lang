@@ -5,17 +5,21 @@ Program
     ;
 
 Expression
+    : StatementExpression {"," StatementExpression}
+    ;
+
+StatementExpression
     : "let" LetDeclaration {"and" LetDeclaration}
-    | "print" "(" [Expression {"," Expression}] ")"
-    | "println" "(" [Expression {"," Expression}] ")"
-    | "abort" "(" [Expression {"," Expression}] ")"
-    | "if" ["|"] Expression "->" Expression {"|" Expression ["->" Expression]}
-    | "while" Expression "->" Expression
+    | "print" "(" [StatementExpression {"," StatementExpression}] ")"
+    | "println" "(" [StatementExpression {"," StatementExpression}] ")"
+    | "abort" "(" [StatementExpression {"," StatementExpression}] ")"
+    | "if" ["|"] StatementExpression "->" Expression {"|" StatementExpression ["->" Expression]}
+    | "while" StatementExpression "->" Expression
     | OrExpression
     ;
 
 LetDeclaration
-    : LowerID ["!"] [TypeParameters] [FunctionParameters] [TypeQualifier] "=" Expression
+    : LowerID ["!"] [TypeParameters] [FunctionParameters] [TypeQualifier] "=" StatementExpression
     ;
 
 OrExpression
@@ -60,7 +64,7 @@ TypedExpression
     ;
 
 Application
-    : Assignment {"(" [Expression {"," Expression}] ")"}
+    : Assignment {"(" [StatementExpression {"," StatementExpression}] ")"}
     ;
 
 Assignment
@@ -78,7 +82,7 @@ Factor
     | "False"
     | "!" Factor
     | "@" Factor
-    | "fn" [TypeParameters] FunctionParameters [TypeQualifier] ["="] Expression
+    | "fn" [TypeParameters] FunctionParameters [TypeQualifier] ["="] StatementExpression
     | "{" {Expression [";"]} "}"
     ;
 

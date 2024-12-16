@@ -65,6 +65,26 @@
       "description": "Adds a specified char to the stack."
     },
     {
+      "name": "PUSH_TUPLE",
+      "args": [
+        {
+          "name": "arity",
+          "type": "u32"
+        }
+      ],
+      "description": "Creates a tuple from the top arity number of values on the stack."
+    },
+    {
+      "name": "PUSH_TUPLE_COMPONENT",
+      "args": [
+        {
+          "name": "index",
+          "type": "u32"
+        }
+      ],
+      "description": "Pushes the component at the specified index of the tuple at the top of the stack."
+    },
+    {
       "name": "PUSH_U8_LITERAL",
       "args": [
         {

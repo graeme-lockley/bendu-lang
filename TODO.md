@@ -21,8 +21,8 @@ The following is the list of big features that need to be implemented.
 - [x] Basic types
 - [x] Functions
 - [x] Type annotation
-- [ ] Mutable variables
-- [ ] Control flow
+- [x] Mutable variables
+- [x] Control flow
 - [ ] Tuples
 - [ ] Arrays
 - [ ] Records
@@ -45,10 +45,10 @@ The following is the list of big features that need to be implemented.
 
 ## assignment
 
-- [ ] Add qualifier into grammar
-- [ ] Implement mutable package variables
-- [ ] Implement mutable local variables
-- [ ] Implement mutable parameters variables
+- [x] Add qualifier into grammar
+- [x] Implement mutable package variables
+- [x] Implement mutable local variables
+- [x] Implement mutable parameters variables
 
 ## if
 
@@ -56,11 +56,11 @@ The following is the list of big features that need to be implemented.
 
 ## Sequence Blocks
 
-- [ ] Implement the sequence block
+- [x] Implement the sequence block
 
 ## while
 
-- [ ] Implement the `while` expression in the BC interpreter
+- [x] Implement the `while` expression in the BC interpreter
 
 # Data Types
 
@@ -125,6 +125,14 @@ The following is the list of big features that need to be implemented.
 - [x] Implement the `String` type in the BC interpreter
 - [x] Implement +
 - [x] Implement ==, !=, <, <=, >, >=
+
+# Tuple
+
+- [x] Parse literal
+- [x] Parse type
+- [ ] Compile literal
+- [ ] Print tuple value
+- [ ] Implement == and !=
 
 ## Unit
 

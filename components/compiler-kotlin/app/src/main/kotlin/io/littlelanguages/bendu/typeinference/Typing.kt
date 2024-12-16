@@ -130,26 +130,6 @@ data class TCon(val name: String, val args: List<Type> = emptyList(), override v
         name == "Unit"
 }
 
-data class TTuple(val types: List<Type>, override val location: Location? = null) : Type(location) {
-    override fun apply(s: Subst): Type =
-        TTuple(types.map { it.apply(s) })
-
-    override fun ftv(): Set<Var> =
-        types.fold(emptySet()) { acc, t -> acc + t.ftv() }
-
-    override fun withLocation(location: Location?): Type =
-        TTuple(types, location)
-
-    override fun isSimilar(other: Type): Boolean =
-        other is TTuple && other.types.size == types.size && types.zip(other.types).all { (a, b) -> a.isSimilar(b) }
-
-    override fun toString(): String =
-        super.toString()
-
-    override fun toStringHelper(env: ToStringHelper): String =
-        "(${types.joinToString(" * ") { it.toStringHelper(env) }})"
-}
-
 data class TArr(val domain: List<Type>, val range: Type, override val location: Location? = null) : Type(location) {
     override fun apply(s: Subst): Type =
         TArr(domain.map { it.apply(s) }, range.apply(s))
@@ -171,6 +151,26 @@ data class TArr(val domain: List<Type>, val range: Type, override val location: 
 
     override fun isFunction(): Boolean =
         true
+}
+
+data class TTuple(val types: List<Type>, override val location: Location? = null) : Type(location) {
+    override fun apply(s: Subst): Type =
+        TTuple(types.map { it.apply(s) })
+
+    override fun ftv(): Set<Var> =
+        types.fold(emptySet()) { acc, t -> acc + t.ftv() }
+
+    override fun withLocation(location: Location?): Type =
+        TTuple(types, location)
+
+    override fun isSimilar(other: Type): Boolean =
+        other is TTuple && other.types.size == types.size && types.zip(other.types).all { (a, b) -> a.isSimilar(b) }
+
+    override fun toString(): String =
+        super.toString()
+
+    override fun toStringHelper(env: ToStringHelper): String =
+        types.joinToString(" * ") { it.toStringHelper(env) }
 }
 
 val typeError = TCon("Error")
