@@ -3,6 +3,8 @@ package io.littlelanguages.bendu
 import io.littlelanguages.bendu.typeinference.*
 import io.littlelanguages.scanpiler.Location
 
+private const val LITERAL_FIX_NAME = "[bob]"
+
 fun infer(
     script: String,
     typeEnv: TypeEnv = emptyTypeEnv,
@@ -103,7 +105,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             env.openTypeEnv()
 
             expression.es.forEach { e ->
-                inferStatement(e, env)
+                inferExpression(e, env)
             }
 
             env.closeTypeEnv()
@@ -148,7 +150,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             val declarationType = fix(
                 LiteralFunctionExpression(
                     emptyList(),
-                    listOf(TypeQualifiedIDLocation("_bob", expression.location(), false, null)),
+                    listOf(TypeQualifiedIDLocation(LITERAL_FIX_NAME, expression.location(), false, null)),
                     null,
                     LiteralTupleExpression(expression.terms.map {
                         when (it) {
@@ -191,10 +193,12 @@ private fun inferExpression(expression: Expression, env: Environment) {
             }
 
             expression.parameters.forEachIndexed { index, parameter ->
-                env.bind(parameter.value, parameter.location, parameter.mutable, Scheme(emptySet(), domain[index]))
+                if (parameter.value != LITERAL_FIX_NAME) {
+                    env.bind(parameter.value, parameter.location, parameter.mutable, Scheme(emptySet(), domain[index]))
 
-                if (parameter.typeQualifier != null) {
-                    env.addConstraint(domain[index], parameter.typeQualifier.toType(env))
+                    if (parameter.typeQualifier != null) {
+                        env.addConstraint(domain[index], parameter.typeQualifier.toType(env))
+                    }
                 }
             }
 
