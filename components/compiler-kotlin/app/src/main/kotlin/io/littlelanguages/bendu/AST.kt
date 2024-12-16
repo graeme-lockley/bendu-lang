@@ -62,6 +62,16 @@ data class BinaryExpression(
         e1.location() + e2.location()
 }
 
+data class BlockExpression(val es: List<Expression>, val location: Location, override var type: Type? = null) : Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        super.apply(s, errors)
+        es.forEach { it.apply(s, errors) }
+    }
+
+    override fun location(): Location =
+        location
+}
+
 data class IfExpression(
     val guards: List<Pair<Expression, Expression>>,
     val elseBranch: Expression?,
@@ -266,7 +276,7 @@ data class StringLocation(val value: String, val location: Location)
 data class OpLocation(val op: Op, val location: Location)
 data class UnaryOpLocation(val op: UnaryOp, val location: Location)
 
-data class TypeQualifiedIDLocation(val value: String, val location: Location, val typeQualifier: TypeFactor?)
+data class TypeQualifiedIDLocation(val value: String, val location: Location, val mutable: Boolean, val typeQualifier: TypeFactor?)
 
 enum class Op { Or, And, Plus, Minus, Multiply, Divide, Modulo, Power, EqualEqual, NotEqual, LessThan, LessEqual, GreaterThan, GreaterEqual }
 enum class UnaryOp { Not, TypeOf }

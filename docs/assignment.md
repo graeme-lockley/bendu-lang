@@ -118,3 +118,14 @@ For completeness, attempting to assign a value to an immutable function will res
 
 Assignment Error: Attempt to assign a value at 2:13-15 to inc declared at 1:5-7
 ```
+
+## Parameters
+
+Using the same `!` suffix qualifier, it is possible to define a parameter as mutable and then, in code, to change it.
+
+```bendu-repl
+> let inc(n!) = { n := n + 1 ; n }
+
+> inc(1)
+2: Int
+```

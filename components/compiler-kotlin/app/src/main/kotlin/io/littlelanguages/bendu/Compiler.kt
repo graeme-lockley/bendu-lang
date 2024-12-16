@@ -16,22 +16,22 @@ private class Compiler(val errors: Errors) {
 
     fun compile(script: List<Expression>) {
         if (errors.hasNoErrors()) {
-            compileStatements(script)
+            compileStatements(script, true)
 
             symbolTable.closeScope()
         }
     }
 
-    private fun compileStatements(statements: List<Expression>) {
+    private fun compileStatements(statements: List<Expression>, keepResult: Boolean) {
         val numberOfStatements = statements.size
 
         if (numberOfStatements == 0) {
             byteBuilder.appendInstruction(Instructions.PUSH_UNIT_LITERAL)
         } else {
             statements.forEachIndexed { index, statement ->
-                val keepResult = index == numberOfStatements - 1
+                val keepExpressionResult = keepResult && index == numberOfStatements - 1
 
-                compileExpression(statement, keepResult)
+                compileExpression(statement, keepExpressionResult)
             }
         }
     }
@@ -42,6 +42,7 @@ private class Compiler(val errors: Errors) {
             is ApplyExpression -> compileApplyExpression(expression, keepResult)
             is AssignmentExpression -> compileAssignmentExpression(expression, keepResult)
             is BinaryExpression -> compileBinaryExpression(expression, keepResult)
+            is BlockExpression -> compileStatements(expression.es, keepResult)
             is IfExpression -> compileIfExpression(expression, keepResult)
             is LetStatement -> compileLetExpression(expression, keepResult)
             is LiteralBoolExpression -> compileLiteralBoolExpression(expression, keepResult)

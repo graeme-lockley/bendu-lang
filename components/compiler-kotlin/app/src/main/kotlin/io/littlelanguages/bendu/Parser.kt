@@ -8,7 +8,7 @@ import io.littlelanguages.data.Union3
 import java.io.StringReader
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, Expression, List<TypeQualifiedIDLocation>, List<StringLocation>, TypeFactor, TypeFactor> {
+    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, Expression, List<TypeQualifiedIDLocation>, TypeQualifiedIDLocation, List<StringLocation>, TypeFactor, TypeFactor> {
     override fun visitProgram(a: List<Tuple2<Expression, Token?>>): List<Expression> =
         a.map { it.a }
 
@@ -82,6 +82,7 @@ private class ParserVisitor(val errors: Errors = Errors()) :
 
     override fun visitExpression7(a: Expression): Expression =
         a
+
     override fun visitLetDeclaration(
         a1: Token,
         a2: Token?,
@@ -292,16 +293,22 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     ): Expression =
         LiteralFunctionExpression(a2 ?: emptyList(), a3, a4, a6)
 
+
+    override fun visitFactor12(a1: Token, a2: List<Tuple2<Expression, Token?>>, a3: Token): Expression =
+        BlockExpression(a2.map { it.a }, a1.location + a3.location)
+
     override fun visitFunctionParameters(
         a1: Token,
-        a2: Tuple3<Token, TypeFactor?, List<Tuple3<Token, Token, TypeFactor?>>>?,
+        a2: Tuple2<TypeQualifiedIDLocation, List<Tuple2<Token, TypeQualifiedIDLocation>>>?,
         a3: Token
     ): List<TypeQualifiedIDLocation> =
         if (a2 == null)
             emptyList()
         else
-            listOf(TypeQualifiedIDLocation(a2.a.lexeme, a2.a.location, a2.b)) +
-                    a2.c.map { TypeQualifiedIDLocation(it.b.lexeme, it.b.location, it.c) }
+            listOf(a2.a) + a2.b.map { it.b }
+
+    override fun visitFunctionParameter(a1: Token, a2: Token?, a3: TypeFactor?): TypeQualifiedIDLocation =
+        TypeQualifiedIDLocation(a1.lexeme, a1.location, a2 != null, a3)
 
     override fun visitTypeParameters(
         a1: Token,

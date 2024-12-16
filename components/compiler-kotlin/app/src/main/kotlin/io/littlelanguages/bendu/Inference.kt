@@ -99,6 +99,22 @@ private fun inferExpression(expression: Expression, env: Environment) {
             env.addConstraint(u1, u2)
         }
 
+        is BlockExpression -> {
+            env.openTypeEnv()
+
+            expression.es.forEach { e ->
+                inferStatement(e, env)
+            }
+
+            env.closeTypeEnv()
+
+            expression.type =
+                if (expression.es.isEmpty())
+                    typeUnit.withLocation(expression.location())
+                else
+                    expression.es.last().type
+        }
+
         is IfExpression -> {
             expression.guards.forEach { guard ->
                 inferExpression(guard.first, env)
@@ -132,7 +148,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             val declarationType = fix(
                 LiteralFunctionExpression(
                     emptyList(),
-                    listOf(TypeQualifiedIDLocation("_bob", expression.location(), null)),
+                    listOf(TypeQualifiedIDLocation("_bob", expression.location(), false, null)),
                     null,
                     LiteralTupleExpression(expression.terms.map {
                         when (it) {
@@ -175,7 +191,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             }
 
             expression.parameters.forEachIndexed { index, parameter ->
-                env.bind(parameter.value, parameter.location, false, Scheme(emptySet(), domain[index]))
+                env.bind(parameter.value, parameter.location, parameter.mutable, Scheme(emptySet(), domain[index]))
 
                 if (parameter.typeQualifier != null) {
                     env.addConstraint(domain[index], parameter.typeQualifier.toType(env))

@@ -79,10 +79,15 @@ Factor
     | "!" Factor
     | "@" Factor
     | "fn" [TypeParameters] FunctionParameters [TypeQualifier] ["="] Expression
+    | "{" {Expression [";"]} "}"
     ;
 
 FunctionParameters
-    : "(" [LowerID [TypeQualifier] {"," LowerID [TypeQualifier]}] ")"
+    : "(" [FunctionParameter {"," FunctionParameter}] ")"
+    ;
+
+FunctionParameter
+    : LowerID ["!"] [TypeQualifier]
     ;
 
 TypeParameters
