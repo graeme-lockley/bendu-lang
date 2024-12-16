@@ -306,6 +306,11 @@
       "description": "Removes the top two integers from the stack, raises the first to the power of the second, and pushes the result onto the stack."
     },
     {
+      "name": "EQ",
+      "args": [],
+      "description": "Removes the top two values from the stack, checks if they are equal, and pushes the result onto the stack."
+    },
+    {
       "name": "EQ_BOOL",
       "args": [],
       "description": "Removes the top two boolean values from the stack, checks if they are equal, and pushes the result onto the stack."
@@ -334,6 +339,11 @@
       "name": "EQ_UNIT",
       "args": [],
       "description": "Removes the top two unit values from the stack and pushes True onto the stack."
+    },
+    {
+      "name": "NEQ",
+      "args": [],
+      "description": "Removes the top two values from the stack, checks if they are not equal, and pushes the result onto the stack."
     },
     {
       "name": "NEQ_BOOL",
@@ -444,6 +454,11 @@
       "name": "GE_U8",
       "args": [],
       "description": "Removes the top two bytes from the stack, checks if the first is greater than or equal to the second, and pushes the result onto the stack."
+    },
+    {
+      "name": "PRINT",
+      "args": [],
+      "description": "Outputs the value at the top of the stack and removes it from the stack."
     },
     {
       "name": "PRINTLN",

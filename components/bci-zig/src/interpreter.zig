@@ -85,13 +85,6 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.push_u8_literal(value);
                 ip += 1;
             },
-            .push_unit_literal => {
-                if (DEBUG) {
-                    std.debug.print("{d} {d}: push_unit_literal\n", .{ ip - 1, fp });
-                }
-
-                try runtime.push_unit_literal();
-            },
             .push_string_literal => {
                 const len = readi32(bc, ip);
                 const data = bc[ip + 4 .. ip + 4 + @as(usize, @intCast(len))];
@@ -102,6 +95,23 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
                 try runtime.push_string_literal(data);
                 ip += 4 + @as(usize, @intCast(len));
+            },
+            .push_tuple => {
+                const arity = readi32(bc, ip);
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: push_tuple: arity={d}\n", .{ ip - 1, fp, arity });
+                }
+
+                try runtime.push_tuple(@intCast(arity));
+                ip += 4;
+            },
+            .push_unit_literal => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: push_unit_literal\n", .{ ip - 1, fp });
+                }
+
+                try runtime.push_unit_literal();
             },
             .load => {
                 const frame = readi32(bc, ip);
@@ -380,6 +390,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.pow_i32();
             },
 
+            .eq => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: eq\n", .{ ip - 1, fp });
+                }
+
+                try runtime.eq();
+            },
             .eq_bool => {
                 if (DEBUG) {
                     std.debug.print("{d} {d}: eq_bool\n", .{ ip - 1, fp });
@@ -421,6 +438,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 }
 
                 try runtime.eq_unit();
+            },
+            .neq => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: neq\n", .{ ip - 1, fp });
+                }
+
+                try runtime.neq();
             },
             .neq_bool => {
                 if (DEBUG) {
@@ -577,6 +601,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.ge_u8();
             },
 
+            .print => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: print\n", .{ ip - 1, fp });
+                }
+
+                try runtime.print();
+            },
             .println => {
                 if (DEBUG) {
                     std.debug.print("{d} {d}: println\n", .{ ip - 1, fp });

@@ -51,7 +51,7 @@ pub const Runtime = struct {
                 const next = runner.?.next;
                 number_of_values += 1;
 
-                runner.?.deinit();
+                runner.?.deinit(self.allocator);
                 self.allocator.destroy(runner.?);
 
                 runner = next;
@@ -88,6 +88,7 @@ pub const Runtime = struct {
 
         self.root = v;
 
+        // TODO - FIX THIS
         try self.stack.append(@as(Pointer.Pointer, @intFromPtr(v)));
 
         return v;
@@ -146,6 +147,18 @@ pub const Runtime = struct {
 
     pub inline fn push_string_literal(self: *Runtime, value: []const u8) !void {
         try self.stack.append(Pointer.fromString(try self.sp.intern(value)));
+    }
+
+    pub inline fn push_tuple(self: *Runtime, arity: usize) !void {
+        const tuple = try self.pushNewValue(Memory.ValueValue{ .TupleKind = try Memory.TupleValue.init(self.allocator, arity) });
+
+        self.discard();
+
+        for (0..arity) |i| {
+            tuple.v.TupleKind.values[arity - i - 1] = self.pop();
+        }
+
+        try self.stack.append(Pointer.fromPointer(*Memory.Value, tuple));
     }
 
     pub inline fn push_unit_literal(self: *Runtime) !void {
@@ -316,6 +329,18 @@ pub const Runtime = struct {
         try self.stack.append(Pointer.fromInt(std.math.pow(i32, a, b)));
     }
 
+    pub inline fn eq(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+        try self.stack.append(Pointer.fromBool(@import("./runtime/eq.zig").eq(a, b)));
+
+        if (Pointer.isString(b)) {
+            Pointer.asString(b).decRef();
+        }
+        if (Pointer.isString(a)) {
+            Pointer.asString(a).decRef();
+        }
+    }
     pub inline fn eq_bool(self: *Runtime) !void {
         const b = Pointer.asBool(self.pop());
         const a = Pointer.asBool(self.pop());
@@ -350,6 +375,18 @@ pub const Runtime = struct {
         try self.stack.append(Pointer.fromBool(a == b));
     }
 
+    pub inline fn neq(self: *Runtime) !void {
+        const b = self.pop();
+        const a = self.pop();
+        try self.stack.append(Pointer.fromBool(@import("./runtime/neq.zig").neq(a, b)));
+
+        if (Pointer.isString(b)) {
+            Pointer.asString(b).decRef();
+        }
+        if (Pointer.isString(a)) {
+            Pointer.asString(a).decRef();
+        }
+    }
     pub inline fn neq_bool(self: *Runtime) !void {
         const b = Pointer.asBool(self.pop());
         const a = Pointer.asBool(self.pop());
@@ -486,6 +523,14 @@ pub const Runtime = struct {
         const b = Pointer.asChar(self.pop());
         const a = Pointer.asChar(self.pop());
         try self.stack.append(Pointer.fromBool(a >= b));
+    }
+
+    pub inline fn print(self: *Runtime) !void {
+        const value = self.peek();
+
+        try @import("./runtime/print.zig").print(value);
+
+        self.discard();
     }
 
     pub inline fn println(self: *Runtime) !void {

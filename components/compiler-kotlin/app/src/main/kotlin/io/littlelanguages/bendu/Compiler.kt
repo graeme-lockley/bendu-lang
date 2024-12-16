@@ -273,6 +273,10 @@ private class Compiler(val errors: Errors) {
                         )
                     )
                 }
+            } else if (expression.op.op == Op.EqualEqual) {
+                byteBuilder.appendInstruction(Instructions.EQ)
+            } else if (expression.op.op == Op.NotEqual) {
+                byteBuilder.appendInstruction(Instructions.NEQ)
             } else {
                 errors.addError(
                     OperatorOperandTypeError(
@@ -523,56 +527,25 @@ private class Compiler(val errors: Errors) {
         es.forEach { e ->
             compileExpression(e)
 
-            printValue(e.type!!, e.location())
+            printValue(e.type!!)
         }
     }
 
-    private fun printValue(type: Type, location: Location) {
+    private fun printValue(type: Type) {
         if (type.isBool())
             byteBuilder.appendInstruction(Instructions.PRINT_BOOL)
         else if (type.isChar())
             byteBuilder.appendInstruction(Instructions.PRINT_U8)
         else if (type.isFloat())
             byteBuilder.appendInstruction(Instructions.PRINT_F32)
-        else if (type.isFunction()) {
-            byteBuilder.appendInstruction(Instructions.DISCARD)
-            printLiteralValue("fn")
-        } else if (type.isInt())
+        else if (type.isInt())
             byteBuilder.appendInstruction(Instructions.PRINT_I32)
         else if (type.isString())
             byteBuilder.appendInstruction(Instructions.PRINT_STRING)
-        else if (type is TTuple) {
-            printLiteralValue("(")
-            for (i in 0 until type.types.size) {
-                if (i < type.types.size - 1) {
-                    byteBuilder.appendInstruction(Instructions.DUP)
-                }
-                if (i > 0) {
-                    printLiteralValue(", ")
-                }
-                byteBuilder.appendInstruction(Instructions.PUSH_TUPLE_COMPONENT)
-                byteBuilder.appendInt(i)
-                printValue(type.types[i], location)
-            }
-            printLiteralValue(")")
-        }
         else if (type.isUnit())
             byteBuilder.appendInstruction(Instructions.PRINT_UNIT)
         else
-            errors.addError(
-                UnificationError(
-                    type.withLocation(location),
-                    setOf(typeBool, typeChar, typeFloat, typeInt, typeString)
-                )
-            )
-
-    }
-
-    private fun printLiteralValue(value: String) {
-        byteBuilder.appendInstruction(Instructions.PUSH_STRING_LITERAL)
-        byteBuilder.appendInt(value.length)
-        byteBuilder.append(value.toByteArray())
-        byteBuilder.appendInstruction(Instructions.PRINT_STRING)
+            byteBuilder.appendInstruction(Instructions.PRINT)
     }
 
     private fun compileUnaryExpression(expression: UnaryExpression, keepResult: Boolean) {

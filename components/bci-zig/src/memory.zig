@@ -13,11 +13,12 @@ pub const Value = struct {
 
     v: ValueValue,
 
-    pub fn deinit(self: *Value) void {
+    pub fn deinit(self: *Value, allocator: std.mem.Allocator) void {
         switch (self.v) {
             .ClosureKind => self.v.ClosureKind.deinit(),
             .FrameKind => self.v.FrameKind.deinit(),
             .SequenceKind => self.v.SequenceKind.deinit(),
+            .TupleKind => self.v.TupleKind.deinit(allocator),
         }
     }
 };
@@ -26,12 +27,14 @@ pub const ValueKind = enum {
     ClosureKind,
     FrameKind,
     SequenceKind,
+    TupleKind,
 
     pub fn toString(self: ValueKind) []const u8 {
         return switch (self) {
             ValueKind.ClosureKind => "Closure",
             ValueKind.FrameKind => "Frame",
             ValueKind.SequenceKind => "Sequence",
+            ValueKind.TupleKind => "Tuple",
         };
     }
 };
@@ -40,6 +43,7 @@ pub const ValueValue = union(ValueKind) {
     ClosureKind: ClosureValue,
     FrameKind: FrameValue,
     SequenceKind: SequenceValue,
+    TupleKind: TupleValue,
 };
 
 pub const ClosureValue = struct {
@@ -173,5 +177,35 @@ pub const SequenceValue = struct {
 
     pub fn set(self: *const SequenceValue, i: usize, v: Pointer.Pointer) void {
         self.values.items[i] = v;
+    }
+};
+
+pub const TupleValue = struct {
+    values: []Pointer.Pointer,
+
+    pub fn init(allocator: std.mem.Allocator, size: usize) !TupleValue {
+        const result = TupleValue{
+            .values = try allocator.alloc(Pointer.Pointer, size),
+        };
+
+        return result;
+    }
+
+    pub fn deinit(self: *TupleValue, allocator: std.mem.Allocator) void {
+        for (self.values) |v| {
+            if (Pointer.isString(v)) {
+                Pointer.asString(v).decRef();
+            }
+        }
+
+        allocator.free(self.values);
+    }
+
+    pub inline fn len(self: *const TupleValue) usize {
+        return self.values.len;
+    }
+
+    pub inline fn at(self: *const TupleValue, i: usize) Pointer.Pointer {
+        return self.values[i];
     }
 };
