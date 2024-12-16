@@ -56,6 +56,7 @@ private class Compiler(val errors: Errors) {
             is PrintStatement -> compilePrintExpression(expression, keepResult)
             is PrintlnStatement -> compilePrintlnExpression(expression, keepResult)
             is UnaryExpression -> compileUnaryExpression(expression, keepResult)
+            is WhileExpression -> compileWhileExpression(expression, keepResult)
 
             else -> TODO(expression.toString())
         }
@@ -554,6 +555,25 @@ private class Compiler(val errors: Errors) {
                     byteBuilder.appendInt(s.length)
                     byteBuilder.append(s.toByteArray())
                 }
+        }
+    }
+
+    private fun compileWhileExpression(expression: WhileExpression, keepResult: Boolean) {
+        val start = byteBuilder.size()
+
+        compileExpression(expression.guard)
+        byteBuilder.appendInstruction(Instructions.JMP_FALSE)
+        val end = byteBuilder.size()
+        byteBuilder.appendInt(0)
+
+        compileExpression(expression.body, false)
+        byteBuilder.appendInstruction(Instructions.JMP)
+        byteBuilder.appendInt(start)
+
+        byteBuilder.writeIntAtPosition(end, byteBuilder.size())
+
+        if (keepResult) {
+            byteBuilder.appendInstruction(Instructions.PUSH_UNIT_LITERAL)
         }
     }
 }

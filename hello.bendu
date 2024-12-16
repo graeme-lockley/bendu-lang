@@ -1,12 +1,1 @@
 println("Hello World!")
-
-let a = 2.0
-
-let hello(b) = {
-    let world(c) = b * c
-
-    world(a * b)
-}
-
-println(hello(3.0))
-println(@hello)

@@ -273,7 +273,14 @@ private fun inferExpression(expression: Expression, env: Environment) {
             env.addConstraint(u1, u2)
         }
 
-        else -> TODO(expression.toString())
+        is WhileExpression -> {
+            inferExpression(expression.guard, env)
+            inferExpression(expression.body, env)
+
+            env.addConstraint(expression.guard.type!!, typeBool)
+
+            expression.type = typeUnit.withLocation(expression.location())
+        }
     }
 }
 
