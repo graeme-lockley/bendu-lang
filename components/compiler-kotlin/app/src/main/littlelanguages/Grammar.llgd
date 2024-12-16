@@ -56,7 +56,7 @@ Power
     ;
 
 TypedExpression
-    : Application [":" TypeFactor]
+    : Application [":" TypeTerm]
     ;
 
 Application
@@ -95,11 +95,15 @@ TypeParameters
     ;
 
 TypeQualifier
-    : ":" TypeFactor
+    : ":" TypeTerm
+    ;
+
+TypeTerm
+    : TypeFactor {"*" TypeFactor}
     ;
 
 TypeFactor
-    : "(" [TypeFactor {"," TypeFactor}] ")" ["->" TypeFactor]
+    : "(" [TypeTerm {"," TypeTerm}] ")" ["->" TypeTerm]
     | UpperID
     | LowerID
     ;

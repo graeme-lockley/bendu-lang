@@ -290,6 +290,15 @@ sealed class TypeFactor {
     abstract fun toType(env: Environment): Type
 }
 
+data class FunctionType(val parameters: List<TypeFactor>, val returnType: TypeFactor, val location: Location) :
+    TypeFactor() {
+    override fun location(): Location =
+        location
+
+    override fun toType(env: Environment): Type =
+        TArr(parameters.map { it.toType(env) }, returnType.toType(env))
+}
+
 data class LowerIDType(val v: StringLocation) : TypeFactor() {
     override fun location(): Location =
         v.location
@@ -306,6 +315,14 @@ data class LowerIDType(val v: StringLocation) : TypeFactor() {
     }
 }
 
+data class TupleType(val types: List<TypeFactor>, val location: Location) : TypeFactor() {
+    override fun location(): Location =
+        location
+
+    override fun toType(env: Environment): Type =
+        TTuple(types.map { it.toType(env) })
+}
+
 data class UpperIDType(val v: StringLocation) : TypeFactor() {
     override fun location(): Location =
         v.location
@@ -314,11 +331,3 @@ data class UpperIDType(val v: StringLocation) : TypeFactor() {
         TCon(v.value, emptyList(), v.location)
 }
 
-data class FunctionType(val parameters: List<TypeFactor>, val returnType: TypeFactor, val location: Location) :
-    TypeFactor() {
-    override fun location(): Location =
-        location
-
-    override fun toType(env: Environment): Type =
-        TArr(parameters.map { it.toType(env) }, returnType.toType(env))
-}

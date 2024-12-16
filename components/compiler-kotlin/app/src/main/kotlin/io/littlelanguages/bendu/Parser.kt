@@ -8,7 +8,7 @@ import io.littlelanguages.data.Union3
 import java.io.StringReader
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, Expression, List<TypeQualifiedIDLocation>, TypeQualifiedIDLocation, List<StringLocation>, TypeFactor, TypeFactor> {
+    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, Expression, List<TypeQualifiedIDLocation>, TypeQualifiedIDLocation, List<StringLocation>, TypeFactor, TypeFactor, TypeFactor> {
     override fun visitProgram(a: List<Tuple2<Expression, Token?>>): List<Expression> =
         a.map { it.a }
 
@@ -321,6 +321,12 @@ private class ParserVisitor(val errors: Errors = Errors()) :
 
     override fun visitTypeQualifier(a1: Token, a2: TypeFactor): TypeFactor =
         a2
+
+    override fun visitTypeTerm(a1: TypeFactor, a2: List<Tuple2<Token, TypeFactor>>): TypeFactor =
+        if (a2.isEmpty())
+         a1
+    else
+        TupleType(listOf(a1) + a2.map { it.b }, a1.location() + a2.last().b.location())
 
     override fun visitTypeFactor1(
         a1: Token,
