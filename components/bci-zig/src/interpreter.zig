@@ -36,7 +36,13 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.push_array(@intCast(len));
                 ip += 4;
             },
+            .push_array_element => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: push_array_element\n", .{ ip - 1, fp });
+                }
 
+                try runtime.push_array_element();
+            },
             .push_bool_true => {
                 if (DEBUG) {
                     std.debug.print("{d} {d}: push_bool_true\n", .{ ip - 1, fp });

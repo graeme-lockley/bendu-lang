@@ -69,6 +69,7 @@ QualifiedExpression
 
 QualifiedExpressionSuffix
     :  "(" [Expression {"," Expression}] ")"
+    | "!" TypedExpression
     ;
 
 Factor

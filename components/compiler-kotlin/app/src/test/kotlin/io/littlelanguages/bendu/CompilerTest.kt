@@ -7,6 +7,20 @@ import kotlin.test.assertTrue
 
 class CompilerTest {
     @Test
+    fun `get array element`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 0, // 0
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 5, // 5
+                Instructions.PUSH_ARRAY_ELEMENT.op,
+            ),
+            "[]!5"
+        )
+    }
+
+    @Test
     fun `literal array`() {
         assertCompiledBC(
             byteArrayOf(

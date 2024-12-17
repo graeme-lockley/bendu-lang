@@ -40,6 +40,7 @@ private class Compiler(val errors: Errors) {
         when (expression) {
             is AbortStatement -> compileAbortExpression(expression, keepResult)
             is ApplyExpression -> compileApplyExpression(expression, keepResult)
+            is ArrayElementProjectionExpression -> compileArrayElementProjectionExpression(expression, keepResult)
             is AssignmentExpression -> compileAssignmentExpression(expression, keepResult)
             is BinaryExpression -> compileBinaryExpression(expression, keepResult)
             is BlockExpression -> compileStatements(expression.es, keepResult)
@@ -102,6 +103,17 @@ private class Compiler(val errors: Errors) {
         }
         byteBuilder.appendInstruction(Instructions.CALL_CLOSURE)
         byteBuilder.appendInt(expression.arguments.size)
+
+        if (!keepResult) {
+            byteBuilder.appendInstruction(Instructions.DISCARD)
+        }
+    }
+
+    private fun compileArrayElementProjectionExpression(expression: ArrayElementProjectionExpression, keepResult: Boolean) {
+        compileExpression(expression.array)
+        compileExpression(expression.index)
+
+        byteBuilder.appendInstruction(Instructions.PUSH_ARRAY_ELEMENT)
 
         if (!keepResult) {
             byteBuilder.appendInstruction(Instructions.DISCARD)

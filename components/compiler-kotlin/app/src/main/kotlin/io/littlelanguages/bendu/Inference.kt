@@ -65,6 +65,19 @@ private fun inferExpression(expression: Expression, env: Environment) {
             expression.type = tv
         }
 
+        is ArrayElementProjectionExpression -> {
+            inferScopedExpression(expression.array, env)
+            inferScopedExpression(expression.index, env)
+
+            val tv = env.nextVar()
+            val arrayType = TCon("Array", listOf(tv))
+
+            env.addConstraint(expression.array.type!!, arrayType)
+            env.addConstraint(expression.index.type!!, typeInt)
+
+            expression.type = tv
+        }
+
         is AssignmentExpression -> {
             if (expression.lhs is LowerIDExpression) {
                 val binding = env.binding(expression.lhs.v.value)

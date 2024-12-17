@@ -21,6 +21,11 @@
       "description": "Creates an array from the top arity number of values on the stack."
     },
     {
+      "name": "PUSH_ARRAY_ELEMENT",
+      "args": [ ],
+      "description": "Pops top array and index off of the stack and pushes the element from the array referenced at the index."
+    },
+    {
       "name": "PUSH_BOOL_TRUE",
       "args": [],
       "description": "Places the value 'true' onto the stack."

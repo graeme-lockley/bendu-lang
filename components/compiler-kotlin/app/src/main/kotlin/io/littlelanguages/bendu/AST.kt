@@ -34,10 +34,28 @@ data class ApplyExpression(val f: Expression, val arguments: List<Expression>, o
         arguments.map { it.location() }.fold(f.location(), Location::plus)
 }
 
+data class ArrayElementProjectionExpression(
+    val array: Expression,
+    val index: Expression,
+    override var type: Type? = null
+) :
+    Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        super.apply(s, errors)
+
+        array.apply(s, errors)
+        index.apply(s, errors)
+    }
+
+    override fun location(): Location =
+        array.location() + index.location()
+}
+
 data class AssignmentExpression(val lhs: Expression, val rhs: Expression, override var type: Type? = null) :
     Expression(type) {
     override fun apply(s: Subst, errors: Errors) {
         super.apply(s, errors)
+
         lhs.apply(s, errors)
         rhs.apply(s, errors)
     }

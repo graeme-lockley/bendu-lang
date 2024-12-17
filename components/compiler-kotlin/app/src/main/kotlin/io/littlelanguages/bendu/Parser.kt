@@ -179,12 +179,15 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     ): Expression =
         a2.fold(a1) { acc, e -> BinaryExpression(acc, OpLocation(Op.Power, e.a.location), e.b) }
 
-    override fun visitQualifiedExpressionSuffix(
+    override fun visitQualifiedExpressionSuffix1(
         a1: Token,
         a2: Tuple2<Expression, List<Tuple2<Token, Expression>>>?,
         a3: Token
     ): (Expression) -> Expression =
         { it: Expression -> ApplyExpression(it, if (a2 == null) emptyList() else listOf(a2.a) + a2.b.map { it.b }) }
+
+    override fun visitQualifiedExpressionSuffix2(a1: Token, a2: Expression): (Expression) -> Expression =
+        { it: Expression -> ArrayElementProjectionExpression(it, a2) }
 
     override fun visitQualifiedExpression(a1: Expression, a2: List<(Expression) -> Expression>): Expression =
         a2.fold(a1) { acc, e -> e(acc) }

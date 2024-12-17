@@ -136,6 +136,23 @@ pub const Runtime = struct {
         try self.stack.append(Pointer.fromPointer(*Memory.Value, array));
     }
 
+    pub inline fn push_array_element(self: *Runtime) !void {
+        const index = Pointer.asInt(self.pop());
+        const array = Pointer.as(*Memory.Value, self.pop());
+
+        if (index < 0 or index >= array.v.ArrayKind.len()) {
+            try stdout.print("Error: Index out of bounds: index: {d}, length: {d}\n", .{ index, array.v.ArrayKind.len() });
+            std.posix.exit(1);
+        }
+
+        const element = array.v.ArrayKind.at(@intCast(index));
+        if (Pointer.isString(element)) {
+            Pointer.asString(element).incRef();
+        }
+
+        try self.stack.append(element);
+    }
+
     pub inline fn push_bool_true(self: *Runtime) !void {
         try self.stack.append(Pointer.fromInt(1));
     }

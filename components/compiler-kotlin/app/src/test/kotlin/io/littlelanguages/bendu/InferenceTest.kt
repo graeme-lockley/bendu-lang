@@ -11,6 +11,15 @@ class InferenceTest {
     private val location = LocationCoordinate(0, 0, 0)
 
     @Test
+    fun `infer array element projection`() {
+        assertInferExpressionEquals("[1, 2]!1", "Int")
+        assertInferExpressionEquals("[1.1, 2.2]!1", "Float")
+        assertInferExpressionEquals("[]!1", "[a] a")
+
+        assertInferExpressionEquals("[1.1, 2.2]!1 + 1.4", "Float")
+    }
+
+    @Test
     fun `infer literal array`() {
         assertInferExpressionEquals("[]", "[a] Array[a]")
         assertInferExpressionEquals("[1, 2, 3]", "Array[Int]")
