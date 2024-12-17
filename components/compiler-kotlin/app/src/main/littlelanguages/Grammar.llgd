@@ -107,6 +107,6 @@ TypeTerm
 
 TypeFactor
     : "(" [TypeTerm {"," TypeTerm}] ")" ["->" TypeTerm]
-    | UpperID
+    | UpperID ["[" TypeTerm {"," TypeTerm} "]"]
     | LowerID
     ;

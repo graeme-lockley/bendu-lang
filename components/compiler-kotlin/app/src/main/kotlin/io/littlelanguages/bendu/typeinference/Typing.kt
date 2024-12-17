@@ -59,77 +59,6 @@ sealed class Type(open val location: Location?) {
     abstract fun toStringHelper(env: ToStringHelper): String
 }
 
-data class TVar(val name: Var, override val location: Location? = null) : Type(location) {
-    override fun apply(s: Subst): Type =
-        s[name] ?: this
-
-    override fun ftv(): Set<Var> =
-        setOf(name)
-
-    override fun withLocation(location: Location?): Type =
-        TVar(name, location)
-
-    override fun isSimilar(other: Type): Boolean =
-        other is TVar && other.name == name
-
-    override fun toString(): String =
-        super.toString()
-
-    override fun toStringHelper(env: ToStringHelper): String =
-        env.variable(name)
-}
-
-data class TCon(val name: String, val args: List<Type> = emptyList(), override val location: Location? = null) :
-    Type(location) {
-    override fun apply(s: Subst): Type =
-        if (args.isEmpty()) this else TCon(name, args.map { it.apply(s) })
-
-    override fun ftv(): Set<Var> = args.fold(emptySet()) { acc, t -> acc + t.ftv() }
-
-    override fun withLocation(location: Location?): Type =
-        TCon(name, args, location)
-
-    override fun isSimilar(other: Type): Boolean =
-        other is TCon && other.name == name && other.args.size == args.size && args.zip(other.args)
-            .all { (a, b) -> a.isSimilar(b) }
-
-    override fun toString(): String =
-        super.toString()
-
-    override fun toStringHelper(env: ToStringHelper): String =
-        if (args.isEmpty())
-            name
-        else
-            "$name ${
-                args.joinToString(" ") {
-                    if (it is TCon && it.args.isNotEmpty() || it is TArr) "(${it.toStringHelper(env)})" else it.toStringHelper(
-                        env
-                    )
-                }
-            }"
-
-    override fun isBool(): Boolean =
-        name == "Bool"
-
-    override fun isChar(): Boolean =
-        name == "Char"
-
-    override fun isError(): Boolean =
-        name == "Error"
-
-    override fun isFloat(): Boolean =
-        name == "Float"
-
-    override fun isInt(): Boolean =
-        name == "Int"
-
-    override fun isString(): Boolean =
-        name == "String"
-
-    override fun isUnit(): Boolean =
-        name == "Unit"
-}
-
 data class TArr(val domain: List<Type>, val range: Type, override val location: Location? = null) : Type(location) {
     override fun apply(s: Subst): Type =
         TArr(domain.map { it.apply(s) }, range.apply(s))
@@ -153,6 +82,51 @@ data class TArr(val domain: List<Type>, val range: Type, override val location: 
         true
 }
 
+data class TCon(val name: String, val args: List<Type> = emptyList(), override val location: Location? = null) :
+    Type(location) {
+    override fun apply(s: Subst): Type =
+        if (args.isEmpty()) this else TCon(name, args.map { it.apply(s) })
+
+    override fun ftv(): Set<Var> = args.fold(emptySet()) { acc, t -> acc + t.ftv() }
+
+    override fun withLocation(location: Location?): Type =
+        TCon(name, args, location)
+
+    override fun isSimilar(other: Type): Boolean =
+        other is TCon && other.name == name && other.args.size == args.size && args.zip(other.args)
+            .all { (a, b) -> a.isSimilar(b) }
+
+    override fun toString(): String =
+        super.toString()
+
+    override fun toStringHelper(env: ToStringHelper): String =
+        if (args.isEmpty())
+            name
+        else
+            "$name[${args.joinToString(", ") { it.toStringHelper(env) }}]"
+
+    override fun isBool(): Boolean =
+        name == "Bool"
+
+    override fun isChar(): Boolean =
+        name == "Char"
+
+    override fun isError(): Boolean =
+        name == "Error"
+
+    override fun isFloat(): Boolean =
+        name == "Float"
+
+    override fun isInt(): Boolean =
+        name == "Int"
+
+    override fun isString(): Boolean =
+        name == "String"
+
+    override fun isUnit(): Boolean =
+        name == "Unit"
+}
+
 data class TTuple(val types: List<Type>, override val location: Location? = null) : Type(location) {
     override fun apply(s: Subst): Type =
         TTuple(types.map { it.apply(s) })
@@ -171,6 +145,26 @@ data class TTuple(val types: List<Type>, override val location: Location? = null
 
     override fun toStringHelper(env: ToStringHelper): String =
         types.joinToString(" * ") { if (it is TTuple) "(${it.toStringHelper(env)})" else it.toStringHelper(env) }
+}
+
+data class TVar(val name: Var, override val location: Location? = null) : Type(location) {
+    override fun apply(s: Subst): Type =
+        s[name] ?: this
+
+    override fun ftv(): Set<Var> =
+        setOf(name)
+
+    override fun withLocation(location: Location?): Type =
+        TVar(name, location)
+
+    override fun isSimilar(other: Type): Boolean =
+        other is TVar && other.name == name
+
+    override fun toString(): String =
+        super.toString()
+
+    override fun toStringHelper(env: ToStringHelper): String =
+        env.variable(name)
 }
 
 val typeError = TCon("Error")

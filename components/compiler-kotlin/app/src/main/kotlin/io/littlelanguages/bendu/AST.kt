@@ -340,11 +340,11 @@ data class TupleType(val types: List<TypeTerm>, val location: Location) : TypeTe
         TTuple(types.map { it.toType(env) })
 }
 
-data class UpperIDType(val v: StringLocation) : TypeTerm() {
+data class UpperIDType(val v: StringLocation, val parameters: List<TypeTerm>, val location: Location) : TypeTerm() {
     override fun location(): Location =
-        v.location
+        location
 
     override fun toType(env: Environment): Type =
-        TCon(v.value, emptyList(), v.location)
+        TCon(v.value, parameters.map { it.toType(env) }, location)
 }
 

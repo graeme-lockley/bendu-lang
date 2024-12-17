@@ -1,10 +1,7 @@
 package io.littlelanguages.bendu
 
 import io.littlelanguages.bendu.parser.*
-import io.littlelanguages.data.Tuple2
-import io.littlelanguages.data.Tuple3
-import io.littlelanguages.data.Union2
-import io.littlelanguages.data.Union3
+import io.littlelanguages.data.*
 import java.io.StringReader
 
 private class ParserVisitor(val errors: Errors = Errors()) :
@@ -369,7 +366,7 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         when (a4) {
             null -> {
                 if (a2 == null)
-                    UpperIDType(StringLocation("Unit", a1.location))
+                    UpperIDType(StringLocation("Unit", a1.location), emptyList(), a1.location + a3.location)
                 else if (a2.b.isEmpty())
                     a2.a
                 else
@@ -379,9 +376,18 @@ private class ParserVisitor(val errors: Errors = Errors()) :
             else -> FunctionType(listOf(a2!!.a) + a2.b.map { it.b }, a4.b, a1.location + a4.b.location())
         }
 
-
-    override fun visitTypeFactor2(a: Token): TypeTerm =
-        UpperIDType(StringLocation(a.lexeme, a.location))
+    override fun visitTypeFactor2(
+        a1: Token,
+        a2: Tuple4<Token, TypeTerm, List<Tuple2<Token, TypeTerm>>, Token>?
+    ): TypeTerm =
+        if (a2 == null)
+            UpperIDType(StringLocation(a1.lexeme, a1.location), emptyList(), a1.location)
+        else
+            UpperIDType(
+                StringLocation(a1.lexeme, a1.location),
+                listOf(a2.b) + a2.c.map { it.b },
+                a1.location + a2.d.location
+            )
 
     override fun visitTypeFactor3(a: Token): TypeTerm =
         LowerIDType(StringLocation(a.lexeme, a.location))

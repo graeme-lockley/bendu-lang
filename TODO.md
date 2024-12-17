@@ -67,7 +67,8 @@ The following is the list of big features that need to be implemented.
 ## Arrays
 
 - [x] Parse literal
-- [ ] Parse type
+- [x] Parse type
+- [x] Infer array type
 - [ ] Compile literal
 - [ ] Print tuple value
 - [ ] Implement == and !=
