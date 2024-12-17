@@ -5,7 +5,7 @@ import io.littlelanguages.data.*
 import java.io.StringReader
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, Expression, List<FunctionParameter>, FunctionParameter, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm> {
+    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, (Expression) -> Expression, Expression, List<FunctionParameter>, FunctionParameter, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm> {
     override fun visitProgram(a: List<Tuple2<Expression, Token?>>): List<Expression> =
         a.map { it.a }
 
@@ -179,16 +179,15 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     ): Expression =
         a2.fold(a1) { acc, e -> BinaryExpression(acc, OpLocation(Op.Power, e.a.location), e.b) }
 
-    override fun visitApplication(
-        a1: Expression,
-        a2: List<Tuple3<Token, Tuple2<Expression, List<Tuple2<Token, Expression>>>?, Token>>
-    ): Expression =
-        a2.fold(a1) { acc: Expression, e: Tuple3<Token, Tuple2<Expression, List<Tuple2<Token, Expression>>>?, Token> ->
-            ApplyExpression(
-                acc,
-                if (e.b == null) emptyList() else listOf(e.b.a, *e.b.b.map { it.b }.toTypedArray())
-            )
-        }
+    override fun visitQualifiedExpressionSuffix(
+        a1: Token,
+        a2: Tuple2<Expression, List<Tuple2<Token, Expression>>>?,
+        a3: Token
+    ): (Expression) -> Expression =
+        { it: Expression -> ApplyExpression(it, if (a2 == null) emptyList() else listOf(a2.a) + a2.b.map { it.b }) }
+
+    override fun visitQualifiedExpression(a1: Expression, a2: List<(Expression) -> Expression>): Expression =
+        a2.fold(a1) { acc, e -> e(acc) }
 
     override fun visitTypedExpression(a1: Expression, a2: Tuple2<Token, TypeTerm>?): Expression =
         if (a2 == null)
@@ -213,7 +212,6 @@ private class ParserVisitor(val errors: Errors = Errors()) :
             a2.b.isEmpty() -> a2.a
             else -> LiteralTupleExpression(listOf(a2.a) + a2.b.map { it.b })
         }
-
 
     override fun visitFactor2(a: Token): Expression =
         LowerIDExpression(StringLocation(a.lexeme, a.location))

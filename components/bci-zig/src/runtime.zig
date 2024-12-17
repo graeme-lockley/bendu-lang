@@ -105,6 +105,12 @@ pub const Runtime = struct {
         return self.stack.pop();
     }
 
+    pub inline fn popN(self: *Runtime, n: usize) void {
+        for (0..n) |_| {
+            _ = self.pop();
+        }
+    }
+
     pub inline fn peekN(self: *Runtime, n: usize) Pointer.Pointer {
         return self.stack.items[self.stack.items.len - 1 - n];
     }
@@ -115,6 +121,19 @@ pub const Runtime = struct {
 
     pub inline fn push(self: *Runtime, value: Pointer.Pointer) !void {
         try self.stack.append(value);
+    }
+
+    pub inline fn push_array(self: *Runtime, arity: usize) !void {
+        const array = try self.pushNewValue(Memory.ValueValue{ .ArrayKind = try Memory.ArrayValue.init(self.allocator, arity) });
+
+        self.discard();
+
+        for (0..arity) |i| {
+            try array.v.ArrayKind.values.append(self.peekN(arity - i - 1));
+        }
+        self.popN(arity);
+
+        try self.stack.append(Pointer.fromPointer(*Memory.Value, array));
     }
 
     pub inline fn push_bool_true(self: *Runtime) !void {

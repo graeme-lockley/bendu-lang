@@ -18,11 +18,9 @@ pub fn print(value: Pointer.Pointer) !void {
         const v = Pointer.as(*Memory.Value, value);
 
         switch (v.v) {
-            .ClosureKind => try stdout.print("fn", .{}),
-            .FrameKind => try stdout.print("frame", .{}),
-            .SequenceKind => {
+            .ArrayKind => {
                 try stdout.print("[", .{});
-                for (v.v.SequenceKind.items(), 0..) |item, i| {
+                for (v.v.ArrayKind.items(), 0..) |item, i| {
                     if (i > 0) {
                         try stdout.print(", ", .{});
                     }
@@ -30,6 +28,8 @@ pub fn print(value: Pointer.Pointer) !void {
                 }
                 try stdout.print("]", .{});
             },
+            .ClosureKind => try stdout.print("fn", .{}),
+            .FrameKind => try stdout.print("frame", .{}),
             .TupleKind => {
                 try stdout.print("(", .{});
                 for (v.v.TupleKind.values, 0..) |item, i| {

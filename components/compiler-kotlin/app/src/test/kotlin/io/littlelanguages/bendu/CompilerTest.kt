@@ -7,6 +7,31 @@ import kotlin.test.assertTrue
 
 class CompilerTest {
     @Test
+    fun `literal array`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 0, // 0
+            ),
+            "[]"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 3, // 3
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 3, // 3
+            ),
+            "[1, 2, 3]"
+        )
+    }
+
+    @Test
     fun `literal bool`() {
         assertCompiledBC(
             byteArrayOf(Instructions.PUSH_BOOL_TRUE.op),

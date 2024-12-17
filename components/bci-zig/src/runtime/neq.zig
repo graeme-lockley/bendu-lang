@@ -8,17 +8,17 @@ pub fn neq(p1: Pointer.Pointer, p2: Pointer.Pointer) bool {
         const v1 = Pointer.as(*Memory.Value, p1);
 
         switch (v1.v) {
-            .ClosureKind => return p1 != p2,
-            .FrameKind => return p1 != p2,
-            .SequenceKind => {
+            .ArrayKind => {
                 const v2 = Pointer.as(*Memory.Value, p2);
-                for (0..v1.v.SequenceKind.len()) |i| {
-                    if (neq(v1.v.SequenceKind.at(i), v2.v.SequenceKind.at(i))) {
+                for (0..v1.v.ArrayKind.len()) |i| {
+                    if (neq(v1.v.ArrayKind.at(i), v2.v.ArrayKind.at(i))) {
                         return true;
                     }
                 }
                 return false;
             },
+            .ClosureKind => return p1 != p2,
+            .FrameKind => return p1 != p2,
             .TupleKind => {
                 const v2 = Pointer.as(*Memory.Value, p2);
                 for (0..v1.v.TupleKind.values.len) |i| {

@@ -45,7 +45,7 @@ private class Compiler(val errors: Errors) {
             is BlockExpression -> compileStatements(expression.es, keepResult)
             is IfExpression -> compileIfExpression(expression, keepResult)
             is LetStatement -> compileLetExpression(expression, keepResult)
-            is LiteralArrayExpression -> TODO("Compiler LiteralArrayExpression")
+            is LiteralArrayExpression -> compileLiteralArrayExpression(expression, keepResult)
             is LiteralBoolExpression -> compileLiteralBoolExpression(expression, keepResult)
             is LiteralCharExpression -> compileLiteralCharExpression(expression, keepResult)
             is LiteralFloatExpression -> compileLiteralFloatExpression(expression, keepResult)
@@ -385,7 +385,7 @@ private class Compiler(val errors: Errors) {
     }
 
     private fun compileFunctionParameters(parameters: List<FunctionParameter>) {
-        parameters.forEachIndexed{ index, parameter ->
+        parameters.forEachIndexed { index, parameter ->
             when (parameter) {
                 is LowerIDFunctionParameter ->
                     symbolTable.bindIdentifier(parameter.value)
@@ -398,18 +398,18 @@ private class Compiler(val errors: Errors) {
             }
         }
 
-        parameters.forEachIndexed{ index, parameter ->
-            if (parameter is TupleFunctionParameter){
-                    val binding = symbolTable.find("[${index}]") as IdentifierBinding
+        parameters.forEachIndexed { index, parameter ->
+            if (parameter is TupleFunctionParameter) {
+                val binding = symbolTable.find("[${index}]") as IdentifierBinding
 
-                    byteBuilder.appendInstruction(Instructions.LOAD)
-                    byteBuilder.appendInt(0)
-                    byteBuilder.appendInt(binding.frameOffset)
+                byteBuilder.appendInstruction(Instructions.LOAD)
+                byteBuilder.appendInt(0)
+                byteBuilder.appendInt(binding.frameOffset)
 
-                    compileFunctionTupleParameters(parameter.parameters)
-                }
+                compileFunctionTupleParameters(parameter.parameters)
             }
         }
+    }
 
 
     private fun compileFunctionTupleParameters(parameters: List<FunctionParameter>) {
@@ -442,6 +442,18 @@ private class Compiler(val errors: Errors) {
                     byteBuilder.appendInstruction(Instructions.DISCARD)
                 }
             }
+        }
+    }
+
+    private fun compileLiteralArrayExpression(expression: LiteralArrayExpression, keepResult: Boolean) {
+        expression.es.forEach { e ->
+            compileExpression(e)
+        }
+        byteBuilder.appendInstruction(Instructions.PUSH_ARRAY)
+        byteBuilder.appendInt(expression.es.size)
+
+        if (!keepResult) {
+            byteBuilder.appendInstruction(Instructions.DISCARD)
         }
     }
 

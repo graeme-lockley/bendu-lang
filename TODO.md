@@ -69,9 +69,9 @@ The following is the list of big features that need to be implemented.
 - [x] Parse literal
 - [x] Parse type
 - [x] Infer array type
-- [ ] Compile literal
-- [ ] Print tuple value
-- [ ] Implement == and !=
+- [x] Compile literal
+- [x] Print tuple value
+- [x] Implement == and !=
 - [ ] Project element using ! #
 - [ ] Project range using ! #:#
 - [ ] Assignment using ! #

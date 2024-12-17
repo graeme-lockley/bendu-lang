@@ -56,15 +56,19 @@ Power
     ;
 
 TypedExpression
-    : Application [":" TypeTerm]
-    ;
-
-Application
-    : Assignment {"(" [Expression {"," Expression}] ")"}
+    : Assignment [":" TypeTerm]
     ;
 
 Assignment
-    : Factor [":=" Expression]
+    : QualifiedExpression [":=" Expression]
+    ;
+
+QualifiedExpression
+    : Factor {QualifiedExpressionSuffix}
+    ;
+
+QualifiedExpressionSuffix
+    :  "(" [Expression {"," Expression}] ")"
     ;
 
 Factor

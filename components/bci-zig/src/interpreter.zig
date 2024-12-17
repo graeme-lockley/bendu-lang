@@ -26,6 +26,17 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 std.posix.exit(@intCast(code));
             },
 
+            .push_array => {
+                const len = readi32(bc, ip);
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: push_array: len={d}\n", .{ ip - 1, fp, len });
+                }
+
+                try runtime.push_array(@intCast(len));
+                ip += 4;
+            },
+
             .push_bool_true => {
                 if (DEBUG) {
                     std.debug.print("{d} {d}: push_bool_true\n", .{ ip - 1, fp });

@@ -11,6 +11,16 @@
       "description": "Aborts the program with a specified error code."
     },
     {
+      "name": "PUSH_ARRAY",
+      "args": [
+        {
+          "name": "arity",
+          "type": "u32"
+        }
+      ],
+      "description": "Creates an array from the top arity number of values on the stack."
+    },
+    {
       "name": "PUSH_BOOL_TRUE",
       "args": [],
       "description": "Places the value 'true' onto the stack."
