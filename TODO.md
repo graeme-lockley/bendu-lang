@@ -132,7 +132,7 @@ The following is the list of big features that need to be implemented.
 - [x] Parse type
 - [x] Compile literal
 - [x] Print tuple value
-- [ ] Implement == and !=
+- [x] Implement == and !=
 
 ## Unit
 

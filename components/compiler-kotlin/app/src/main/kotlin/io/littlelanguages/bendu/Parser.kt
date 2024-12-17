@@ -8,24 +8,18 @@ import io.littlelanguages.data.Union3
 import java.io.StringReader
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<List<Expression>, Expression, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, Expression, List<TypeQualifiedIDLocation>, TypeQualifiedIDLocation, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm> {
+    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, Expression, List<TypeQualifiedIDLocation>, TypeQualifiedIDLocation, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm> {
     override fun visitProgram(a: List<Tuple2<Expression, Token?>>): List<Expression> =
         a.map { it.a }
 
-    override fun visitExpression(a1: Expression, a2: List<Tuple2<Token, Expression>>): Expression =
-        if (a2.isEmpty())
-            a1
-        else
-            LiteralTupleExpression(listOf(a1) + a2.map { it.b })
-
-    override fun visitStatementExpression1(
+    override fun visitExpression1(
         a1: Token,
         a2: LetStatementTerm,
         a3: List<Tuple2<Token, LetStatementTerm>>
     ): Expression =
         LetStatement(listOf(a2) + a3.map { it.b })
 
-    override fun visitStatementExpression2(
+    override fun visitExpression2(
         a1: Token,
         a2: Token,
         a3: Tuple2<Expression, List<Tuple2<Token, Expression>>>?,
@@ -36,7 +30,7 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         else
             PrintStatement(listOf(a3.a, *a3.b.map { it.b }.toTypedArray()), a1.location + a4.location)
 
-    override fun visitStatementExpression3(
+    override fun visitExpression3(
         a1: Token,
         a2: Token,
         a3: Tuple2<Expression, List<Tuple2<Token, Expression>>>?,
@@ -47,7 +41,7 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         else
             PrintlnStatement(listOf(a3.a, *a3.b.map { it.b }.toTypedArray()), a1.location + a4.location)
 
-    override fun visitStatementExpression4(
+    override fun visitExpression4(
         a1: Token,
         a2: Token,
         a3: Tuple2<Expression, List<Tuple2<Token, Expression>>>?,
@@ -58,7 +52,7 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         else
             AbortStatement(listOf(a3.a, *a3.b.map { it.b }.toTypedArray()), a1.location + a4.location)
 
-    override fun visitStatementExpression5(
+    override fun visitExpression5(
         a1: Token,
         a2: Token?,
         a3: Expression,
@@ -83,10 +77,10 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         return IfExpression(guards, elseExpression)
     }
 
-    override fun visitStatementExpression6(a1: Token, a2: Expression, a3: Token, a4: Expression): Expression =
+    override fun visitExpression6(a1: Token, a2: Expression, a3: Token, a4: Expression): Expression =
         WhileExpression(a2, a4)
 
-    override fun visitStatementExpression7(a: Expression): Expression =
+    override fun visitExpression7(a: Expression): Expression =
         a
 
     override fun visitLetDeclaration(
@@ -211,8 +205,18 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         else
             AssignmentExpression(a1, a2.b)
 
-    override fun visitFactor1(a1: Token, a2: Expression?, a3: Token): Expression =
-        a2 ?: LiteralUnitExpression(a1.location + a3.location)
+    override fun visitFactor1(
+        a1: Token,
+        a2: Tuple2<Expression, List<Tuple2<Token, Expression>>>?,
+        a3: Token
+    ): Expression =
+
+        when {
+            a2 == null -> LiteralUnitExpression(a1.location + a3.location)
+            a2.b.isEmpty() -> a2.a
+            else -> LiteralTupleExpression(listOf(a2.a) + a2.b.map { it.b })
+        }
+
 
     override fun visitFactor2(a: Token): Expression =
         LowerIDExpression(StringLocation(a.lexeme, a.location))

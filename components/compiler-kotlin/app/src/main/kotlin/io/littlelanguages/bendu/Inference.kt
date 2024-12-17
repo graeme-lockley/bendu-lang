@@ -52,10 +52,10 @@ private fun inferExpression(expression: Expression, env: Environment) {
         }
 
         is ApplyExpression -> {
-            inferExpression(expression.f, env)
+            inferScopedExpression(expression.f, env)
 
             expression.arguments.forEach { argument ->
-                inferExpression(argument, env)
+                inferScopedExpression(argument, env)
             }
 
             val tv = env.nextVar()
@@ -81,16 +81,16 @@ private fun inferExpression(expression: Expression, env: Environment) {
             } else {
                 env.errors.addError(AssignmentError(expression.lhs.location()))
             }
-            inferExpression(expression.lhs, env)
-            inferExpression(expression.rhs, env)
+            inferScopedExpression(expression.lhs, env)
+            inferScopedExpression(expression.rhs, env)
 
             env.addConstraint(expression.lhs.type!!, expression.rhs.type!!)
             expression.type = expression.rhs.type!!.withLocation(expression.location())
         }
 
         is BinaryExpression -> {
-            inferExpression(expression.e1, env)
-            inferExpression(expression.e2, env)
+            inferScopedExpression(expression.e1, env)
+            inferScopedExpression(expression.e2, env)
 
             val tv = env.nextVar()
             expression.type = tv
@@ -106,8 +106,17 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
             expression.es.forEach { e ->
                 inferExpression(e, env)
-            }
+                e.apply(env.solveConstraints(), env.errors)
 
+                if (e is LetStatement) {
+                    e.terms.forEach { term ->
+                        env.rebind(
+                            term.id.value,
+                            env.generalise(term.type!!)
+                        )
+                    }
+                }
+            }
             env.closeTypeEnv()
 
             expression.type =
@@ -119,8 +128,8 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
         is IfExpression -> {
             expression.guards.forEach { guard ->
-                inferExpression(guard.first, env)
-                inferExpression(guard.second, env)
+                inferScopedExpression(guard.first, env)
+                inferScopedExpression(guard.second, env)
 
                 env.addConstraint(guard.first.type!!, typeBool)
                 env.addConstraint(guard.second.type!!, expression.guards[0].second.type!!)
@@ -130,7 +139,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             if (expression.elseBranch == null) {
                 env.addConstraint(expression.type!!, typeUnit)
             } else {
-                inferExpression(expression.elseBranch, env)
+                inferScopedExpression(expression.elseBranch, env)
                 env.addConstraint(expression.type!!, expression.elseBranch.type!!)
             }
         }
@@ -194,7 +203,12 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
             expression.parameters.forEachIndexed { index, parameter ->
                 if (parameter.value != LITERAL_FIX_NAME) {
-                    env.bind(parameter.value, parameter.location, parameter.mutable, Scheme(emptySet(), domain[index]))
+                    env.bind(
+                        parameter.value,
+                        parameter.location,
+                        parameter.mutable,
+                        Scheme(emptySet(), domain[index])
+                    )
 
                     if (parameter.typeQualifier != null) {
                         env.addConstraint(domain[index], parameter.typeQualifier.toType(env))
@@ -202,7 +216,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
                 }
             }
 
-            inferExpression(expression.body, env)
+            inferScopedExpression(expression.body, env)
 
             if (expression.returnTypeQualifier != null) {
                 env.addConstraint(expression.body.type!!, expression.returnTypeQualifier.toType(env))
@@ -221,7 +235,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
         is LiteralTupleExpression -> {
             expression.es.forEach { e ->
-                inferExpression(e, env)
+                inferScopedExpression(e, env)
             }
 
             expression.type = TTuple(expression.es.map { it.type!! }).withLocation(expression.location())
@@ -254,7 +268,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
         }
 
         is TypedExpression -> {
-            inferExpression(expression.e, env)
+            inferScopedExpression(expression.e, env)
 
             expression.type = expression.typeQualifier.toType(env)
 
@@ -262,7 +276,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
         }
 
         is UnaryExpression -> {
-            inferExpression(expression.e, env)
+            inferScopedExpression(expression.e, env)
 
             val tv = env.nextVar()
             expression.type = tv
@@ -274,14 +288,23 @@ private fun inferExpression(expression: Expression, env: Environment) {
         }
 
         is WhileExpression -> {
-            inferExpression(expression.guard, env)
-            inferExpression(expression.body, env)
+            inferScopedExpression(expression.guard, env)
+            inferScopedExpression(expression.body, env)
 
             env.addConstraint(expression.guard.type!!, typeBool)
 
             expression.type = typeUnit.withLocation(expression.location())
         }
     }
+}
+
+private fun inferScopedExpression(expression: Expression, env: Environment) {
+    if (expression is LetStatement) {
+        env.openTypeEnv()
+        inferExpression(expression, env)
+        env.closeTypeEnv()
+    } else
+        inferExpression(expression, env)
 }
 
 private fun inferPrintArguments(es: List<Expression>, env: Environment) {

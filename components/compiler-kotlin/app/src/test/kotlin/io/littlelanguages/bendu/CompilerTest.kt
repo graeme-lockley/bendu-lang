@@ -77,34 +77,6 @@ class CompilerTest {
             ),
             "(3.141, 1)"
         )
-
-        assertCompiledBC(
-            byteArrayOf(
-                Instructions.PUSH_F32_LITERAL.op,
-                64, 73, 6, 37, // 3.141
-                Instructions.PUSH_I32_LITERAL.op,
-                0, 0, 0, 1, // 1
-                Instructions.PUSH_TUPLE.op,
-                0, 0, 0, 2, // 2
-            ),
-            "3.141, 1"
-        )
-
-        assertCompiledBC(
-            byteArrayOf(
-                Instructions.PUSH_F32_LITERAL.op,
-                64, 73, 6, 37, // 3.141
-                Instructions.STORE.op,
-                0, 0, 0, 0, // 0
-                0, 0, 0, 0, // 0
-                Instructions.PUSH_UNIT_LITERAL.op,
-                Instructions.PUSH_I32_LITERAL.op,
-                0, 0, 0, 1, // 1
-                Instructions.PUSH_TUPLE.op,
-                0, 0, 0, 2 // arity: 2
-            ),
-            "let x = 3.141, 1"
-        )
     }
 
     @Test

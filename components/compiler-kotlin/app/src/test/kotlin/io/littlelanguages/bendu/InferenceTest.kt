@@ -73,7 +73,10 @@ class InferenceTest {
 
     @Test
     fun `infer literal tuple`() {
-        assertInferExpressionEquals("\"Hello\", 1", "String * Int")
+        assertInferExpressionEquals("(\"Hello\", 1)", "String * Int")
+
+        assertInferExpressionEquals("(let a = 1, 2)", "Unit * Int")
+        assertInferExpressionEquals("({ let a = 1 ; a }, 2)", "Int * Int")
     }
 
     @Test
