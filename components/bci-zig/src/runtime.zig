@@ -161,6 +161,18 @@ pub const Runtime = struct {
         try self.stack.append(Pointer.fromPointer(*Memory.Value, tuple));
     }
 
+    pub inline fn push_tuple_component(self: *Runtime, index: usize) !void {
+        const tuple = Pointer.as(*Memory.Value, self.peek());
+        const component = tuple.v.TupleKind.values[index];
+
+        if (Pointer.isString(component)) {
+            Pointer.asString(component).incRef();
+        }
+
+        self.discard();
+        try self.stack.append(component);
+    }
+
     pub inline fn push_unit_literal(self: *Runtime) !void {
         try self.stack.append(Pointer.fromInt(0));
     }

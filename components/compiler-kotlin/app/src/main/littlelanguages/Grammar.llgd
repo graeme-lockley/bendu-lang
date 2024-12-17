@@ -88,6 +88,8 @@ FunctionParameters
 
 FunctionParameter
     : LowerID ["!"] [TypeQualifier]
+    | "_" [TypeQualifier]
+    | "(" FunctionParameter {"," FunctionParameter} ")" [TypeQualifier]
     ;
 
 TypeParameters

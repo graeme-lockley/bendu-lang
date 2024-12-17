@@ -159,7 +159,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             val declarationType = fix(
                 LiteralFunctionExpression(
                     emptyList(),
-                    listOf(TypeQualifiedIDLocation(LITERAL_FIX_NAME, expression.location(), false, null)),
+                    listOf(LowerIDFunctionParameter(LITERAL_FIX_NAME, expression.location(), false, null)),
                     null,
                     LiteralTupleExpression(expression.terms.map {
                         when (it) {
@@ -192,6 +192,29 @@ private fun inferExpression(expression: Expression, env: Environment) {
             expression.type = typeInt.withLocation(expression.location())
 
         is LiteralFunctionExpression -> {
+            fun inferFunctionParameters(type: Type, parameter: FunctionParameter) {
+                when (parameter) {
+                    is LowerIDFunctionParameter -> {
+                        if (parameter.value != LITERAL_FIX_NAME) {
+                            env.bind(parameter.value, parameter.location, parameter.mutable, Scheme(emptySet(), type))
+                        }
+                    }
+
+                    is TupleFunctionParameter -> {
+                        val tupleTypes = env.nextVars(parameter.parameters.size)
+                        parameter.parameters.forEachIndexed { index, p ->
+                            inferFunctionParameters(tupleTypes[index], p)
+                        }
+                        env.addConstraint(type, TTuple(tupleTypes))
+                    }
+
+                    is WildcardFunctionParameter -> {}
+                }
+                if (parameter.typeQualifier != null) {
+                    env.addConstraint(type, parameter.typeQualifier!!.toType(env))
+                }
+            }
+
             env.openTypeEnv()
 
             val tv = env.nextVar()
@@ -202,18 +225,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
             }
 
             expression.parameters.forEachIndexed { index, parameter ->
-                if (parameter.value != LITERAL_FIX_NAME) {
-                    env.bind(
-                        parameter.value,
-                        parameter.location,
-                        parameter.mutable,
-                        Scheme(emptySet(), domain[index])
-                    )
-
-                    if (parameter.typeQualifier != null) {
-                        env.addConstraint(domain[index], parameter.typeQualifier.toType(env))
-                    }
-                }
+                inferFunctionParameters(domain[index], parameter)
             }
 
             inferScopedExpression(expression.body, env)

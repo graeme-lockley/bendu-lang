@@ -30,9 +30,7 @@ class ParserTest {
             assertEquals(expr2.v.value, "x")
         }
 
-        listOf(
-            "let bob() = 1"
-        ).forEach { input ->
+        listOf("let bob() = 1").forEach { input ->
             val statements = successfulParse(input, 1)
 
             assertIs<LetStatement>(statements[0])
@@ -45,9 +43,7 @@ class ParserTest {
             assertEquals(1, (expr.body as LiteralIntExpression).v.value)
         }
 
-        listOf(
-            "let add(a, b) = 1"
-        ).forEach { input ->
+        listOf("let add(a, b) = 1").forEach { input ->
             val statements = successfulParse(input, 1)
 
             assertIs<LetStatement>(statements[0])
@@ -55,10 +51,41 @@ class ParserTest {
 
             val expr = (statements[0] as LetStatement).terms[0] as LetFunctionStatementTerm
             assertEquals(2, expr.parameters.size)
-            assertEquals("a", expr.parameters[0].value)
-            assertEquals("b", expr.parameters[1].value)
+            assertIs<LowerIDFunctionParameter>(expr.parameters[0])
+            assertEquals("a", (expr.parameters[0] as LowerIDFunctionParameter).value)
+            assertIs<LowerIDFunctionParameter>(expr.parameters[1])
+            assertEquals("b", (expr.parameters[1] as LowerIDFunctionParameter).value)
             assertIs<LiteralIntExpression>(expr.body)
             assertEquals(1, (expr.body as LiteralIntExpression).v.value)
+        }
+
+        listOf("let add(_) = 1").forEach { input ->
+            val statements = successfulParse(input, 1)
+
+            assertIs<LetStatement>(statements[0])
+            assertEquals("add", (statements[0] as LetStatement).terms[0].id.value)
+
+            val expr = (statements[0] as LetStatement).terms[0] as LetFunctionStatementTerm
+            assertEquals(1, expr.parameters.size)
+            assertIs<WildcardFunctionParameter>(expr.parameters[0])
+        }
+
+        listOf("let add((a, b)) = 1").forEach { input ->
+            val statements = successfulParse(input, 1)
+
+            assertIs<LetStatement>(statements[0])
+            assertEquals("add", (statements[0] as LetStatement).terms[0].id.value)
+
+            val expr = (statements[0] as LetStatement).terms[0] as LetFunctionStatementTerm
+            assertEquals(1, expr.parameters.size)
+            assertIs<TupleFunctionParameter>(expr.parameters[0])
+
+            val tuple = (expr.parameters[0] as TupleFunctionParameter).parameters
+            assertEquals(2, tuple.size)
+            assertIs<LowerIDFunctionParameter>(tuple[0])
+            assertEquals("a", (tuple[0] as LowerIDFunctionParameter).value)
+            assertIs<LowerIDFunctionParameter>(tuple[1])
+            assertEquals("b", (tuple[1] as LowerIDFunctionParameter).value)
         }
     }
 

@@ -133,6 +133,8 @@ The following is the list of big features that need to be implemented.
 - [x] Compile literal
 - [x] Print tuple value
 - [x] Implement == and !=
+- [ ] Destructive parameter
+- [ ] Destruct on assignment
 
 ## Unit
 

@@ -106,6 +106,16 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.push_tuple(@intCast(arity));
                 ip += 4;
             },
+            .push_tuple_component => {
+                const index = readi32(bc, ip);
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: push_tuple_component: index={d}\n", .{ ip - 1, fp, index });
+                }
+
+                try runtime.push_tuple_component(@intCast(index));
+                ip += 4;
+            },
             .push_unit_literal => {
                 if (DEBUG) {
                     std.debug.print("{d} {d}: push_unit_literal\n", .{ ip - 1, fp });

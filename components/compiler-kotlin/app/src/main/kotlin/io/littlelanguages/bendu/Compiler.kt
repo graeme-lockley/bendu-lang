@@ -355,12 +355,10 @@ private class Compiler(val errors: Errors) {
 
                 symbolTable.openScope()
 
-                e.parameters.forEach { parameter ->
-                    symbolTable.bindPackageBinding(parameter.value)
-                }
-
                 val binding = symbolTable.find(e.id.value)!! as FunctionBinding
                 binding.codeOffset = byteBuilder.size()
+
+                compileFunctionParameters(e.parameters)
 
                 compileExpression(e.body)
                 byteBuilder.appendInstruction(Instructions.RET)
@@ -383,6 +381,67 @@ private class Compiler(val errors: Errors) {
 
         if (keepResult) {
             byteBuilder.appendInstruction(Instructions.PUSH_UNIT_LITERAL)
+        }
+    }
+
+    private fun compileFunctionParameters(parameters: List<FunctionParameter>) {
+        parameters.forEachIndexed{ index, parameter ->
+            when (parameter) {
+                is LowerIDFunctionParameter ->
+                    symbolTable.bindPackageBinding(parameter.value)
+
+                is TupleFunctionParameter ->
+                    symbolTable.bindPackageBinding("[${index}]") // need to do this to get the index right
+
+                is WildcardFunctionParameter ->
+                    symbolTable.bindPackageBinding("_") // need to do this to get the index right
+            }
+        }
+
+        parameters.forEachIndexed{ index, parameter ->
+            if (parameter is TupleFunctionParameter){
+                    val binding = symbolTable.find("[${index}]") as IdentifierBinding
+
+                    byteBuilder.appendInstruction(Instructions.LOAD)
+                    byteBuilder.appendInt(0)
+                    byteBuilder.appendInt(binding.frameOffset)
+
+                    compileFunctionTupleParameters(parameter.parameters)
+                }
+            }
+        }
+
+
+    private fun compileFunctionTupleParameters(parameters: List<FunctionParameter>) {
+        parameters.forEachIndexed() { index, parameter ->
+            if (index < parameters.size - 1) {
+                byteBuilder.appendInstruction(Instructions.DUP)
+            }
+
+            when (parameter) {
+                is LowerIDFunctionParameter -> {
+                    val binding = symbolTable.bindPackageBinding(parameter.value)
+                    byteBuilder.appendInstruction(Instructions.PUSH_TUPLE_COMPONENT)
+                    byteBuilder.appendInt(index)
+                    byteBuilder.appendInstruction(Instructions.STORE)
+                    byteBuilder.appendInt(0)
+                    byteBuilder.appendInt(binding.frameOffset)
+                }
+
+                is TupleFunctionParameter -> {
+                    symbolTable.bindPackageBinding("_") // need to do this to get the index right
+
+                    byteBuilder.appendInstruction(Instructions.PUSH_TUPLE_COMPONENT)
+                    byteBuilder.appendInt(index)
+
+                    compileFunctionTupleParameters(parameter.parameters)
+                }
+
+                is WildcardFunctionParameter -> {
+                    symbolTable.bindPackageBinding("_") // need to do this to get the index right
+                    byteBuilder.appendInstruction(Instructions.DISCARD)
+                }
+            }
         }
     }
 
@@ -422,11 +481,9 @@ private class Compiler(val errors: Errors) {
 
             symbolTable.openScope()
 
-            expression.parameters.forEach { parameter ->
-                symbolTable.bindPackageBinding(parameter.value)
-            }
-
             byteBuilder.writeIntAtPosition(jumpOffset, byteBuilder.size())
+
+            compileFunctionParameters(expression.parameters)
 
             compileExpression(expression.body)
             byteBuilder.appendInstruction(Instructions.RET)

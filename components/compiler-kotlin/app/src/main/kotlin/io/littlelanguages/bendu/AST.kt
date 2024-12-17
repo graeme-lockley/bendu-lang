@@ -134,7 +134,7 @@ data class LetFunctionStatementTerm(
     override val id: StringLocation,
     override val mutable: Boolean,
     override val typeVariables: List<StringLocation>,
-    val parameters: List<TypeQualifiedIDLocation>,
+    val parameters: List<FunctionParameter>,
     override val typeQualifier: TypeTerm?,
     val body: Expression,
     override val location: Location,
@@ -168,7 +168,7 @@ data class LiteralFloatExpression(val v: FloatLocation, override var type: Type?
 
 data class LiteralFunctionExpression(
     val typeParameters: List<StringLocation>,
-    val parameters: List<TypeQualifiedIDLocation>,
+    val parameters: List<FunctionParameter>,
     val returnTypeQualifier: TypeTerm?,
     val body: Expression,
     override var type: Type? = null
@@ -274,12 +274,23 @@ data class StringLocation(val value: String, val location: Location)
 data class OpLocation(val op: Op, val location: Location)
 data class UnaryOpLocation(val op: UnaryOp, val location: Location)
 
-data class TypeQualifiedIDLocation(
+sealed class FunctionParameter(open val typeQualifier: TypeTerm?, open val location: Location)
+
+data class LowerIDFunctionParameter(
     val value: String,
-    val location: Location,
+    override val location: Location,
     val mutable: Boolean,
-    val typeQualifier: TypeTerm?
-)
+    override val typeQualifier: TypeTerm?
+) : FunctionParameter(typeQualifier, location)
+
+data class TupleFunctionParameter(
+    val parameters: List<FunctionParameter>,
+    override val typeQualifier: TypeTerm?,
+    override val location: Location
+) : FunctionParameter(typeQualifier, location)
+
+data class WildcardFunctionParameter(override val typeQualifier: TypeTerm?, override val location: Location) :
+    FunctionParameter(typeQualifier, location)
 
 enum class Op { Or, And, Plus, Minus, Multiply, Divide, Modulo, Power, EqualEqual, NotEqual, LessThan, LessEqual, GreaterThan, GreaterEqual }
 enum class UnaryOp { Not, TypeOf }

@@ -434,6 +434,57 @@ class CompilerTest {
             ),
             "let inc(a) = inc(a + 1) ; inc(1)"
         )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.JMP.op,
+                0, 0, 0, 21,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 1,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1,
+                Instructions.ADD_I32.op,
+                Instructions.RET.op,
+                Instructions.PUSH_UNIT_LITERAL.op
+            ),
+            "let add(_, a) = a + 1"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.JMP.op,
+                0, 0, 0, 73,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.DUP.op,
+                Instructions.PUSH_TUPLE_COMPONENT.op,
+                0, 0, 0, 0,
+                Instructions.STORE.op,
+                0, 0, 0, 0,
+                0, 0, 0, 2,
+                Instructions.PUSH_TUPLE_COMPONENT.op,
+                0, 0, 0, 1,
+                Instructions.STORE.op,
+                0, 0, 0, 0,
+                0, 0, 0, 3,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 2,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 3,
+                Instructions.ADD_I32.op,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 1,
+                Instructions.ADD_I32.op,
+                Instructions.RET.op,
+                Instructions.PUSH_UNIT_LITERAL.op
+            ),
+            "let add((a, b): Int * Int, c: Int): Int = a + b + c"
+        )
     }
 }
 

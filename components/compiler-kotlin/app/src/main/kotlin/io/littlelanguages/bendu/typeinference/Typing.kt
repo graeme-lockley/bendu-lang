@@ -170,7 +170,7 @@ data class TTuple(val types: List<Type>, override val location: Location? = null
         super.toString()
 
     override fun toStringHelper(env: ToStringHelper): String =
-        types.joinToString(" * ") { it.toStringHelper(env) }
+        types.joinToString(" * ") { if (it is TTuple) "(${it.toStringHelper(env)})" else it.toStringHelper(env) }
 }
 
 val typeError = TCon("Error")

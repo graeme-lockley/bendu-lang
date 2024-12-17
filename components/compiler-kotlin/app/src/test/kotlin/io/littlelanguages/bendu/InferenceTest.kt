@@ -177,6 +177,14 @@ class InferenceTest {
             "(Int) -> Int",
             emptyTypeEnv + ("g" to Binding(location, false, Scheme(setOf(), TArr(listOf(typeInt), typeInt))))
         )
+
+        assertInferFunctionEquals("let f((a, b)): Int = a + b", "(Int * Int) -> Int")
+        assertInferFunctionEquals("let f((a, _)) = a + 1", "[a] (Int * a) -> Int")
+        assertInferFunctionEquals("let f((a, _: Int)) = a + 1", "(Int * Int) -> Int")
+        assertInferFunctionEquals("let f((a, _): Int * Int) = a + 1", "(Int * Int) -> Int")
+        assertInferFunctionEquals("let f((a, (c, d))): Int = a + c + d", "(Int * (Int * Int)) -> Int")
+
+        assertInferFunctionEquals("let add((a, b): Int * Int, c: Int): Int = a + b + c", "(Int * Int, Int) -> Int")
     }
 
     @Test
