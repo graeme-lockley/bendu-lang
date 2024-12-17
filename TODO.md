@@ -25,8 +25,8 @@ The following is the list of big features that need to be implemented.
 - [x] Control flow
 - [ ] Tuples
 - [ ] Arrays
-- [ ] Records
 - [ ] Packages
+- [ ] Records
 - [ ] Type aliases
 - [ ] Patterns
 - [ ] Signals
@@ -63,6 +63,22 @@ The following is the list of big features that need to be implemented.
 - [x] Implement the `while` expression in the BC interpreter
 
 # Data Types
+
+## Arrays
+
+- [x] Parse literal
+- [ ] Parse type
+- [ ] Compile literal
+- [ ] Print tuple value
+- [ ] Implement == and !=
+- [ ] Project element using ! #
+- [ ] Project range using ! #:#
+- [ ] Assignment using ! #
+- [ ] Assign to range using ! #:#
+- [ ] Append using >>
+- [ ] Append mutation using >!
+- [ ] Prepend using <<
+- [ ] Prepend mutation using <!
 
 ## Bool
 
@@ -133,7 +149,7 @@ The following is the list of big features that need to be implemented.
 - [x] Compile literal
 - [x] Print tuple value
 - [x] Implement == and !=
-- [ ] Destructive parameter
+- [x] Destructive parameter
 - [ ] Destruct on assignment
 
 ## Unit

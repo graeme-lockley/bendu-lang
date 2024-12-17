@@ -146,6 +146,12 @@ data class LetFunctionStatementTerm(
     }
 }
 
+data class LiteralArrayExpression(val es: List<Expression>, val location: Location, override var type: Type? = null) :
+    Expression(type) {
+    override fun location(): Location =
+        location
+}
+
 data class LiteralBoolExpression(val v: BoolLocation, override var type: Type? = null) : Expression(type) {
     override fun location(): Location =
         v.location

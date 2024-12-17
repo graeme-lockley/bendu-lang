@@ -179,6 +179,9 @@ private fun inferExpression(expression: Expression, env: Environment) {
             expression.type = typeUnit.withLocation(expression.location())
         }
 
+        is LiteralArrayExpression ->
+            TODO("infer LiteralArrayExpression")
+
         is LiteralBoolExpression ->
             expression.type = typeBool.withLocation(expression.location())
 

@@ -45,6 +45,7 @@ private class Compiler(val errors: Errors) {
             is BlockExpression -> compileStatements(expression.es, keepResult)
             is IfExpression -> compileIfExpression(expression, keepResult)
             is LetStatement -> compileLetExpression(expression, keepResult)
+            is LiteralArrayExpression -> TODO("Compiler LiteralArrayExpression")
             is LiteralBoolExpression -> compileLiteralBoolExpression(expression, keepResult)
             is LiteralCharExpression -> compileLiteralCharExpression(expression, keepResult)
             is LiteralFloatExpression -> compileLiteralFloatExpression(expression, keepResult)
@@ -56,10 +57,9 @@ private class Compiler(val errors: Errors) {
             is LowerIDExpression -> compileLowerIDExpression(expression, keepResult)
             is PrintStatement -> compilePrintExpression(expression, keepResult)
             is PrintlnStatement -> compilePrintlnExpression(expression, keepResult)
+            is TypedExpression -> compileExpression(expression.e, keepResult)
             is UnaryExpression -> compileUnaryExpression(expression, keepResult)
             is WhileExpression -> compileWhileExpression(expression, keepResult)
-
-            else -> TODO(expression.toString())
         }
     }
 

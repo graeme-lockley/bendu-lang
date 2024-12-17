@@ -303,9 +303,18 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     ): Expression =
         LiteralFunctionExpression(a2 ?: emptyList(), a3, a4, a6)
 
-
     override fun visitFactor12(a1: Token, a2: List<Tuple2<Expression, Token?>>, a3: Token): Expression =
         BlockExpression(a2.map { it.a }, a1.location + a3.location)
+
+    override fun visitFactor13(
+        a1: Token,
+        a2: Tuple2<Expression, List<Tuple2<Token, Expression>>>?,
+        a3: Token
+    ): Expression =
+        if (a2 == null)
+            LiteralArrayExpression(emptyList(), a1.location + a3.location)
+        else
+            LiteralArrayExpression(listOf(a2.a) + a2.b.map { it.b }, a1.location + a3.location)
 
     override fun visitFunctionParameters(
         a1: Token,
