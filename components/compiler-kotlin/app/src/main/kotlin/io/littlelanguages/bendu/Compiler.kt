@@ -332,7 +332,7 @@ private class Compiler(val errors: Errors) {
     private fun compileLetExpression(e: LetStatement, keepResult: Boolean) {
         e.terms.forEach { t ->
             if (t is LetFunctionStatementTerm) {
-                symbolTable.bindFunctionBinding(t.id.value, t.mutable)
+                symbolTable.bindFunction(t.id.value, t.mutable)
             }
         }
         e.terms.forEach { t -> compileLetStatementTerm(t, keepResult) }
@@ -342,7 +342,7 @@ private class Compiler(val errors: Errors) {
         when (e) {
             is LetValueStatementTerm -> {
                 compileExpression(e.e)
-                val binding = symbolTable.bindPackageBinding(e.id.value)
+                val binding = symbolTable.bindIdentifier(e.id.value)
                 byteBuilder.appendInstruction(Instructions.STORE)
                 byteBuilder.appendInt(0)
                 byteBuilder.appendInt(binding.frameOffset)
@@ -388,13 +388,13 @@ private class Compiler(val errors: Errors) {
         parameters.forEachIndexed{ index, parameter ->
             when (parameter) {
                 is LowerIDFunctionParameter ->
-                    symbolTable.bindPackageBinding(parameter.value)
+                    symbolTable.bindIdentifier(parameter.value)
 
                 is TupleFunctionParameter ->
-                    symbolTable.bindPackageBinding("[${index}]") // need to do this to get the index right
+                    symbolTable.bindIdentifier("[${index}]") // need to do this to get the index right
 
                 is WildcardFunctionParameter ->
-                    symbolTable.bindPackageBinding("_") // need to do this to get the index right
+                    symbolTable.bindIdentifier("_") // need to do this to get the index right
             }
         }
 
@@ -420,7 +420,7 @@ private class Compiler(val errors: Errors) {
 
             when (parameter) {
                 is LowerIDFunctionParameter -> {
-                    val binding = symbolTable.bindPackageBinding(parameter.value)
+                    val binding = symbolTable.bindIdentifier(parameter.value)
                     byteBuilder.appendInstruction(Instructions.PUSH_TUPLE_COMPONENT)
                     byteBuilder.appendInt(index)
                     byteBuilder.appendInstruction(Instructions.STORE)
@@ -429,7 +429,7 @@ private class Compiler(val errors: Errors) {
                 }
 
                 is TupleFunctionParameter -> {
-                    symbolTable.bindPackageBinding("_") // need to do this to get the index right
+                    symbolTable.bindIdentifier("_") // need to do this to get the index right
 
                     byteBuilder.appendInstruction(Instructions.PUSH_TUPLE_COMPONENT)
                     byteBuilder.appendInt(index)
@@ -438,7 +438,7 @@ private class Compiler(val errors: Errors) {
                 }
 
                 is WildcardFunctionParameter -> {
-                    symbolTable.bindPackageBinding("_") // need to do this to get the index right
+                    symbolTable.bindIdentifier("_") // need to do this to get the index right
                     byteBuilder.appendInstruction(Instructions.DISCARD)
                 }
             }

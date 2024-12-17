@@ -70,13 +70,13 @@ class SymbolTable(private val byteBuilder: ByteBuilder) {
         return null
     }
 
-    fun bindPackageBinding(name: String): IdentifierBinding {
+    fun bindIdentifier(name: String): IdentifierBinding {
         val binding = IdentifierBinding(scope.offset++)
         scope.bindings[name] = binding
         return binding
     }
 
-    fun bindFunctionBinding(name: String, mutable: Boolean) {
+    fun bindFunction(name: String, mutable: Boolean) {
         val binding = if (mutable)
             FunctionBinding(frameOffset = scope.offset++)
         else
