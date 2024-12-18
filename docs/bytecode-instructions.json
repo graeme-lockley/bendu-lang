@@ -23,7 +23,12 @@
     {
       "name": "PUSH_ARRAY_ELEMENT",
       "args": [ ],
-      "description": "Pops top array and index off of the stack and pushes the element from the array referenced at the index."
+      "description": "Pops array and index off of the stack and pushes the element from the array referenced at the index."
+    },
+    {
+      "name": "PUSH_ARRAY_RANGE",
+      "args": [ ],
+      "description": "Pops array and two indexes off of the stack and pushes the a new array with the range of elements."
     },
     {
       "name": "PUSH_BOOL_TRUE",

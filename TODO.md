@@ -70,12 +70,19 @@ The following is the list of big features that need to be implemented.
 - [x] Parse type
 - [x] Infer array type
 - [x] Compile literal
+- [ ] Incorporate ... into a literal array
 - [x] Print tuple value
 - [x] Implement == and !=
 - [x] Project element using ! #
-- [ ] Project range using ! #:#
+- [x] Project range using ! #:#
+- [ ] Project range using !:#
+- [ ] Project range using !#:
+- [ ] Project range using !#
 - [ ] Assignment using ! #
 - [ ] Assign to range using ! #:#
+- [ ] Assign to range using ! :#
+- [ ] Assign to range using ! #:
+- [ ] Assign to range using ! :
 - [ ] Append using >>
 - [ ] Append mutation using >!
 - [ ] Prepend using <<

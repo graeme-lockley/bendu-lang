@@ -153,6 +153,30 @@ pub const Runtime = struct {
         try self.stack.append(element);
     }
 
+    pub inline fn push_array_range(self: *Runtime) !void {
+        const end = Pointer.asInt(self.peek());
+        const start = Pointer.asInt(self.peekN(1));
+        const array = Pointer.as(*Memory.Value, self.peekN(2));
+
+        const arrayLen = array.v.ArrayKind.len();
+
+        const aStart: usize = if (start < 0) 0 else if (start >= arrayLen) arrayLen else @intCast(start);
+        const aEnd: usize = if (end < aStart) aStart else if (end >= arrayLen) arrayLen else @intCast(end);
+
+        const range = try self.pushNewValue(Memory.ValueValue{ .ArrayKind = try Memory.ArrayValue.init(self.allocator, aEnd - aStart + 1) });
+
+        for (aStart..aEnd) |i| {
+            const v = array.v.ArrayKind.at(i);
+            if (Pointer.isString(v)) {
+                Pointer.asString(v).incRef();
+            }
+            try range.v.ArrayKind.values.append(v);
+        }
+
+        self.popN(4);
+        try self.push(Pointer.fromPointer(*Memory.Value, range));
+    }
+
     pub inline fn push_bool_true(self: *Runtime) !void {
         try self.stack.append(Pointer.fromInt(1));
     }

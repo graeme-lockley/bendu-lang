@@ -68,8 +68,8 @@ QualifiedExpression
     ;
 
 QualifiedExpressionSuffix
-    :  "(" [Expression {"," Expression}] ")"
-    | "!" TypedExpression
+    : "(" [Expression {"," Expression}] ")"
+    | "!" QualifiedExpression [":" QualifiedExpression]
     ;
 
 Factor

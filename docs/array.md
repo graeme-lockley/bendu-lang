@@ -41,3 +41,28 @@ An attempt to project beyond the end of the array will result in a fatal error a
 
 Error: Index out of bounds: index: 10, length: 2
 ```
+
+Use a range expression, it is possible to create a new array by projecting out a sequence of elements.
+
+```bendu-repl
+> [1, 2, 3, 4, 5, 6]!2:4
+[3, 4]: Array[Int]
+```
+
+Range expressions are forgiving in that they can never fail and, if out of range, will default to the array dimensions.
+
+```bendu-repl
+> let x = [1, 2, 3, 4, 5]
+
+> x!(-2):2
+[1, 2]: Array[Int]
+
+> x!4:100
+[5]: Array[Int]
+
+> x!10:100
+[]: Array[Int]
+
+> x!2:2
+[]: Array[Int]
+```

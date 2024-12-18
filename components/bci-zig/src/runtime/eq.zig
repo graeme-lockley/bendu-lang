@@ -10,6 +10,11 @@ pub fn eq(p1: Pointer.Pointer, p2: Pointer.Pointer) bool {
         switch (v1.v) {
             .ArrayKind => {
                 const v2 = Pointer.as(*Memory.Value, p2);
+
+                if (v1.v.ArrayKind.len() != v2.v.ArrayKind.len()) {
+                    return false;
+                }
+
                 for (0..v1.v.ArrayKind.len()) |i| {
                     if (!eq(v1.v.ArrayKind.at(i), v2.v.ArrayKind.at(i))) {
                         return false;

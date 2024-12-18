@@ -10,6 +10,11 @@ pub fn neq(p1: Pointer.Pointer, p2: Pointer.Pointer) bool {
         switch (v1.v) {
             .ArrayKind => {
                 const v2 = Pointer.as(*Memory.Value, p2);
+
+                if (v1.v.ArrayKind.len() != v2.v.ArrayKind.len()) {
+                    return true;
+                }
+
                 for (0..v1.v.ArrayKind.len()) |i| {
                     if (neq(v1.v.ArrayKind.at(i), v2.v.ArrayKind.at(i))) {
                         return true;

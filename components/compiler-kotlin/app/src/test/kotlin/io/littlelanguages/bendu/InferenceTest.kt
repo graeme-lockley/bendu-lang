@@ -20,6 +20,13 @@ class InferenceTest {
     }
 
     @Test
+    fun `infer array range projection`() {
+        assertInferExpressionEquals("[1, 2]!1:3", "Array[Int]")
+        assertInferExpressionEquals("[1.1, 2.2]!1:3", "Array[Float]")
+        assertInferExpressionEquals("[]!1:2", "[a] Array[a]")
+    }
+
+    @Test
     fun `infer literal array`() {
         assertInferExpressionEquals("[]", "[a] Array[a]")
         assertInferExpressionEquals("[1, 2, 3]", "Array[Int]")

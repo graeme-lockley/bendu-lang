@@ -51,6 +51,25 @@ data class ArrayElementProjectionExpression(
         array.location() + index.location()
 }
 
+data class ArrayRangeProjectionExpression(
+    val array: Expression,
+    val start: Expression,
+    val end: Expression,
+    override var type: Type? = null
+) :
+    Expression(type) {
+    override fun apply(s: Subst, errors: Errors) {
+        super.apply(s, errors)
+
+        array.apply(s, errors)
+        start.apply(s, errors)
+        end.apply(s, errors)
+    }
+
+    override fun location(): Location =
+        array.location() + end.location()
+}
+
 data class AssignmentExpression(val lhs: Expression, val rhs: Expression, override var type: Type? = null) :
     Expression(type) {
     override fun apply(s: Subst, errors: Errors) {
