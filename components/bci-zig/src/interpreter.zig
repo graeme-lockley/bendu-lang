@@ -183,6 +183,34 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                 try runtime.store(fp, @intCast(frame), @intCast(offset));
                 ip += 8;
             },
+            .store_array_element => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: store_array_element\n", .{ ip - 1, fp });
+                }
+
+                try runtime.store_array_element();
+            },
+            .store_array_range => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: store_array_range\n", .{ ip - 1, fp });
+                }
+
+                try runtime.store_array_range();
+            },
+            .store_array_range_from => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: store_array_range_from\n", .{ ip - 1, fp });
+                }
+
+                try runtime.store_array_range_from();
+            },
+            .store_array_range_to => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: store_array_range_to\n", .{ ip - 1, fp });
+                }
+
+                try runtime.store_array_range_to();
+            },
             .dup => {
                 if (DEBUG) {
                     std.debug.print("{d} {d}: dup\n", .{ ip - 1, fp });

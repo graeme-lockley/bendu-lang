@@ -7,6 +7,147 @@ import kotlin.test.assertTrue
 
 class CompilerTest {
     @Test
+    fun `assign array element`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 3, // 3
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 3, // 3
+                Instructions.STORE.op,
+                0, 0, 0, 0, // 0
+                0, 0, 0, 0, // 0
+                Instructions.LOAD.op,
+                0, 0, 0, 0, // 0
+                0, 0, 0, 0, // 0
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 20, // 20
+                Instructions.STORE_ARRAY_ELEMENT.op,
+            ),
+            "let x = [1, 2, 3]; x!1 := 20"
+        )
+    }
+
+    @Test
+    fun `assign array range`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 3, // 3
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 3, // 3
+                Instructions.STORE.op,
+                0, 0, 0, 0, // 0
+                0, 0, 0, 0, // 0
+                Instructions.LOAD.op,
+                0, 0, 0, 0, // 0
+                0, 0, 0, 0, // 0
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 20, // 20
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 1, // 1
+                Instructions.STORE_ARRAY_RANGE.op,
+            ),
+            "let x = [1, 2, 3]; x!1:2 := [20]"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 3, // 3
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 3, // 3
+                Instructions.STORE.op,
+                0, 0, 0, 0, // 0
+                0, 0, 0, 0, // 0
+                Instructions.LOAD.op,
+                0, 0, 0, 0, // 0
+                0, 0, 0, 0, // 0
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 20, // 20
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 1, // 1
+                Instructions.STORE_ARRAY_RANGE_TO.op,
+            ),
+            "let x = [1, 2, 3]; x!:2 := [20]"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 3, // 3
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 3, // 3
+                Instructions.STORE.op,
+                0, 0, 0, 0, // 0
+                0, 0, 0, 0, // 0
+                Instructions.LOAD.op,
+                0, 0, 0, 0, // 0
+                0, 0, 0, 0, // 0
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 20, // 20
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 1, // 1
+                Instructions.STORE_ARRAY_RANGE_FROM.op,
+            ),
+            "let x = [1, 2, 3]; x!1: := [20]"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 3, // 3
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 3, // 3
+                Instructions.STORE.op,
+                0, 0, 0, 0, // 0
+                0, 0, 0, 0, // 0
+                Instructions.LOAD.op,
+                0, 0, 0, 0, // 0
+                0, 0, 0, 0, // 0
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 0, // 0
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 20, // 20
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 1, // 1
+                Instructions.STORE_ARRAY_RANGE_FROM.op,
+            ),
+            "let x = [1, 2, 3]; x!: := [20]"
+        )
+    }
+
+    @Test
     fun `get array element`() {
         assertCompiledBC(
             byteArrayOf(

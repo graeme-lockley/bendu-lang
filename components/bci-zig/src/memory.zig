@@ -215,3 +215,17 @@ pub const TupleValue = struct {
         return self.values[i];
     }
 };
+
+pub inline fn incRef(v: Pointer.Pointer) Pointer.Pointer {
+    if (Pointer.isString(v)) {
+        Pointer.asString(v).incRef();
+    }
+
+    return v;
+}
+
+pub inline fn decRef(v: Pointer.Pointer) void {
+    if (Pointer.isString(v)) {
+        Pointer.asString(v).decRef();
+    }
+}

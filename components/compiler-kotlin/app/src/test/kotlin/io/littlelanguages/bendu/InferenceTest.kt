@@ -225,7 +225,20 @@ class InferenceTest {
 
         inferErrorExpression("let a: Int = 1.0")
     }
+
+    @Test
+    fun `infer assignment`() {
+//        assertInferExpressionEquals("let a! = 1 ; a := 2; a", "Int")
+//        assertInferExpressionEquals("let a! = 1.0 ; a := 2.0; a", "Float")
+//        assertInferExpressionEquals("let a! = 'x' ; a := 'y'; a", "Char")
+//        assertInferExpressionEquals("let a! = \"Hello\" ; a := \"World\"; a", "String")
+//        assertInferExpressionEquals("let a! = True ; a := False; a", "Bool")
+//        assertInferExpressionEquals("let a! = () ; a := (); a", "Unit")
+
+        assertInferExpressionEquals("let a = [1, 2, 3]; a!1 := 3; a", "Array[Int]")
+    }
 }
+
 
 private fun assertInferExpressionEquals(expr: String, expected: String, typeEnv: TypeEnv = emptyTypeEnv) {
     val errors = Errors()

@@ -168,6 +168,26 @@
       "description": "Store the value on the stack into the frame at the offset.  The frame, starting at 0 indicates how many frames to traverse to get to the correct frame. The offset is the offset from the start of the frame."
     },
     {
+      "name": "STORE_ARRAY_ELEMENT",
+      "args": [ ],
+      "description": "Stores TOS into the array at TOS-2 at the index TOS-1. All popped off of the stack leaving only the original TOS on the stack."
+    },
+    {
+      "name": "STORE_ARRAY_RANGE",
+      "args": [ ],
+      "description": "Inserts the array TOS into the array at TOS-3 the index TOS-2 to TOS-1. All popped off of the stack leaving only the original TOS on the stack."
+    },
+    {
+      "name": "STORE_ARRAY_RANGE_FROM",
+      "args": [ ],
+      "description": "Inserts the array TOS into the array at TOS-2 from index TOS-1 to the end of the array. All popped off of the stack leaving only the original TOS on the stack."
+    },
+    {
+      "name": "STORE_ARRAY_RANGE_TO",
+      "args": [ ],
+      "description": "Inserts the array TOS into the array at TOS-2 from the start of the array to index TOS-1. All popped off of the stack leaving only the original TOS on the stack."
+    },
+    {
       "name": "DUP",
       "args": [],
       "description": "Duplicates the top of the stack."

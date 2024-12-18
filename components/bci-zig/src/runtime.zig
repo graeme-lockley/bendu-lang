@@ -291,6 +291,71 @@ pub const Runtime = struct {
         try Memory.FrameValue.set(f, frame, offset, v);
     }
 
+    pub inline fn store_array_element(self: *Runtime) !void {
+        const v = self.pop();
+        const index = Pointer.asInt(self.pop());
+        const array = Pointer.as(*Memory.Value, self.pop());
+
+        if (index < 0 or index >= array.v.ArrayKind.len()) {
+            try stdout.print("Error: Index out of bounds: index: {d}, length: {d}\n", .{ index, array.v.ArrayKind.len() });
+            std.posix.exit(1);
+        }
+
+        Memory.decRef(array.v.ArrayKind.values.items[@intCast(index)]);
+        array.v.ArrayKind.values.items[@intCast(index)] = v;
+
+        try self.push(Memory.incRef(v));
+    }
+
+    pub inline fn store_array_range(self: *Runtime) !void {
+        const range = self.peek();
+        const end = Pointer.asInt(self.peekN(1));
+        const start = Pointer.asInt(self.peekN(2));
+        const array = Pointer.as(*Memory.Value, self.peekN(3));
+
+        try self.store_array_range_from_to(array, start, end, Pointer.as(*Memory.Value, range));
+
+        self.popN(4);
+        try self.push(range);
+    }
+
+    pub inline fn store_array_range_from(self: *Runtime) !void {
+        const range = self.peek();
+        const start = Pointer.asInt(self.peekN(1));
+        const array = Pointer.as(*Memory.Value, self.peekN(2));
+
+        try self.store_array_range_from_to(array, start, @intCast(array.v.ArrayKind.len()), Pointer.as(*Memory.Value, range));
+
+        self.popN(3);
+        try self.push(range);
+    }
+
+    pub inline fn store_array_range_to(self: *Runtime) !void {
+        const range = self.peek();
+        const end = Pointer.asInt(self.peekN(1));
+        const array = Pointer.as(*Memory.Value, self.peekN(2));
+
+        try self.store_array_range_from_to(array, 0, end, Pointer.as(*Memory.Value, range));
+
+        self.popN(3);
+        try self.push(range);
+    }
+
+    inline fn store_array_range_from_to(self: *Runtime, array: *Memory.Value, start: i32, end: i32, range: *Memory.Value) !void {
+        _ = self;
+
+        const aStart: usize = if (start < 0) 0 else if (start > array.v.ArrayKind.len()) array.v.ArrayKind.len() else @intCast(start);
+        const aEnd: usize = if (end < aStart) aStart else if (end > array.v.ArrayKind.len()) array.v.ArrayKind.len() else @intCast(end);
+
+        for (aStart..aEnd) |i| {
+            Memory.decRef(array.v.ArrayKind.at(i));
+        }
+        try array.v.ArrayKind.values.replaceRange(aStart, aEnd - aStart, range.v.ArrayKind.values.items);
+        for (range.v.ArrayKind.values.items) |item| {
+            _ = Memory.incRef(item);
+        }
+    }
+
     pub inline fn duplicate(self: *Runtime) !void {
         const value = self.stack.items[self.stack.items.len - 1];
 

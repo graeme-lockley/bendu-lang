@@ -138,7 +138,11 @@ private class Compiler(val errors: Errors) {
             expression.start != null && expression.end != null -> byteBuilder.appendInstruction(Instructions.PUSH_ARRAY_RANGE)
             expression.start != null -> byteBuilder.appendInstruction(Instructions.PUSH_ARRAY_RANGE_FROM)
             expression.end != null -> byteBuilder.appendInstruction(Instructions.PUSH_ARRAY_RANGE_TO)
-            else -> throw IllegalArgumentException("Array range projection must have at least one bound")
+            else -> {
+                byteBuilder.appendInstruction(Instructions.PUSH_I32_LITERAL)
+                byteBuilder.appendInt(0)
+                byteBuilder.appendInstruction(Instructions.PUSH_ARRAY_RANGE_FROM)
+            }
         }
 
         if (!keepResult) {
@@ -147,15 +151,14 @@ private class Compiler(val errors: Errors) {
     }
 
     private fun compileAssignmentExpression(expression: AssignmentExpression, keepResult: Boolean) {
-        compileExpression(expression.rhs)
-
-        if (keepResult) {
-            byteBuilder.appendInstruction(Instructions.DUP)
-        }
-
         if (expression.lhs is LowerIDExpression) {
             val symbol = symbolTable.findIndexed(expression.lhs.v.value)!!
             val (binding, depth) = symbol
+
+            compileExpression(expression.rhs)
+            if (keepResult) {
+                byteBuilder.appendInstruction(Instructions.DUP)
+            }
 
             when (binding) {
                 is IdentifierBinding -> {
@@ -169,6 +172,42 @@ private class Compiler(val errors: Errors) {
                     byteBuilder.appendInt(depth)
                     byteBuilder.appendInt(binding.frameOffset!!)
                 }
+            }
+        } else if (expression.lhs is ArrayElementProjectionExpression) {
+            compileExpression(expression.lhs.array)
+            compileExpression(expression.lhs.index)
+            compileExpression(expression.rhs)
+
+            byteBuilder.appendInstruction(Instructions.STORE_ARRAY_ELEMENT)
+
+            if (!keepResult) {
+                byteBuilder.appendInstruction(Instructions.DISCARD)
+            }
+        } else if (expression.lhs is ArrayRangeProjectionExpression) {
+            compileExpression(expression.lhs.array)
+
+            if (expression.lhs.start != null) {
+                compileExpression(expression.lhs.start)
+            }
+            if (expression.lhs.end != null) {
+                compileExpression(expression.lhs.end)
+            }
+            if (expression.lhs.start == null && expression.lhs.end == null) {
+                byteBuilder.appendInstruction(Instructions.PUSH_I32_LITERAL)
+                byteBuilder.appendInt(0)
+            }
+
+            compileExpression(expression.rhs)
+
+            when {
+                expression.lhs.start != null && expression.lhs.end != null -> byteBuilder.appendInstruction(Instructions.STORE_ARRAY_RANGE)
+                expression.lhs.end != null -> byteBuilder.appendInstruction(Instructions.STORE_ARRAY_RANGE_TO)
+                else -> byteBuilder.appendInstruction(Instructions.STORE_ARRAY_RANGE_FROM)
+
+            }
+
+            if (!keepResult) {
+                byteBuilder.appendInstruction(Instructions.DISCARD)
             }
         } else {
             errors.addError(AssignmentError(expression.lhs.location()))

@@ -77,12 +77,12 @@ The following is the list of big features that need to be implemented.
 - [x] Project range using ! #:#
 - [x] Project range using !:#
 - [x] Project range using !#:
-- [ ] Project range using !#
-- [ ] Assignment using ! #
-- [ ] Assign to range using ! #:#
-- [ ] Assign to range using ! :#
-- [ ] Assign to range using ! #:
-- [ ] Assign to range using ! :
+- [x] Project range using !#
+- [x] Assignment using ! #
+- [x] Assign to range using ! #:#
+- [x] Assign to range using ! :#
+- [x] Assign to range using ! #:
+- [x] Assign to range using ! :
 - [ ] Append using >>
 - [ ] Append mutation using >!
 - [ ] Prepend using <<

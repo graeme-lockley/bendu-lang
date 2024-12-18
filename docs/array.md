@@ -77,4 +77,54 @@ It is also possible to not specify the start or end index of a range.
 
 > x!2:
 [2, 3, 4, 5]: Array[Int]
+
+> x!:
+[0, 1, 2, 3, 4, 5]: Array[Int]
 ```
+
+Note that the last from returns a copy of the original array.
+
+Arrays are mutable structures by design.  So, using the projection notation, it is possible to change then elements in an array.
+
+```bendu-repl
+> let x = [0, 1, 2, 3, 4, 5]
+
+> x!2 := 20
+20: Int
+
+> x
+[0, 1, 20, 3, 4, 5]: Array[Int]
+
+> let y = ["a", "b", "c", "d"]
+
+> y!2 := "C"
+"C": String
+
+> y
+["a", "b", "C", "d"]: Array[String]
+```
+
+It is also possible to change ranges of elements.
+
+```bendu-repl
+> let x = ["a", "b", "c", "d", "e"]
+
+> x!1:2 := ["X", "Y", "Z"]
+["X", "Y", "Z"]: Array[String]
+
+> x
+["a", "X", "Y", "Z", "c", "d", "e"]: Array[String]
+
+> x!:3 := ["L"]
+> x
+["L", "Z", "c", "d", "e"]: Array[String]
+
+> x!2: := ["M"]
+> x
+["L", "Z", "M"]: Array[String]
+
+> x!: := []
+> x
+[]: Array[String]
+```
+

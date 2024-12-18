@@ -110,7 +110,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
                         )
                     )
                 }
-            } else {
+            } else if (expression.lhs !is ArrayElementProjectionExpression && expression.lhs !is ArrayRangeProjectionExpression) {
                 env.errors.addError(AssignmentError(expression.lhs.location()))
             }
             inferScopedExpression(expression.lhs, env)
