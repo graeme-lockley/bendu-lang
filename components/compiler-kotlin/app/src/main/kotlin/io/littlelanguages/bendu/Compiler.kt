@@ -110,7 +110,10 @@ private class Compiler(val errors: Errors) {
         }
     }
 
-    private fun compileArrayElementProjectionExpression(expression: ArrayElementProjectionExpression, keepResult: Boolean) {
+    private fun compileArrayElementProjectionExpression(
+        expression: ArrayElementProjectionExpression,
+        keepResult: Boolean
+    ) {
         compileExpression(expression.array)
         compileExpression(expression.index)
 
@@ -123,10 +126,20 @@ private class Compiler(val errors: Errors) {
 
     private fun compileArrayRangeProjectionExpression(expression: ArrayRangeProjectionExpression, keepResult: Boolean) {
         compileExpression(expression.array)
-        compileExpression(expression.start)
-        compileExpression(expression.end)
 
-        byteBuilder.appendInstruction(Instructions.PUSH_ARRAY_RANGE)
+        if (expression.start != null) {
+            compileExpression(expression.start)
+        }
+        if (expression.end != null) {
+            compileExpression(expression.end)
+        }
+
+        when {
+            expression.start != null && expression.end != null -> byteBuilder.appendInstruction(Instructions.PUSH_ARRAY_RANGE)
+            expression.start != null -> byteBuilder.appendInstruction(Instructions.PUSH_ARRAY_RANGE_FROM)
+            expression.end != null -> byteBuilder.appendInstruction(Instructions.PUSH_ARRAY_RANGE_TO)
+            else -> throw IllegalArgumentException("Array range projection must have at least one bound")
+        }
 
         if (!keepResult) {
             byteBuilder.appendInstruction(Instructions.DISCARD)

@@ -34,6 +34,28 @@ class CompilerTest {
             ),
             "[]!2:5"
         )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 0, // 0
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.PUSH_ARRAY_RANGE_FROM.op,
+            ),
+            "[]!2:"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 0, // 0
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 5, // 5
+                Instructions.PUSH_ARRAY_RANGE_TO.op,
+            ),
+            "[]!:5"
+        )
     }
 
     @Test

@@ -75,8 +75,8 @@ The following is the list of big features that need to be implemented.
 - [x] Implement == and !=
 - [x] Project element using ! #
 - [x] Project range using ! #:#
-- [ ] Project range using !:#
-- [ ] Project range using !#:
+- [x] Project range using !:#
+- [x] Project range using !#:
 - [ ] Project range using !#
 - [ ] Assignment using ! #
 - [ ] Assign to range using ! #:#

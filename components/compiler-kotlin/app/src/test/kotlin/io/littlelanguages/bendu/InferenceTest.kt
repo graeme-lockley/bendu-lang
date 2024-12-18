@@ -24,6 +24,10 @@ class InferenceTest {
         assertInferExpressionEquals("[1, 2]!1:3", "Array[Int]")
         assertInferExpressionEquals("[1.1, 2.2]!1:3", "Array[Float]")
         assertInferExpressionEquals("[]!1:2", "[a] Array[a]")
+
+        assertInferExpressionEquals("[1, 2]!:3", "Array[Int]")
+        assertInferExpressionEquals("[1, 2]!1:", "Array[Int]")
+        assertInferExpressionEquals("[1, 2]!:", "Array[Int]")
     }
 
     @Test

@@ -188,14 +188,17 @@ private class ParserVisitor(val errors: Errors = Errors()) :
 
     override fun visitQualifiedExpressionSuffix2(
         a1: Token,
-        a2: Expression,
-        a3: Tuple2<Token, Expression>?
+        a2: Union2<Tuple2<Expression, Tuple2<Token, Expression?>?>, Tuple2<Token, Expression?>>
     ): (Expression) -> Expression =
         { it: Expression ->
-            if (a3 == null)
-                ArrayElementProjectionExpression(it, a2)
-            else
-                ArrayRangeProjectionExpression(it, a2, a3.b)
+            if (a2.isA()) {
+                if (a2.a().b == null)
+                    ArrayElementProjectionExpression(it, a2.a().a)
+                else
+                    ArrayRangeProjectionExpression(it, a2.a().a, a2.a().b?.b)
+            } else {
+                ArrayRangeProjectionExpression(it, null, a2.b().b)
+            }
         }
 
     override fun visitQualifiedExpression(a1: Expression, a2: List<(Expression) -> Expression>): Expression =

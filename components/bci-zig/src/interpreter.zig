@@ -43,6 +43,20 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
                 try runtime.push_array_element();
             },
+            .push_array_range_from => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: push_array_range_from\n", .{ ip - 1, fp });
+                }
+
+                try runtime.push_array_range_from();
+            },
+            .push_array_range_to => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: push_array_range_to\n", .{ ip - 1, fp });
+                }
+
+                try runtime.push_array_range_to();
+            },
             .push_array_range => {
                 if (DEBUG) {
                     std.debug.print("{d} {d}: push_array_range\n", .{ ip - 1, fp });

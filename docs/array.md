@@ -66,3 +66,15 @@ Range expressions are forgiving in that they can never fail and, if out of range
 > x!2:2
 []: Array[Int]
 ```
+
+It is also possible to not specify the start or end index of a range.
+
+```bendu-repl
+> let x = [0, 1, 2, 3, 4, 5]
+
+> x!:2
+[0, 1]: Array[Int]
+
+> x!2:
+[2, 3, 4, 5]: Array[Int]
+```

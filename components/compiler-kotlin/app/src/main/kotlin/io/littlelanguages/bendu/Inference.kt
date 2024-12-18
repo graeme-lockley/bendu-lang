@@ -80,14 +80,19 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
         is ArrayRangeProjectionExpression -> {
             inferScopedExpression(expression.array, env)
-            inferScopedExpression(expression.start, env)
-            inferScopedExpression(expression.end, env)
 
             val arrayType = TCon("Array", listOf(env.nextVar()))
-
             env.addConstraint(expression.array.type!!, arrayType)
-            env.addConstraint(expression.start.type!!, typeInt)
-            env.addConstraint(expression.end.type!!, typeInt)
+
+            if (expression.start != null) {
+                inferScopedExpression(expression.start, env)
+                env.addConstraint(expression.start.type!!, typeInt)
+            }
+
+            if (expression.end != null) {
+                inferScopedExpression(expression.end, env)
+                env.addConstraint(expression.end.type!!, typeInt)
+            }
 
             expression.type = arrayType
         }

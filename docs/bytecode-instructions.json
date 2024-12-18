@@ -31,6 +31,16 @@
       "description": "Pops array and two indexes off of the stack and pushes the a new array with the range of elements."
     },
     {
+      "name": "PUSH_ARRAY_RANGE_TO",
+      "args": [ ],
+      "description": "Pops array and an indexes off of the stack and pushes the a new array with the range of elements up to the index."
+    },
+    {
+      "name": "PUSH_ARRAY_RANGE_FROM",
+      "args": [ ],
+      "description": "Pops array and two indexes off of the stack and pushes the a new array with the range of elements from the index."
+    },
+    {
       "name": "PUSH_BOOL_TRUE",
       "args": [],
       "description": "Places the value 'true' onto the stack."
