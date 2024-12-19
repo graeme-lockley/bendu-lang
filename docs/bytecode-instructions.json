@@ -187,6 +187,31 @@
       "args": [ ],
       "description": "Inserts the array TOS into the array at TOS-2 from the start of the array to index TOS-1. All popped off of the stack leaving only the original TOS on the stack."
     },
+    { 
+      "name": "ARRAY_APPEND_ELEMENT_DUPLICATE",
+      "args": [ ],
+      "description": "Appends the element TOS onto the array TOS-1 returning a new array."
+    },
+    { 
+      "name": "ARRAY_PREPEND_ELEMENT_DUPLICATE",
+      "args": [ ],
+      "description": "Appends the element TOS onto the array TOS-1 returning a new array."
+    },
+    { 
+      "name": "ARRAY_APPEND_ELEMENT",
+      "args": [ ],
+      "description": "Appends the element TOS onto the array TOS-1 changing the array in the process."
+    },
+    { 
+      "name": "ARRAY_APPEND_ARRAY",
+      "args": [ ],
+      "description": "Appends the elements in the array TOS onto the array TOS-1 changing the array in the process."
+    },
+    { 
+      "name": "ARRAY_PREPEND_ELEMENT",
+      "args": [ ],
+      "description": "Prepends the element TOS onto the array TOS-1 changing the array in the process."
+    },
     {
       "name": "DUP",
       "args": [],

@@ -536,6 +536,50 @@ class CompilerTest {
         ).forEach { input ->
             unsuccessfulCompile(input)
         }
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 0,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1,
+                Instructions.ARRAY_APPEND_ELEMENT_DUPLICATE.op
+            ),
+            "[] << 1"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 0,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1,
+                Instructions.ARRAY_APPEND_ELEMENT.op
+            ),
+            "[] <! 1"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1,
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 0,
+                Instructions.ARRAY_PREPEND_ELEMENT_DUPLICATE.op
+            ),
+            "1 >> []"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1,
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 0,
+                Instructions.ARRAY_PREPEND_ELEMENT.op
+            ),
+            "1 >! []"
+        )
     }
 
     @Test

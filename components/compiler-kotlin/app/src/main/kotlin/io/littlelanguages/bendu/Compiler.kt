@@ -215,31 +215,169 @@ private class Compiler(val errors: Errors) {
     }
 
     private fun compileBinaryExpression(expression: BinaryExpression, keepResult: Boolean) {
-        if (expression.op.op == Op.And) {
-            compileExpression(expression.e1)
-            byteBuilder.appendInstruction(Instructions.JMP_DUP_FALSE)
-            val jmpFalse = byteBuilder.size()
-            byteBuilder.appendInt(0)
-            byteBuilder.appendInstruction(Instructions.DISCARD)
-            compileExpression(expression.e2)
-            byteBuilder.writeIntAtPosition(jmpFalse, byteBuilder.size())
-        } else if (expression.op.op == Op.Or) {
-            compileExpression(expression.e1)
-            byteBuilder.appendInstruction(Instructions.JMP_DUP_TRUE)
-            val jmpFalse = byteBuilder.size()
-            byteBuilder.appendInt(0)
-            byteBuilder.appendInstruction(Instructions.DISCARD)
-            compileExpression(expression.e2)
-            byteBuilder.writeIntAtPosition(jmpFalse, byteBuilder.size())
-        } else {
-            compileExpression(expression.e1)
-            compileExpression(expression.e2)
+        when (expression.op.op) {
+            Op.And -> {
+                compileExpression(expression.e1)
+                byteBuilder.appendInstruction(Instructions.JMP_DUP_FALSE)
+                val jmpFalse = byteBuilder.size()
+                byteBuilder.appendInt(0)
+                byteBuilder.appendInstruction(Instructions.DISCARD)
+                compileExpression(expression.e2)
+                byteBuilder.writeIntAtPosition(jmpFalse, byteBuilder.size())
+            }
+            Op.Or -> {
+                compileExpression(expression.e1)
+                byteBuilder.appendInstruction(Instructions.JMP_DUP_TRUE)
+                val jmpFalse = byteBuilder.size()
+                byteBuilder.appendInt(0)
+                byteBuilder.appendInstruction(Instructions.DISCARD)
+                compileExpression(expression.e2)
+                byteBuilder.writeIntAtPosition(jmpFalse, byteBuilder.size())
+            }
+            Op.GreaterGreater -> {
+                compileExpression(expression.e1)
+                compileExpression(expression.e2)
+                byteBuilder.appendInstruction(Instructions.ARRAY_PREPEND_ELEMENT_DUPLICATE)
+            }
+            Op.GreaterBang -> {
+                compileExpression(expression.e1)
+                compileExpression(expression.e2)
+                byteBuilder.appendInstruction(Instructions.ARRAY_PREPEND_ELEMENT)
+            }
+            Op.LessLess -> {
+                compileExpression(expression.e1)
+                compileExpression(expression.e2)
+                byteBuilder.appendInstruction(Instructions.ARRAY_APPEND_ELEMENT_DUPLICATE)
+            }
+            Op.LessBang -> {
+                compileExpression(expression.e1)
+                compileExpression(expression.e2)
+                byteBuilder.appendInstruction(Instructions.ARRAY_APPEND_ELEMENT)
+            }
+            else -> {
+                compileExpression(expression.e1)
+                compileExpression(expression.e2)
 
-            if (expression.e1.type!!.isBool()) {
-                when (expression.op.op) {
-                    Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_BOOL)
-                    Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_BOOL)
-                    else -> errors.addError(
+                if (expression.e1.type!!.isBool()) {
+                    when (expression.op.op) {
+                        Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_BOOL)
+                        Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_BOOL)
+                        else -> errors.addError(
+                            OperatorOperandTypeError(
+                                expression.op.op,
+                                expression.e1.type!!,
+                                validBinaryOperatorArguments[expression.op.op]!!,
+                                expression.e1.location()
+                            )
+                        )
+                    }
+                } else if (expression.e1.type!!.isChar()) {
+                    when (expression.op.op) {
+                        Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_U8)
+                        Op.Minus -> byteBuilder.appendInstruction(Instructions.SUB_U8)
+                        Op.Multiply -> byteBuilder.appendInstruction(Instructions.MUL_U8)
+                        Op.Divide -> byteBuilder.appendInstruction(Instructions.DIV_U8)
+                        Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_U8)
+                        Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_U8)
+                        Op.LessThan -> byteBuilder.appendInstruction(Instructions.LT_U8)
+                        Op.LessEqual -> byteBuilder.appendInstruction(Instructions.LE_U8)
+                        Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.GT_U8)
+                        Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.GE_U8)
+                        else -> errors.addError(
+                            OperatorOperandTypeError(
+                                expression.op.op,
+                                expression.e1.type!!,
+                                validBinaryOperatorArguments[expression.op.op]!!,
+                                expression.e1.location()
+                            )
+                        )
+                    }
+                } else if (expression.e1.type!!.isFloat()) {
+                    when (expression.op.op) {
+                        Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_F32)
+                        Op.Minus -> byteBuilder.appendInstruction(Instructions.SUB_F32)
+                        Op.Multiply -> byteBuilder.appendInstruction(Instructions.MUL_F32)
+                        Op.Divide -> byteBuilder.appendInstruction(Instructions.DIV_F32)
+                        Op.Power -> byteBuilder.appendInstruction(Instructions.POW_F32)
+                        Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_F32)
+                        Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_F32)
+                        Op.LessThan -> byteBuilder.appendInstruction(Instructions.LT_F32)
+                        Op.LessEqual -> byteBuilder.appendInstruction(Instructions.LE_F32)
+                        Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.GT_F32)
+                        Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.GE_F32)
+                        else -> errors.addError(
+                            OperatorOperandTypeError(
+                                expression.op.op,
+                                expression.e1.type!!,
+                                validBinaryOperatorArguments[expression.op.op]!!,
+                                expression.e1.location()
+                            )
+                        )
+                    }
+                } else if (expression.e1.type!!.isInt()) {
+                    when (expression.op.op) {
+                        Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_I32)
+                        Op.Minus -> byteBuilder.appendInstruction(Instructions.SUB_I32)
+                        Op.Multiply -> byteBuilder.appendInstruction(Instructions.MUL_I32)
+                        Op.Divide -> byteBuilder.appendInstruction(Instructions.DIV_I32)
+                        Op.Modulo -> byteBuilder.appendInstruction(Instructions.MOD_I32)
+                        Op.Power -> byteBuilder.appendInstruction(Instructions.POW_I32)
+                        Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_I32)
+                        Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_I32)
+                        Op.LessThan -> byteBuilder.appendInstruction(Instructions.LT_I32)
+                        Op.LessEqual -> byteBuilder.appendInstruction(Instructions.LE_I32)
+                        Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.GT_I32)
+                        Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.GE_I32)
+                        else -> errors.addError(
+                            OperatorOperandTypeError(
+                                expression.op.op,
+                                expression.e1.type!!,
+                                validBinaryOperatorArguments[expression.op.op]!!,
+                                expression.e1.location()
+                            )
+                        )
+                    }
+                } else if (expression.e1.type!!.isString()) {
+                    when (expression.op.op) {
+                        Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_STRING)
+                        Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_STRING)
+                        Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_STRING)
+                        Op.LessThan -> byteBuilder.appendInstruction(Instructions.LT_STRING)
+                        Op.LessEqual -> byteBuilder.appendInstruction(Instructions.LE_STRING)
+                        Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.GT_STRING)
+                        Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.GE_STRING)
+                        else -> errors.addError(
+                            OperatorOperandTypeError(
+                                expression.op.op,
+                                expression.e1.type!!,
+                                validBinaryOperatorArguments[expression.op.op]!!,
+                                expression.e1.location()
+                            )
+                        )
+                    }
+                } else if (expression.e1.type!!.isUnit()) {
+                    when (expression.op.op) {
+                        Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_UNIT)
+                        Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_UNIT)
+                        Op.LessThan -> byteBuilder.appendInstruction(Instructions.NEQ_UNIT)
+                        Op.LessEqual -> byteBuilder.appendInstruction(Instructions.EQ_UNIT)
+                        Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.NEQ_UNIT)
+                        Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.EQ_UNIT)
+                        else -> errors.addError(
+                            OperatorOperandTypeError(
+                                expression.op.op,
+                                expression.e1.type!!,
+                                validBinaryOperatorArguments[expression.op.op]!!,
+                                expression.e1.location()
+                            )
+                        )
+                    }
+                } else if (expression.op.op == Op.EqualEqual) {
+                    byteBuilder.appendInstruction(Instructions.EQ)
+                } else if (expression.op.op == Op.NotEqual) {
+                    byteBuilder.appendInstruction(Instructions.NEQ)
+                } else {
+                    errors.addError(
                         OperatorOperandTypeError(
                             expression.op.op,
                             expression.e1.type!!,
@@ -248,120 +386,6 @@ private class Compiler(val errors: Errors) {
                         )
                     )
                 }
-            } else if (expression.e1.type!!.isChar()) {
-                when (expression.op.op) {
-                    Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_U8)
-                    Op.Minus -> byteBuilder.appendInstruction(Instructions.SUB_U8)
-                    Op.Multiply -> byteBuilder.appendInstruction(Instructions.MUL_U8)
-                    Op.Divide -> byteBuilder.appendInstruction(Instructions.DIV_U8)
-                    Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_U8)
-                    Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_U8)
-                    Op.LessThan -> byteBuilder.appendInstruction(Instructions.LT_U8)
-                    Op.LessEqual -> byteBuilder.appendInstruction(Instructions.LE_U8)
-                    Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.GT_U8)
-                    Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.GE_U8)
-                    else -> errors.addError(
-                        OperatorOperandTypeError(
-                            expression.op.op,
-                            expression.e1.type!!,
-                            validBinaryOperatorArguments[expression.op.op]!!,
-                            expression.e1.location()
-                        )
-                    )
-                }
-            } else if (expression.e1.type!!.isFloat()) {
-                when (expression.op.op) {
-                    Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_F32)
-                    Op.Minus -> byteBuilder.appendInstruction(Instructions.SUB_F32)
-                    Op.Multiply -> byteBuilder.appendInstruction(Instructions.MUL_F32)
-                    Op.Divide -> byteBuilder.appendInstruction(Instructions.DIV_F32)
-                    Op.Power -> byteBuilder.appendInstruction(Instructions.POW_F32)
-                    Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_F32)
-                    Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_F32)
-                    Op.LessThan -> byteBuilder.appendInstruction(Instructions.LT_F32)
-                    Op.LessEqual -> byteBuilder.appendInstruction(Instructions.LE_F32)
-                    Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.GT_F32)
-                    Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.GE_F32)
-                    else -> errors.addError(
-                        OperatorOperandTypeError(
-                            expression.op.op,
-                            expression.e1.type!!,
-                            validBinaryOperatorArguments[expression.op.op]!!,
-                            expression.e1.location()
-                        )
-                    )
-                }
-            } else if (expression.e1.type!!.isInt()) {
-                when (expression.op.op) {
-                    Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_I32)
-                    Op.Minus -> byteBuilder.appendInstruction(Instructions.SUB_I32)
-                    Op.Multiply -> byteBuilder.appendInstruction(Instructions.MUL_I32)
-                    Op.Divide -> byteBuilder.appendInstruction(Instructions.DIV_I32)
-                    Op.Modulo -> byteBuilder.appendInstruction(Instructions.MOD_I32)
-                    Op.Power -> byteBuilder.appendInstruction(Instructions.POW_I32)
-                    Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_I32)
-                    Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_I32)
-                    Op.LessThan -> byteBuilder.appendInstruction(Instructions.LT_I32)
-                    Op.LessEqual -> byteBuilder.appendInstruction(Instructions.LE_I32)
-                    Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.GT_I32)
-                    Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.GE_I32)
-                    else -> errors.addError(
-                        OperatorOperandTypeError(
-                            expression.op.op,
-                            expression.e1.type!!,
-                            validBinaryOperatorArguments[expression.op.op]!!,
-                            expression.e1.location()
-                        )
-                    )
-                }
-            } else if (expression.e1.type!!.isString()) {
-                when (expression.op.op) {
-                    Op.Plus -> byteBuilder.appendInstruction(Instructions.ADD_STRING)
-                    Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_STRING)
-                    Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_STRING)
-                    Op.LessThan -> byteBuilder.appendInstruction(Instructions.LT_STRING)
-                    Op.LessEqual -> byteBuilder.appendInstruction(Instructions.LE_STRING)
-                    Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.GT_STRING)
-                    Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.GE_STRING)
-                    else -> errors.addError(
-                        OperatorOperandTypeError(
-                            expression.op.op,
-                            expression.e1.type!!,
-                            validBinaryOperatorArguments[expression.op.op]!!,
-                            expression.e1.location()
-                        )
-                    )
-                }
-            } else if (expression.e1.type!!.isUnit()) {
-                when (expression.op.op) {
-                    Op.EqualEqual -> byteBuilder.appendInstruction(Instructions.EQ_UNIT)
-                    Op.NotEqual -> byteBuilder.appendInstruction(Instructions.NEQ_UNIT)
-                    Op.LessThan -> byteBuilder.appendInstruction(Instructions.NEQ_UNIT)
-                    Op.LessEqual -> byteBuilder.appendInstruction(Instructions.EQ_UNIT)
-                    Op.GreaterThan -> byteBuilder.appendInstruction(Instructions.NEQ_UNIT)
-                    Op.GreaterEqual -> byteBuilder.appendInstruction(Instructions.EQ_UNIT)
-                    else -> errors.addError(
-                        OperatorOperandTypeError(
-                            expression.op.op,
-                            expression.e1.type!!,
-                            validBinaryOperatorArguments[expression.op.op]!!,
-                            expression.e1.location()
-                        )
-                    )
-                }
-            } else if (expression.op.op == Op.EqualEqual) {
-                byteBuilder.appendInstruction(Instructions.EQ)
-            } else if (expression.op.op == Op.NotEqual) {
-                byteBuilder.appendInstruction(Instructions.NEQ)
-            } else {
-                errors.addError(
-                    OperatorOperandTypeError(
-                        expression.op.op,
-                        expression.e1.type!!,
-                        validBinaryOperatorArguments[expression.op.op]!!,
-                        expression.e1.location()
-                    )
-                )
             }
         }
 

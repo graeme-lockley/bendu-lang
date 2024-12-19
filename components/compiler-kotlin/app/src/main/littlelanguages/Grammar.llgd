@@ -31,7 +31,7 @@ AndE
     ;
 
 Equality
-    : Additive [RelOp Additive]
+    : Starpend [RelOp Starpend]
     ;
 
 RelOp
@@ -41,6 +41,17 @@ RelOp
     | "<="
     | ">"
     | ">="
+    ;
+
+Starpend
+    : Additive {StarpendOp Additive}
+    ;
+
+StarpendOp
+    : ">>"
+    | ">!"
+    | "<<"
+    | "<!"
     ;
 
 Additive
@@ -71,7 +82,6 @@ QualifiedExpressionSuffix
     : "(" [Expression {"," Expression}] ")"
     | "!" (QualifiedExpression [":" [QualifiedExpression]] | ":" [QualifiedExpression])
     ;
-
 
 Factor
     : "(" [Expression {"," Expression}] ")"

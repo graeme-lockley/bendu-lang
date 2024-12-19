@@ -335,7 +335,13 @@ data class TupleFunctionParameter(
 data class WildcardFunctionParameter(override val typeQualifier: TypeTerm?, override val location: Location) :
     FunctionParameter(typeQualifier, location)
 
-enum class Op { Or, And, Plus, Minus, Multiply, Divide, Modulo, Power, EqualEqual, NotEqual, LessThan, LessEqual, GreaterThan, GreaterEqual }
+enum class Op {
+    Or, And,
+    Plus, Minus, Multiply, Divide, Modulo, Power,
+    EqualEqual, NotEqual, LessThan, LessEqual, GreaterThan, GreaterEqual,
+    LessLess, LessBang, GreaterGreater, GreaterBang,
+}
+
 enum class UnaryOp { Not, TypeOf }
 
 sealed class TypeTerm {

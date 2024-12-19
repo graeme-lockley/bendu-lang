@@ -398,7 +398,15 @@ private val binaryOperatorSignatures = mapOf(
     Pair(Op.Multiply, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), TVar(0))))),
     Pair(Op.Divide, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), TVar(0))))),
     Pair(Op.Modulo, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), TVar(0))))),
-    Pair(Op.Power, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), TVar(0)))))
+    Pair(Op.Power, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), TVar(0))))),
+
+    Pair(Op.LessLess, Scheme(setOf(0), TArr(listOf(TCon("Array", listOf(TVar(0)))), TArr(listOf(TVar(0)), TCon("Array", listOf(TVar(0))))))),
+    Pair(Op.LessBang, Scheme(setOf(0), TArr(listOf(TCon("Array", listOf(TVar(0)))), TArr(listOf(TVar(0)), TCon("Array", listOf(TVar(0))))))),
+    Pair(
+        Op.GreaterGreater,
+        Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TCon("Array", listOf(TVar(0)))), TCon("Array", listOf(TVar(0))))))
+    ),
+    Pair(Op.GreaterBang, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TCon("Array", listOf(TVar(0)))), TCon("Array", listOf(TVar(0)))))))
 )
 
 private val unaryOperatorSignatures = mapOf(

@@ -155,6 +155,15 @@ class InferenceTest {
         }
 
         listOf(
+            "[1, 2, 3] << 4",
+            "0 >> [1, 2, 3]",
+            "[1, 2, 3] <! 4",
+            "0 >! [1, 2, 3]",
+        ).forEach { expr ->
+            assertInferExpressionEquals(expr, "Array[Int]")
+        }
+
+        listOf(
             "1 && 1",
             "1 || 1",
             "1 == True",
@@ -228,12 +237,12 @@ class InferenceTest {
 
     @Test
     fun `infer assignment`() {
-//        assertInferExpressionEquals("let a! = 1 ; a := 2; a", "Int")
-//        assertInferExpressionEquals("let a! = 1.0 ; a := 2.0; a", "Float")
-//        assertInferExpressionEquals("let a! = 'x' ; a := 'y'; a", "Char")
-//        assertInferExpressionEquals("let a! = \"Hello\" ; a := \"World\"; a", "String")
-//        assertInferExpressionEquals("let a! = True ; a := False; a", "Bool")
-//        assertInferExpressionEquals("let a! = () ; a := (); a", "Unit")
+        assertInferExpressionEquals("let a! = 1 ; a := 2; a", "Int")
+        assertInferExpressionEquals("let a! = 1.0 ; a := 2.0; a", "Float")
+        assertInferExpressionEquals("let a! = 'x' ; a := 'y'; a", "Char")
+        assertInferExpressionEquals("let a! = \"Hello\" ; a := \"World\"; a", "String")
+        assertInferExpressionEquals("let a! = True ; a := False; a", "Bool")
+        assertInferExpressionEquals("let a! = () ; a := (); a", "Unit")
 
         assertInferExpressionEquals("let a = [1, 2, 3]; a!1 := 3; a", "Array[Int]")
     }

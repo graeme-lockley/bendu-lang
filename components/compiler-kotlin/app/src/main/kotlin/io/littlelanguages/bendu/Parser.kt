@@ -5,7 +5,7 @@ import io.littlelanguages.data.*
 import java.io.StringReader
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, (Expression) -> Expression, Expression, List<FunctionParameter>, FunctionParameter, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm> {
+    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, (Expression) -> Expression, Expression, List<FunctionParameter>, FunctionParameter, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm> {
     override fun visitProgram(a: List<Tuple2<Expression, Token?>>): List<Expression> =
         a.map { it.a }
 
@@ -159,6 +159,21 @@ private class ParserVisitor(val errors: Errors = Errors()) :
 
             BinaryExpression(acc, OpLocation(op.first, op.second), e.b)
         }
+
+    override fun visitStarpendOp1(a: Token): OpLocation =
+        OpLocation(Op.GreaterGreater, a.location)
+
+    override fun visitStarpendOp2(a: Token): OpLocation =
+        OpLocation(Op.GreaterBang, a.location)
+
+    override fun visitStarpendOp3(a: Token): OpLocation =
+        OpLocation(Op.LessLess, a.location)
+
+    override fun visitStarpendOp4(a: Token): OpLocation  =
+        OpLocation(Op.LessBang, a.location)
+
+    override fun visitStarpend(a1: Expression, a2: List<Tuple2<OpLocation, Expression>>): Expression =
+        a2.fold(a1) { acc, e -> BinaryExpression(acc, e.a, e.b) }
 
     override fun visitMultiplicative(
         a1: Expression,

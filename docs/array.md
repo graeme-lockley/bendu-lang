@@ -128,3 +128,32 @@ It is also possible to change ranges of elements.
 []: Array[String]
 ```
 
+Finally, there are a number of operators that simplify the assembling and mutation of arrays.
+
+```bendu-repl
+> let x = [1, 2, 3]
+
+> x << 4
+[1, 2, 3, 4]: Array[Int]
+
+> x
+[1, 2, 3]: Array[Int]
+
+> 0 >> x
+[0, 1, 2, 3]: Array[Int]
+
+> x
+[1, 2, 3]: Array[Int]
+
+> x <! 4
+[1, 2, 3, 4]: Array[Int]
+
+> x
+[1, 2, 3, 4]: Array[Int]
+
+> 0 >! x
+[0, 1, 2, 3, 4]: Array[Int]
+
+> x
+[0, 1, 2, 3, 4]: Array[Int]
+```
