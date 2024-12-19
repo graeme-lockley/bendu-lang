@@ -10,9 +10,135 @@ const MAINTAIN_FREE_CHAIN = true;
 const INITIAL_HEAP_SIZE = 1;
 const HEAP_GROW_THRESHOLD = 0.25;
 
+pub const PackageImage = struct {
+    frame: *Memory.Value,
+    packages: []*SP.String,
+    bc: []const u8,
+
+    pub fn init(frame: *Memory.Value, packages: []*SP.String, bc: []const u8) PackageImage {
+        return PackageImage{
+            .frame = frame,
+            .packages = packages,
+            .bc = bc,
+        };
+    }
+
+    pub fn deinit(self: *PackageImage, allocator: std.mem.Allocator) void {
+        for (self.packages) |p| {
+            p.decRef();
+        }
+
+        allocator.free(self.packages);
+        allocator.free(self.bc);
+    }
+};
+
+pub const Package = struct {
+    src: *SP.String,
+    id: usize,
+    image: ?PackageImage,
+
+    pub fn init(src: *SP.String, id: usize) !Package {
+        return Package{
+            .src = src.incRefR(),
+            .id = id,
+            .image = null,
+        };
+    }
+
+    pub fn deinit(self: *Package, allocator: std.mem.Allocator) void {
+        self.src.decRef();
+
+        if (self.image != null) {
+            self.image.?.deinit(allocator);
+        }
+    }
+
+    pub fn getImage(self: *Package, runtime: *Runtime) !*PackageImage {
+        if (self.image == null) {
+            try self.loadImage(runtime);
+        }
+
+        return &self.image.?;
+    }
+
+    fn loadImage(self: *Package, runtime: *Runtime) !void {
+        const buffer = try loadBinary(runtime.allocator, self.src.slice());
+        const packages = try runtime.allocator.alloc(*SP.String, 0);
+
+        _ = try runtime.push_frame(null);
+
+        self.image = PackageImage.init(Pointer.as(*Memory.Value, runtime.pop()), packages, buffer);
+    }
+};
+
+pub const Packages = struct {
+    allocator: std.mem.Allocator,
+    items: std.ArrayList(Package),
+
+    pub fn init(allocator: std.mem.Allocator) Packages {
+        return Packages{
+            .allocator = allocator,
+            .items = std.ArrayList(Package).init(allocator),
+        };
+    }
+
+    pub fn deinit(self: *Packages) void {
+        for (self.items.items) |*p| {
+            p.deinit(self.allocator);
+        }
+        self.items.deinit();
+    }
+
+    pub fn useBytecode(self: *Packages, bc: []const u8, runtime: *Runtime) !*Package {
+        var buffer = std.ArrayList(u8).init(self.allocator);
+        defer buffer.deinit();
+
+        try std.fmt.format(buffer.writer(), "repl-{d}", .{self.items.items.len});
+
+        const src = try runtime.sp.internOwned(try buffer.toOwnedSlice());
+        defer src.decRef();
+
+        const packages = try runtime.allocator.alloc(*SP.String, 0);
+
+        _ = try runtime.push_frame(null);
+
+        var p = try Package.init(src, self.items.items.len);
+        p.image = PackageImage.init(Pointer.as(*Memory.Value, runtime.pop()), packages, try runtime.allocator.dupe(u8, bc));
+
+        try self.items.append(p);
+
+        return &self.items.items[self.items.items.len - 1];
+    }
+
+    pub fn load(self: *Packages, src: *SP.String) !*Package {
+        for (self.items.items) |*p| {
+            if (p.src == src) {
+                return p;
+            }
+        }
+
+        const p = try Package.init(src, self.items.items.len);
+        try self.items.append(p);
+
+        return self.load(src);
+    }
+};
+
+fn loadBinary(allocator: std.mem.Allocator, fileName: []const u8) ![]u8 {
+    var file = try std.fs.cwd().openFile(fileName, .{});
+    defer file.close();
+
+    const fileSize = try file.getEndPos();
+    const buffer: []u8 = try file.readToEndAlloc(allocator, fileSize);
+
+    return buffer;
+}
+
 pub const Runtime = struct {
     allocator: std.mem.Allocator,
     sp: SP.StringPool,
+    packages: Packages,
     stack: std.ArrayList(Pointer.Pointer),
     colour: Memory.Colour,
     root: ?*Memory.Value,
@@ -25,6 +151,7 @@ pub const Runtime = struct {
         var result = Runtime{
             .allocator = allocator,
             .sp = SP.StringPool.init(allocator),
+            .packages = Packages.init(allocator),
             .stack = std.ArrayList(Pointer.Pointer).init(allocator),
             .colour = Memory.Colour.White,
             .root = null,
@@ -63,6 +190,7 @@ pub const Runtime = struct {
             self.destroyFreeList();
         }
 
+        self.packages.deinit();
         self.stack.deinit();
         self.sp.deinit();
     }
@@ -88,8 +216,7 @@ pub const Runtime = struct {
 
         self.root = v;
 
-        // TODO - FIX THIS
-        try self.stack.append(@as(Pointer.Pointer, @intFromPtr(v)));
+        try self.stack.append(Pointer.fromPointer(*Memory.Value, v));
 
         return v;
     }
@@ -274,7 +401,7 @@ pub const Runtime = struct {
     }
 
     pub inline fn load(self: *Runtime, fp: usize, frame: usize, offset: usize) !void {
-        const f = @as(*Memory.Value, @ptrFromInt(self.stack.items[fp]));
+        const f = Pointer.as(*Memory.Value, self.stack.items[fp]);
         const v = Memory.FrameValue.get(f, frame, offset);
 
         if (Pointer.isString(v)) {
@@ -285,7 +412,7 @@ pub const Runtime = struct {
     }
 
     pub inline fn store(self: *Runtime, fp: usize, frame: usize, offset: usize) !void {
-        const f = @as(*Memory.Value, @ptrFromInt(self.stack.items[fp]));
+        const f = Pointer.as(*Memory.Value, self.stack.items[fp]);
         const v = self.pop();
 
         try Memory.FrameValue.set(f, frame, offset, v);

@@ -7,7 +7,16 @@ const Runtime = @import("runtime.zig");
 
 const DEBUG = false;
 
-pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
+pub fn runBytecode(bc: []const u8, runtime: *Runtime.Runtime) !void {
+    const package = try runtime.packages.useBytecode(bc, runtime);
+
+    try run(package, runtime);
+}
+
+pub fn run(package: *Runtime.Package, runtime: *Runtime.Runtime) !void {
+    const image = try package.getImage(runtime);
+
+    const bc = image.bc;
     var ip: usize = 0;
     var fp: usize = 0;
 
@@ -87,7 +96,7 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                     std.debug.print("{d} {d}: create_closure: offset={d}, frame={d}\n", .{ ip - 1, fp, offset, frame });
                 }
 
-                const previousFrame = Memory.FrameValue.skip(@as(*Memory.Value, @ptrFromInt(runtime.stack.items[fp])), frame);
+                const previousFrame = Memory.FrameValue.skip(Pointer.as(*Memory.Value, runtime.stack.items[fp]), frame);
 
                 try runtime.push_closure(@intCast(offset), previousFrame.?);
 
@@ -322,14 +331,14 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                     std.debug.print("{d} {d}: call: offset={d}, arity={d}, frame={d}\n", .{ ip - 1, fp, offset, arity, frame });
                 }
 
-                const previousFrame = @as(*Memory.Value, @ptrFromInt(runtime.stack.items[fp]));
+                const previousFrame = Pointer.as(*Memory.Value, runtime.stack.items[fp]);
 
                 _ = try runtime.push_frame(Memory.FrameValue.skip(previousFrame, frame));
 
                 const newFramePointer = runtime.pop();
                 // std.debug.print("newFramePointer: {d}\n", .{newFramePointer});
 
-                const newFrame: *Memory.Value = @as(*Memory.Value, @ptrFromInt(newFramePointer));
+                const newFrame: *Memory.Value = Pointer.as(*Memory.Value, newFramePointer);
                 for (0..arity) |i| {
                     // std.debug.print("index: {d}, offset={d}\n", .{ i, arity - i - 1 });
                     try Memory.FrameValue.set(newFrame, 0, arity - i - 1, runtime.pop());
@@ -349,12 +358,12 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
                     std.debug.print("{d} {d}: call_closure: arity={d}\n", .{ ip - 1, fp, arity });
                 }
 
-                const closure = @as(*Memory.Value, @ptrFromInt(runtime.peekN(arity)));
+                const closure = Pointer.as(*Memory.Value, runtime.peekN(arity));
 
                 _ = try runtime.push_frame(closure.v.ClosureKind.frame);
 
                 const newFramePointer = runtime.pop();
-                const newFrame: *Memory.Value = @as(*Memory.Value, @ptrFromInt(newFramePointer));
+                const newFrame: *Memory.Value = Pointer.as(*Memory.Value, newFramePointer);
                 for (0..arity) |i| {
                     try Memory.FrameValue.set(newFrame, 0, arity - i - 1, runtime.pop());
                 }
@@ -798,11 +807,13 @@ fn readf32(bc: []const u8, ip: usize) f32 {
     return v;
 }
 
+const maxPackageID = std.math.maxInt(usize);
+
 test "push_bool_true" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.push_bool_true)};
     var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(runtime.stack.items.len, 2);
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
@@ -812,7 +823,7 @@ test "push_bool_false" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.push_bool_false)};
     var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(runtime.stack.items.len, 2);
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), false);
@@ -822,7 +833,7 @@ test "push_f32_literal" {
     const bc: [5]u8 = [_]u8{ @intFromEnum(Op.push_f32_literal), 0, 1, 0, 0 };
     var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(runtime.stack.items.len, 2);
     try std.testing.expectEqual(Pointer.asFloat(runtime.pop()), 9.1835e-41);
@@ -832,7 +843,7 @@ test "push_i32_literal" {
     const bc: [5]u8 = [_]u8{ @intFromEnum(Op.push_i32_literal), 0, 0, 0, 42 };
     var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(runtime.stack.items.len, 2);
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 42);
@@ -842,27 +853,18 @@ test "push_u8_literal" {
     const bc: [2]u8 = [_]u8{ @intFromEnum(Op.push_u8_literal), 42 };
     var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(runtime.stack.items.len, 2);
     try std.testing.expectEqual(Pointer.asChar(runtime.pop()), 42);
 }
-
-// test "push_stack" {
-//     const bc: [5]u8 = [_]u8{ @intFromEnum(Op.push_stack), 0, 0, 0, 0 };
-//     var runtime = try Runtime.Runtime.init(std.testing.allocator);
-//     defer runtime.deinit();
-//     try runtime.push_i32_literal(100);
-//     try run(&bc, &runtime);
-//     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 100);
-// }
 
 test "store and load - int" {
     const bc: [18]u8 = [_]u8{ @intFromEnum(Op.store), 0, 0, 0, 0, 0, 0, 0, 10, @intFromEnum(Op.load), 0, 0, 0, 0, 0, 0, 0, 10 };
     var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
     try runtime.push_i32_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(runtime.stack.items.len, 2);
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 42);
@@ -873,7 +875,7 @@ test "store and load - int 2" {
     var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
     try runtime.push_i32_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(runtime.stack.items.len, 2);
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 42);
@@ -884,7 +886,7 @@ test "store and load - string" {
     var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
     try runtime.push_string_literal("hello world");
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(runtime.stack.items.len, 2);
     try std.testing.expect(std.mem.eql(u8, Pointer.asString(runtime.peek()).slice(), "hello world"));
@@ -895,7 +897,7 @@ test "not_bool" {
     var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
     try runtime.push_bool_true();
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), false);
 }
@@ -907,7 +909,7 @@ test "add_f32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.add_f32)};
     try runtime.push_f32_literal(100.0);
     try runtime.push_f32_literal(42.0);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asFloat(runtime.pop()), 142.0);
 }
@@ -918,7 +920,7 @@ test "add_i32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.add_i32)};
     try runtime.push_i32_literal(100);
     try runtime.push_i32_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 142);
 }
@@ -929,7 +931,7 @@ test "add_string" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.add_string)};
     try runtime.push_string_literal("hello");
     try runtime.push_string_literal(" world");
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(runtime.stack.items.len, 2);
     try std.testing.expect(std.mem.eql(u8, Pointer.asString(runtime.peek()).slice(), "hello world"));
@@ -941,7 +943,7 @@ test "add_u8" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.add_u8)};
     try runtime.push_u8_literal(100);
     try runtime.push_u8_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asChar(runtime.pop()), 142);
 }
@@ -953,7 +955,7 @@ test "sub_f32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.sub_f32)};
     try runtime.push_f32_literal(100.0);
     try runtime.push_f32_literal(42.0);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asFloat(runtime.pop()), 58.0);
 }
@@ -964,7 +966,7 @@ test "sub_i32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.sub_i32)};
     try runtime.push_i32_literal(100);
     try runtime.push_i32_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 58);
 }
@@ -975,7 +977,7 @@ test "sub_u8" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.sub_u8)};
     try runtime.push_u8_literal(100);
     try runtime.push_u8_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asChar(runtime.pop()), 58);
 }
@@ -987,7 +989,7 @@ test "mul_f32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.mul_f32)};
     try runtime.push_f32_literal(100.0);
     try runtime.push_f32_literal(42.0);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asFloat(runtime.pop()), 4200.0);
 }
@@ -998,7 +1000,7 @@ test "mul_i32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.mul_i32)};
     try runtime.push_i32_literal(100);
     try runtime.push_i32_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 4200);
 }
@@ -1009,7 +1011,7 @@ test "mul_u8" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.mul_u8)};
     try runtime.push_u8_literal(80);
     try runtime.push_u8_literal(2);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asChar(runtime.pop()), 160);
 }
@@ -1021,7 +1023,7 @@ test "div_f32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.div_f32)};
     try runtime.push_f32_literal(100.0);
     try runtime.push_f32_literal(42.0);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asFloat(runtime.pop()), 2.3809524);
 }
@@ -1033,7 +1035,7 @@ test "div_i32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.div_i32)};
     try runtime.push_i32_literal(100);
     try runtime.push_i32_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 2);
 }
@@ -1045,7 +1047,7 @@ test "div_u8" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.div_u8)};
     try runtime.push_u8_literal(100);
     try runtime.push_u8_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asChar(runtime.pop()), 2);
 }
@@ -1057,7 +1059,7 @@ test "mod_i32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.mod_i32)};
     try runtime.push_i32_literal(100);
     try runtime.push_i32_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 16);
 }
@@ -1069,7 +1071,7 @@ test "pow_f32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.pow_f32)};
     try runtime.push_f32_literal(2.0);
     try runtime.push_f32_literal(16.0);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asFloat(runtime.pop()), 65536.0);
 }
@@ -1081,7 +1083,7 @@ test "pow_i32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.pow_i32)};
     try runtime.push_i32_literal(2);
     try runtime.push_i32_literal(16);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asInt(runtime.pop()), 65536);
 }
@@ -1093,7 +1095,7 @@ test "eq_bool" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.eq_bool)};
     try runtime.push_bool_true();
     try runtime.push_bool_false();
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), false);
 }
@@ -1105,7 +1107,7 @@ test "eq_f32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.eq_f32)};
     try runtime.push_f32_literal(100.0);
     try runtime.push_f32_literal(100.0);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1117,7 +1119,7 @@ test "eq_i32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.eq_i32)};
     try runtime.push_i32_literal(100);
     try runtime.push_i32_literal(100);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1129,7 +1131,7 @@ test "eq_string" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.eq_string)};
     try runtime.push_string_literal("hello");
     try runtime.push_string_literal("hello");
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expect(Pointer.asBool(runtime.peek()));
 }
@@ -1141,7 +1143,7 @@ test "eq_u8" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.eq_u8)};
     try runtime.push_u8_literal(100);
     try runtime.push_u8_literal(100);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1153,7 +1155,7 @@ test "neq_bool" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.neq_bool)};
     try runtime.push_bool_true();
     try runtime.push_bool_false();
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1165,7 +1167,7 @@ test "neq_f32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.neq_f32)};
     try runtime.push_f32_literal(100.0);
     try runtime.push_f32_literal(42.0);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1177,7 +1179,7 @@ test "neq_i32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.neq_i32)};
     try runtime.push_i32_literal(100);
     try runtime.push_i32_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1189,7 +1191,7 @@ test "neq_string" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.neq_string)};
     try runtime.push_string_literal("hello");
     try runtime.push_string_literal("world");
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expect(Pointer.asBool(runtime.peek()));
 }
@@ -1201,7 +1203,7 @@ test "neq_u8" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.neq_u8)};
     try runtime.push_u8_literal(100);
     try runtime.push_u8_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1213,7 +1215,7 @@ test "lt_f32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.lt_f32)};
     try runtime.push_f32_literal(42.0);
     try runtime.push_f32_literal(100.0);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1225,7 +1227,7 @@ test "lt_i32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.lt_i32)};
     try runtime.push_i32_literal(42);
     try runtime.push_i32_literal(100);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1237,7 +1239,7 @@ test "lt_string" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.lt_string)};
     try runtime.push_string_literal("hello");
     try runtime.push_string_literal("world");
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expect(Pointer.asBool(runtime.peek()));
 }
@@ -1249,7 +1251,7 @@ test "lt_u8" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.lt_u8)};
     try runtime.push_u8_literal(42);
     try runtime.push_u8_literal(100);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1261,7 +1263,7 @@ test "le_f32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.le_f32)};
     try runtime.push_f32_literal(42.0);
     try runtime.push_f32_literal(100.0);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1273,7 +1275,7 @@ test "le_i32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.le_i32)};
     try runtime.push_i32_literal(42);
     try runtime.push_i32_literal(100);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1285,7 +1287,7 @@ test "le_string" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.le_string)};
     try runtime.push_string_literal("hello");
     try runtime.push_string_literal("world");
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expect(Pointer.asBool(runtime.peek()));
 }
@@ -1297,7 +1299,7 @@ test "le_u8" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.le_u8)};
     try runtime.push_u8_literal(42);
     try runtime.push_u8_literal(100);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1309,7 +1311,7 @@ test "gt_f32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.gt_f32)};
     try runtime.push_f32_literal(100.0);
     try runtime.push_f32_literal(42.0);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1321,7 +1323,7 @@ test "gt_i32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.gt_i32)};
     try runtime.push_i32_literal(100);
     try runtime.push_i32_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1333,7 +1335,7 @@ test "gt_string" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.gt_string)};
     try runtime.push_string_literal("hello");
     try runtime.push_string_literal("world");
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expect(!Pointer.asBool(runtime.peek()));
 }
@@ -1345,7 +1347,7 @@ test "gt_u8" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.gt_u8)};
     try runtime.push_u8_literal(100);
     try runtime.push_u8_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1357,7 +1359,7 @@ test "ge_f32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.ge_f32)};
     try runtime.push_f32_literal(100.0);
     try runtime.push_f32_literal(42.0);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1369,7 +1371,7 @@ test "ge_i32" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.ge_i32)};
     try runtime.push_i32_literal(100);
     try runtime.push_i32_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }
@@ -1381,7 +1383,7 @@ test "ge_string" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.ge_string)};
     try runtime.push_string_literal("hello");
     try runtime.push_string_literal("world");
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expect(!Pointer.asBool(runtime.peek()));
 }
@@ -1393,7 +1395,7 @@ test "ge_u8" {
     const bc: [1]u8 = [_]u8{@intFromEnum(Op.ge_u8)};
     try runtime.push_u8_literal(100);
     try runtime.push_u8_literal(42);
-    try run(&bc, &runtime);
+    try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), true);
 }

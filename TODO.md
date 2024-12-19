@@ -26,6 +26,7 @@ The following is the list of big features that need to be implemented.
 - [x] Tuples
 - [x] Arrays
 - [ ] Packages
+- [ ] Garbage collector
 - [ ] ADTs
 - [ ] Records
 - [ ] Type aliases
@@ -54,6 +55,23 @@ The following is the list of big features that need to be implemented.
 ## if
 
 - [x] Implement the `if` expression in the BC interpreter
+
+## Packages
+
+- [x] High-level design
+- [ ] Implement package into runtime:
+      - [x] Package table
+      - [ ] Load package
+      - [ ] Store package
+      - [ ] Push package closure
+      - [ ] Call package
+- [ ] Implement package into compiler:
+      - [ ] Bendu cache
+      - [ ] Write out script into new binary format
+      - [ ] Have interpreter read in new binary format
+      - [ ] Parse import
+      - [ ] Type inference for package
+      - [ ] Compile package
 
 ## Sequence Blocks
 

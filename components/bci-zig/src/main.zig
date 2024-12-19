@@ -27,23 +27,14 @@ pub fn main() !void {
 }
 
 fn runInterpreter(allocator: std.mem.Allocator, fileName: []const u8) !void {
-    const bc = try loadBinary(allocator, fileName);
-    defer allocator.free(bc);
-
     var runtime = try Runtime.Runtime.init(allocator);
     defer runtime.deinit();
 
-    try Interpreter.run(bc, &runtime);
-}
+    const fileNameSP = try runtime.sp.intern(fileName);
+    defer fileNameSP.decRef();
 
-fn loadBinary(allocator: std.mem.Allocator, fileName: []const u8) ![]u8 {
-    var file = try std.fs.cwd().openFile(fileName, .{});
-    defer file.close();
-
-    const fileSize = try file.getEndPos();
-    const buffer: []u8 = try file.readToEndAlloc(allocator, fileSize);
-
-    return buffer;
+    const package = try runtime.packages.load(fileNameSP);
+    try Interpreter.run(package, &runtime);
 }
 
 test "tests" {
