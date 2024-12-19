@@ -69,10 +69,10 @@ The following is the list of big features that need to be implemented.
       - [ ] Bendu cache
       - [ ] Write out script into new binary format
       - [ ] Have interpreter read in new binary format
-      - [ ] Parse import
-      - [ ] Type inference for package
-      - [ ] Compile package
-
+      - [x] Parse import
+      - [ ] Parse import as
+      - [ ] Parse import exposing 
+      
 ## Sequence Blocks
 
 - [x] Implement the sequence block

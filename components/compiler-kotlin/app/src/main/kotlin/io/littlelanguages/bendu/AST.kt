@@ -4,6 +4,10 @@ import io.littlelanguages.bendu.typeinference.*
 import io.littlelanguages.scanpiler.Location
 import io.littlelanguages.scanpiler.LocationCoordinate
 
+class Script(val imports: List<Import>, val es: List<Expression>)
+
+data class Import(val path: StringLocation, val location: Location)
+
 sealed class Expression(open var type: Type? = null) {
     open fun apply(s: Subst, errors: Errors) {
         type = type!!.apply(s)

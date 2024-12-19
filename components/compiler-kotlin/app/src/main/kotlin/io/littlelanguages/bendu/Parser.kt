@@ -5,9 +5,12 @@ import io.littlelanguages.data.*
 import java.io.StringReader
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<List<Expression>, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, (Expression) -> Expression, Expression, List<FunctionParameter>, FunctionParameter, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm> {
-    override fun visitProgram(a: List<Tuple2<Expression, Token?>>): List<Expression> =
-        a.map { it.a }
+    Visitor<Script, Import, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, (Expression) -> Expression, Expression, List<FunctionParameter>, FunctionParameter, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm> {
+    override fun visitProgram(a1: List<Tuple2<Import, Token?>>, a2: List<Tuple2<Expression, Token?>>): Script =
+        Script(a1.map { it.a }, a2.map { it.a })
+
+    override fun visitImportStatement(a1: Token, a2: Token): Import =
+        Import(StringLocation(a2.lexeme, a2.location), a1.location + a2.location)
 
     override fun visitExpression1(
         a1: Token,
@@ -424,14 +427,14 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         LowerIDType(StringLocation(a.lexeme, a.location))
 }
 
-fun parse(scanner: Scanner, errors: Errors): List<Expression> {
+fun parse(scanner: Scanner, errors: Errors): Script {
     try {
         return Parser(scanner, ParserVisitor(errors)).program()
     } catch (e: ParsingException) {
         errors.addError(ParsingError(e.found, e.expected))
-        return emptyList()
+        return Script(emptyList(), emptyList())
     }
 }
 
-fun parse(input: String, errors: Errors): List<Expression> =
+fun parse(input: String, errors: Errors): Script =
     parse(Scanner(StringReader(input)), errors)

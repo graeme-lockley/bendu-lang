@@ -18,9 +18,9 @@ fun infer(
         return emptyList()
     }
 
-    inferStatements(ast, Environment(typeEnv, pump, errors, constraints))
+    inferStatements(ast.es, Environment(typeEnv, pump, errors, constraints))
 
-    return ast
+    return ast.es
 }
 
 private fun inferStatements(statements: List<Expression>, env: Environment) =

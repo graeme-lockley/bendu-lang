@@ -218,9 +218,9 @@ class ParserTest {
 
 private fun successfulParse(input: String, numberOfStatements: Int): List<Expression> {
     val errors = Errors()
-    val statements = parse(input, errors)
+    val script = parse(input, errors)
     assertTrue(errors.hasNoErrors())
-    assertEquals(statements.size, numberOfStatements)
+    assertEquals(script.es.size, numberOfStatements)
 
-    return statements
+    return script.es
 }

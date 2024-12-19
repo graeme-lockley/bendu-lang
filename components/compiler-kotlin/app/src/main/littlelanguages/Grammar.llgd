@@ -1,7 +1,11 @@
 uses "./Scanner.llld";
 
 Program
-    : {Expression [";"]}
+    : {ImportStatement [";"]} {Expression [";"]}
+    ;
+
+ImportStatement
+    : "import" LiteralString
     ;
 
 Expression
