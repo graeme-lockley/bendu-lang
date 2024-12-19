@@ -112,11 +112,13 @@ pub const ArrayValue = struct {
 };
 
 pub const ClosureValue = struct {
+    packageID: usize,
     function: usize,
     frame: *Value,
 
-    pub fn init(function: usize, frame: *Value) ClosureValue {
+    pub fn init(packageID: usize, function: usize, frame: *Value) ClosureValue {
         return ClosureValue{
+            .packageID = packageID,
             .function = function,
             .frame = frame,
         };

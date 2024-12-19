@@ -61,10 +61,10 @@ The following is the list of big features that need to be implemented.
 - [x] High-level design
 - [ ] Implement package into runtime:
       - [x] Package table
-      - [ ] Load package
-      - [ ] Store package
-      - [ ] Push package closure
-      - [ ] Call package
+      - [x] Load package
+      - [x] Store package
+      - [x] Push package closure
+      - [x] Call package
 - [ ] Implement package into compiler:
       - [ ] Bendu cache
       - [ ] Write out script into new binary format

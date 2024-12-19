@@ -85,6 +85,20 @@
       "description": "Adds a specified integer to the stack."
     },
     {
+      "name": "PUSH_PACKAGE_CLOSURE",
+      "args": [
+        {
+          "name": "package_index",
+          "type": "u32"
+        },
+        {
+          "name": "offset",
+          "type": "u32"
+        }
+      ],
+      "description": "Create a closure for a function in a package. The package_index is the index of the package in the package table."
+    },
+    {
       "name": "PUSH_STRING_LITERAL",
       "args": [
         {
@@ -154,6 +168,20 @@
       "description": "Load the value at the offset from the frame onto the stack. The frame, starting at 0 indicates how many frames to traverse to get to the correct frame. The offset is the offset from the start of the frame."
     },
     {
+      "name": "LOAD_PACKAGE",
+      "args": [
+        {
+          "name": "package_index",
+          "type": "u32"
+        },
+        {
+          "name": "offset",
+          "type": "u32"
+        }
+      ],
+      "description": "Load the value at the offset from the package onto the stack. The package_index is the index of the package in the package table. The offset is the offset from the start of the package."
+    },
+    {
       "name": "STORE",
       "args": [
         {
@@ -166,6 +194,20 @@
         }
       ],
       "description": "Store the value on the stack into the frame at the offset.  The frame, starting at 0 indicates how many frames to traverse to get to the correct frame. The offset is the offset from the start of the frame."
+    },
+    {
+      "name": "STORE_PACKAGE",
+      "args": [
+        {
+          "name": "package_index",
+          "type": "u32"
+        },
+        {
+          "name": "offset",
+          "type": "u32"
+        }
+      ],
+      "description": "Store the value on the stack into the package at the offset. The package_index is the index of the package in the package table. The offset is the offset from the start of the package."
     },
     {
       "name": "STORE_ARRAY_ELEMENT",
@@ -289,6 +331,24 @@
         }
       ],
       "description": "Call the closure on the stack with following arity number of arguments also located on the stack. The arguments are removed from the call stack and replaced with the return address and the new frame pointer."
+    },
+    {
+      "name": "CALL_PACKAGE",
+      "args": [
+        {
+          "name": "package_index",
+          "type": "u32"
+        },
+        {
+          "name": "function_offset",
+          "type": "u32"
+        },
+        {
+          "name": "arity",
+          "type": "u32"
+        }
+      ],
+      "description": "Call the function in the package at offset with the arity number of arguments from the stack. The arguments are removed from the call stack and replaced with the return address and the new frame pointer."
     },
     {
       "name": "RET",

@@ -16,7 +16,7 @@ pub fn runBytecode(bc: []const u8, runtime: *Runtime.Runtime) !void {
 pub fn run(package: *Runtime.Package, runtime: *Runtime.Runtime) !void {
     const image = try package.getImage(runtime);
 
-    const bc = image.bc;
+    var bc = image.bc;
     var ip: usize = 0;
     var fp: usize = 0;
 
@@ -98,7 +98,7 @@ pub fn run(package: *Runtime.Package, runtime: *Runtime.Runtime) !void {
 
                 const previousFrame = Memory.FrameValue.skip(Pointer.as(*Memory.Value, runtime.stack.items[fp]), frame);
 
-                try runtime.push_closure(@intCast(offset), previousFrame.?);
+                try runtime.push_closure(package.id, @intCast(offset), previousFrame.?);
 
                 ip += 8;
             },
@@ -131,6 +131,27 @@ pub fn run(package: *Runtime.Package, runtime: *Runtime.Runtime) !void {
 
                 try runtime.push_u8_literal(value);
                 ip += 1;
+            },
+            .push_package_closure => {
+                const packageID = readi32(bc, ip);
+                const offset = readi32(bc, ip + 4);
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: push_package_closure: packageID={d}, offset={d}\n", .{ ip - 1, fp, packageID, offset });
+                }
+
+                if (packageID < 0) {
+                    const newPackage = try Runtime.resolvePackageID(runtime, package, @intCast(-packageID));
+                    writei32(image.bc, ip, @intCast(newPackage.id));
+                    writei32(bc, ip, @intCast(newPackage.id));
+                    const newImage = try newPackage.getImage(runtime);
+
+                    try runtime.push_closure(@intCast(newPackage.id), @intCast(offset), newImage.frame);
+                } else {
+                    const newImage = try runtime.packages.items.items[@intCast(packageID)].getImage(runtime);
+                    try runtime.push_closure(@intCast(packageID), @intCast(offset), newImage.frame);
+                }
+                ip += 12;
             },
             .push_string_literal => {
                 const len = readi32(bc, ip);
@@ -181,6 +202,24 @@ pub fn run(package: *Runtime.Package, runtime: *Runtime.Runtime) !void {
                 try runtime.load(fp, @intCast(frame), @intCast(offset));
                 ip += 8;
             },
+            .load_package => {
+                const packageID = readi32(bc, ip);
+                const offset = readi32(bc, ip + 4);
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: load_package: packageID={d}, offset={d}\n", .{ ip - 1, fp, packageID, offset });
+                }
+
+                if (packageID < 0) {
+                    const newPackage = try Runtime.resolvePackageID(runtime, package, @intCast(-packageID));
+                    writei32(image.bc, ip, @intCast(newPackage.id));
+                    writei32(bc, ip, @intCast(newPackage.id));
+                    try runtime.load_package(@intCast(newPackage.id), @intCast(offset));
+                } else {
+                    try runtime.load_package(@intCast(packageID), @intCast(offset));
+                }
+                ip += 8;
+            },
             .store => {
                 const frame = readi32(bc, ip);
                 const offset = readi32(bc, ip + 4);
@@ -190,6 +229,24 @@ pub fn run(package: *Runtime.Package, runtime: *Runtime.Runtime) !void {
                 }
 
                 try runtime.store(fp, @intCast(frame), @intCast(offset));
+                ip += 8;
+            },
+            .store_package => {
+                const packageID = readi32(bc, ip);
+                const offset = readi32(bc, ip + 4);
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: store _package: packageID={d}, offset={d}\n", .{ ip - 1, fp, packageID, offset });
+                }
+
+                if (packageID < 0) {
+                    const newPackage = try Runtime.resolvePackageID(runtime, package, @intCast(-packageID));
+                    writei32(image.bc, ip, @intCast(newPackage.id));
+                    writei32(bc, ip, @intCast(newPackage.id));
+                    try runtime.store_package(@intCast(newPackage.id), @intCast(offset));
+                } else {
+                    try runtime.store_package(@intCast(packageID), @intCast(offset));
+                }
                 ip += 8;
             },
             .store_array_element => {
@@ -796,6 +853,13 @@ fn readi32(bc: []const u8, ip: usize) i32 {
         (@as(u32, bc[ip]) << 24));
 
     return v;
+}
+
+fn writei32(bc: []u8, ip: usize, value: i32) void {
+    bc[ip] = @intCast(value >> 24);
+    bc[ip + 1] = @intCast(value >> 16);
+    bc[ip + 2] = @intCast(value >> 8);
+    bc[ip + 3] = @intCast(value);
 }
 
 fn readf32(bc: []const u8, ip: usize) f32 {

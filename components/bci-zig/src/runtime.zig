@@ -13,9 +13,9 @@ const HEAP_GROW_THRESHOLD = 0.25;
 pub const PackageImage = struct {
     frame: *Memory.Value,
     packages: []*SP.String,
-    bc: []const u8,
+    bc: []u8,
 
-    pub fn init(frame: *Memory.Value, packages: []*SP.String, bc: []const u8) PackageImage {
+    pub fn init(frame: *Memory.Value, packages: []*SP.String, bc: []u8) PackageImage {
         return PackageImage{
             .frame = frame,
             .packages = packages,
@@ -133,6 +133,10 @@ fn loadBinary(allocator: std.mem.Allocator, fileName: []const u8) ![]u8 {
     const buffer: []u8 = try file.readToEndAlloc(allocator, fileSize);
 
     return buffer;
+}
+
+pub fn resolvePackageID(runtime: *Runtime, package: *Package, packageID: usize) !*Package {
+    return try runtime.packages.load((try package.getImage(runtime)).packages[packageID]);
 }
 
 pub const Runtime = struct {
@@ -338,8 +342,8 @@ pub const Runtime = struct {
         try self.stack.append(Pointer.fromInt(0));
     }
 
-    pub inline fn push_closure(self: *Runtime, function: usize, frame: *Memory.Value) !void {
-        _ = try self.pushNewValue(Memory.ValueValue{ .ClosureKind = Memory.ClosureValue.init(function, frame) });
+    pub inline fn push_closure(self: *Runtime, packageID: usize, function: usize, frame: *Memory.Value) !void {
+        _ = try self.pushNewValue(Memory.ValueValue{ .ClosureKind = Memory.ClosureValue.init(packageID, function, frame) });
     }
 
     pub inline fn push_f32_literal(self: *Runtime, value: f32) !void {
@@ -411,11 +415,27 @@ pub const Runtime = struct {
         try self.stack.append(v);
     }
 
+    pub inline fn load_package(self: *Runtime, packageID: usize, offset: usize) !void {
+        var package = self.packages.items.items[packageID];
+        const image = try package.getImage(self);
+
+        const value = Memory.FrameValue.get(image.frame, 0, offset);
+
+        try self.stack.append(value);
+    }
+
     pub inline fn store(self: *Runtime, fp: usize, frame: usize, offset: usize) !void {
         const f = Pointer.as(*Memory.Value, self.stack.items[fp]);
         const v = self.pop();
 
         try Memory.FrameValue.set(f, frame, offset, v);
+    }
+
+    pub inline fn store_package(self: *Runtime, packageID: usize, offset: usize) !void {
+        var package = self.packages.items.items[packageID];
+        const image = try package.getImage(self);
+
+        try Memory.FrameValue.set(image.frame, 0, offset, self.pop());
     }
 
     pub inline fn store_array_element(self: *Runtime) !void {
