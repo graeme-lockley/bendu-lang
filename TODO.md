@@ -124,6 +124,10 @@ The following is the list of big features that need to be implemented.
 - [x] In package, non-higher order, private function without closure declaration
 - [x] Invoke in package, non-higher order, private function without closure declaration
 - [x] Invoke in package, *higher order*, private function with closure declaration
+- [ ] Implement |> operator
+- [ ] Implement <| operator
+- [ ] Implement default argument values
+- [ ] Implement "..." on arguments
 
 ## Int
 
