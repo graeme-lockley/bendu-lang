@@ -547,11 +547,28 @@ private class Compiler(val errors: Errors) {
     }
 
     private fun compileLiteralArrayExpression(expression: LiteralArrayExpression, keepResult: Boolean) {
-        expression.es.forEach { e ->
-            compileExpression(e)
+        var foundAppendArray = false
+
+        expression.es.forEachIndexed { i, e ->
+            if (e.second && !foundAppendArray) {
+                byteBuilder.appendInstruction(Instructions.PUSH_ARRAY)
+                byteBuilder.appendInt(i)
+                foundAppendArray = true
+            }
+            compileExpression(e.first)
+
+            if (foundAppendArray) {
+                if (e.second) {
+                    byteBuilder.appendInstruction(Instructions.ARRAY_APPEND_ARRAY)
+                } else {
+                    byteBuilder.appendInstruction(Instructions.ARRAY_APPEND_ELEMENT)
+                }
+            }
         }
-        byteBuilder.appendInstruction(Instructions.PUSH_ARRAY)
-        byteBuilder.appendInt(expression.es.size)
+        if (!foundAppendArray) {
+            byteBuilder.appendInstruction(Instructions.PUSH_ARRAY)
+            byteBuilder.appendInt(expression.es.size)
+        }
 
         if (!keepResult) {
             byteBuilder.appendInstruction(Instructions.DISCARD)

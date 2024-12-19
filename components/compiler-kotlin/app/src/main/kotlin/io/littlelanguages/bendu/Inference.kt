@@ -213,13 +213,18 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
         is LiteralArrayExpression -> {
             val tv = env.nextVar()
+            val arrayType = TCon("Array", listOf(tv)).withLocation(expression.location())
 
             expression.es.forEach { e ->
-                inferScopedExpression(e, env)
-                env.addConstraint(e.type!!, tv)
+                inferScopedExpression(e.first, env)
+                if (e.second) {
+                    env.addConstraint(e.first.type!!, arrayType)
+                } else {
+                    env.addConstraint(e.first.type!!, tv)
+                }
             }
 
-            expression.type = TCon("Array", listOf(tv)).withLocation(expression.location())
+            expression.type = arrayType
         }
 
         is LiteralBoolExpression ->

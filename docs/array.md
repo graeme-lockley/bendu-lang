@@ -18,6 +18,15 @@ Literal arrays are described using the standard notation.
 [(1, 2), (3, 4), (5, 6)]: Array[Int * Int]
 ```
 
+Bendu also supports the `...` notation to insert arrays into a literal array.
+
+```bendu-repl
+> let x = ["a", "b"]
+
+> ["X", ...x, "Y", ...x, "Z"]
+["X", "a", "b", "Y", "a", "b", "Z"]: Array[String]
+```
+
 Elements of the array can be extracted using array projection.
 
 ```bendu-repl

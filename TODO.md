@@ -23,9 +23,10 @@ The following is the list of big features that need to be implemented.
 - [x] Type annotation
 - [x] Mutable variables
 - [x] Control flow
-- [ ] Tuples
-- [ ] Arrays
+- [x] Tuples
+- [x] Arrays
 - [ ] Packages
+- [ ] ADTs
 - [ ] Records
 - [ ] Type aliases
 - [ ] Patterns
@@ -70,7 +71,7 @@ The following is the list of big features that need to be implemented.
 - [x] Parse type
 - [x] Infer array type
 - [x] Compile literal
-- [ ] Incorporate ... into a literal array
+- [x] Incorporate ... into a literal array
 - [x] Print tuple value
 - [x] Implement == and !=
 - [x] Project element using ! #
@@ -83,10 +84,10 @@ The following is the list of big features that need to be implemented.
 - [x] Assign to range using ! :#
 - [x] Assign to range using ! #:
 - [x] Assign to range using ! :
-- [ ] Append using >>
-- [ ] Append mutation using >!
-- [ ] Prepend using <<
-- [ ] Prepend mutation using <!
+- [x] Append using >>
+- [x] Append mutation using >!
+- [x] Prepend using <<
+- [x] Prepend mutation using <!
 
 ## Bool
 
@@ -158,7 +159,6 @@ The following is the list of big features that need to be implemented.
 - [x] Print tuple value
 - [x] Implement == and !=
 - [x] Destructive parameter
-- [ ] Destruct on assignment
 
 ## Unit
 

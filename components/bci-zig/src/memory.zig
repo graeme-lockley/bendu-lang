@@ -216,7 +216,11 @@ pub const TupleValue = struct {
     }
 };
 
-pub inline fn incRef(v: Pointer.Pointer) Pointer.Pointer {
+pub inline fn incRef(v: Pointer.Pointer) void {
+    _ = incRefR(v);
+}
+
+pub inline fn incRefR(v: Pointer.Pointer) Pointer.Pointer {
     if (Pointer.isString(v)) {
         Pointer.asString(v).incRef();
     }

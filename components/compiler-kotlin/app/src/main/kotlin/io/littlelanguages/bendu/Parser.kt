@@ -169,7 +169,7 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     override fun visitStarpendOp3(a: Token): OpLocation =
         OpLocation(Op.LessLess, a.location)
 
-    override fun visitStarpendOp4(a: Token): OpLocation  =
+    override fun visitStarpendOp4(a: Token): OpLocation =
         OpLocation(Op.LessBang, a.location)
 
     override fun visitStarpend(a1: Expression, a2: List<Tuple2<OpLocation, Expression>>): Expression =
@@ -333,13 +333,16 @@ private class ParserVisitor(val errors: Errors = Errors()) :
 
     override fun visitFactor13(
         a1: Token,
-        a2: Tuple2<Expression, List<Tuple2<Token, Expression>>>?,
+        a2: Tuple3<Token?, Expression, List<Tuple3<Token, Token?, Expression>>>?,
         a3: Token
     ): Expression =
         if (a2 == null)
             LiteralArrayExpression(emptyList(), a1.location + a3.location)
         else
-            LiteralArrayExpression(listOf(a2.a) + a2.b.map { it.b }, a1.location + a3.location)
+            LiteralArrayExpression(
+                listOf(Pair(a2.b, a2.a != null)) + a2.c.map { Pair(it.c, it.b != null) },
+                a1.location + a3.location
+            )
 
     override fun visitFunctionParameters(
         a1: Token,

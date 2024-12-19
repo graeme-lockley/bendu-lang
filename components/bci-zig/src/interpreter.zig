@@ -211,6 +211,41 @@ pub fn run(bc: []const u8, runtime: *Runtime.Runtime) !void {
 
                 try runtime.store_array_range_to();
             },
+            .array_append_element_duplicate => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: array_append_element_duplicate\n", .{ ip - 1, fp });
+                }
+
+                try runtime.array_append_element_duplicate();
+            },
+            .array_prepend_element_duplicate => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: prepend_element_duplicate\n", .{ ip - 1, fp });
+                }
+
+                try runtime.array_prepend_element_duplicate();
+            },
+            .array_append_element => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: array_append_element\n", .{ ip - 1, fp });
+                }
+
+                try runtime.array_append_element();
+            },
+            .array_append_array => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: array_append_array\n", .{ ip - 1, fp });
+                }
+
+                try runtime.array_append_array();
+            },
+            .array_prepend_element => {
+                if (DEBUG) {
+                    std.debug.print("{d} {d}: prepend_element\n", .{ ip - 1, fp });
+                }
+
+                try runtime.array_prepend_element();
+            },
             .dup => {
                 if (DEBUG) {
                     std.debug.print("{d} {d}: dup\n", .{ ip - 1, fp });

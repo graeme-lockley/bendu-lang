@@ -222,6 +222,26 @@ class CompilerTest {
             ),
             "[1, 2, 3]"
         )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 20, // 20
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 30, // 30
+                Instructions.PUSH_ARRAY.op,
+                0, 0, 0, 2, // 2
+                Instructions.ARRAY_APPEND_ARRAY.op,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 3, // 3
+                Instructions.ARRAY_APPEND_ELEMENT.op,
+            ),
+            "[1, ...[20, 30], 3]"
+        )
     }
 
     @Test

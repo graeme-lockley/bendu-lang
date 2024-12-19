@@ -96,7 +96,7 @@ Factor
     | "@" Factor
     | "fn" [TypeParameters] FunctionParameters [TypeQualifier] ["="] Expression
     | "{" {Expression [";"]} "}"
-    | "[" [Expression {"," Expression}] "]"
+    | "[" [["..."] Expression {"," ["..."] Expression}] "]"
     ;
 
 FunctionParameters

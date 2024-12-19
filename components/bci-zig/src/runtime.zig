@@ -304,7 +304,7 @@ pub const Runtime = struct {
         Memory.decRef(array.v.ArrayKind.values.items[@intCast(index)]);
         array.v.ArrayKind.values.items[@intCast(index)] = v;
 
-        try self.push(Memory.incRef(v));
+        try self.push(Memory.incRefR(v));
     }
 
     pub inline fn store_array_range(self: *Runtime) !void {
@@ -356,21 +356,81 @@ pub const Runtime = struct {
         }
     }
 
-    pub inline fn duplicate(self: *Runtime) !void {
-        const value = self.stack.items[self.stack.items.len - 1];
+    pub inline fn array_append_element_duplicate(self: *Runtime) !void {
+        const value = self.peek();
+        const array = Pointer.as(*Memory.Value, self.peekN(1));
 
-        if (Pointer.isString(value)) {
-            Pointer.asString(value).incRef();
+        const result = try self.pushNewValue(Memory.ValueValue{ .ArrayKind = try Memory.ArrayValue.init(self.allocator, array.v.ArrayKind.len() + 1) });
+
+        for (array.v.ArrayKind.values.items) |item| {
+            try result.v.ArrayKind.values.append(Memory.incRefR(item));
+        }
+        try result.v.ArrayKind.values.append(Memory.incRefR(value));
+
+        self.popN(3);
+        try self.push(Pointer.fromPointer(*Memory.Value, result));
+    }
+
+    pub inline fn array_prepend_element_duplicate(self: *Runtime) !void {
+        const array = Pointer.as(*Memory.Value, self.peek());
+        const value = self.peekN(1);
+
+        const result = try self.pushNewValue(Memory.ValueValue{ .ArrayKind = try Memory.ArrayValue.init(self.allocator, array.v.ArrayKind.len() + 1) });
+
+        try result.v.ArrayKind.values.append(Memory.incRefR(value));
+        for (array.v.ArrayKind.values.items) |item| {
+            try result.v.ArrayKind.values.append(Memory.incRefR(item));
         }
 
-        try self.stack.append(value);
+        self.discardN(3);
+        try self.push(Pointer.fromPointer(*Memory.Value, result));
+    }
+
+    pub inline fn array_append_element(self: *Runtime) !void {
+        const value = self.peek();
+        const array = Pointer.as(*Memory.Value, self.peekN(1));
+
+        try array.v.ArrayKind.values.append(Memory.incRefR(value));
+
+        self.discard();
+    }
+
+    pub inline fn array_append_array(self: *Runtime) !void {
+        const value = Pointer.as(*Memory.Value, self.peek());
+        const array = Pointer.as(*Memory.Value, self.peekN(1));
+
+        for (value.v.ArrayKind.values.items) |item| {
+            try array.v.ArrayKind.values.append(Memory.incRefR(item));
+        }
+
+        self.discard();
+    }
+
+    pub inline fn array_prepend_element(self: *Runtime) !void {
+        const array = Pointer.as(*Memory.Value, self.peek());
+        const value = self.peekN(1);
+
+        try array.v.ArrayKind.values.insert(0, Memory.incRefR(value));
+
+        self.popN(2);
+        try self.push(Pointer.fromPointer(*Memory.Value, array));
+    }
+
+    pub inline fn duplicate(self: *Runtime) !void {
+        const value = self.peek();
+
+        try self.stack.append(Memory.incRefR(value));
     }
 
     pub inline fn discard(self: *Runtime) void {
         const value = self.stack.pop();
 
-        if (Pointer.isString(value)) {
-            Pointer.asString(value).decRef();
+        Memory.decRef(value);
+    }
+
+    pub inline fn discardN(self: *Runtime, n: usize) void {
+        for (0..n) |_| {
+            self.discard();
         }
     }
 
