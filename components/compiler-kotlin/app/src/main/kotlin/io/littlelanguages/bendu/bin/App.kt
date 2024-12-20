@@ -1,7 +1,9 @@
 package io.littlelanguages.bendu.bin
 
+import io.littlelanguages.bendu.CacheEntry
 import io.littlelanguages.bendu.compiler.Args
 import io.littlelanguages.bendu.compiler.Instructions
+import io.littlelanguages.bendu.openCache
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
@@ -18,16 +20,17 @@ fun main(args: Array<String>) {
         val script by parser.option(ArgType.String, description = "Script file to compiler")
         val expression by parser.option(ArgType.String, description = "Expression to be compiled")
             .default("println(\"Hello, World!\")")
-        val outputName by parser.option(ArgType.String, description = "Script file to compiler")
 
         parser.parse(args)
 
         if (script == null) {
-            compileExpression(expression, if (outputName == null) "out.bc" else outputName!!)
+            val entry = openCache().getEntry(File("out.bendu"))
+            compileExpression(expression, entry)
         } else if (!script!!.endsWith(".bendu")) {
             println("Unknown file type")
         } else {
-            compileScript(script!!, if (outputName == null) script!!.replace(".bendu", ".bc") else outputName!!)
+            val entry = openCache().getEntry(File(script!!))
+            compileScript(script!!, entry)
         }
     }
 }
@@ -49,9 +52,10 @@ private fun processTests(args: Array<String>) {
         println(script)
     }
 
-    compileExpression(script, "test.bc", false)
+    val entry = openCache().getEntry(File("test.bendu"))
+    compileExpression(script, entry, false)
 
-    executeTest(bc)
+    executeTest(bc, entry)
 }
 
 private fun assembleScript(expression: String, startLineNumber: Int): List<String> {
@@ -136,8 +140,8 @@ private fun markupLiteral(value: String): String {
     return result.toString()
 }
 
-private fun executeTest(bc: String) {
-    val process = ProcessBuilder(bc, "test.bc")
+private fun executeTest(bc: String, entry: CacheEntry) {
+    val process = ProcessBuilder(bc, entry.byteCodeFileName())
         .redirectOutput(ProcessBuilder.Redirect.INHERIT)
         .redirectError(ProcessBuilder.Redirect.INHERIT)
         .start()
@@ -149,11 +153,11 @@ private fun executeTest(bc: String) {
     }
 }
 
-private fun compileScript(scriptName: String, outputName: String) =
-    compileExpression(File(scriptName).readText(), outputName)
+private fun compileScript(scriptName: String, entry: CacheEntry) =
+    compileExpression(File(scriptName).readText(), entry)
 
-private fun compileExpression(expression: String, outputName: String, showExpression: Boolean = false) =
-    File(outputName).writeBytes(compileExpression(expression, showExpression))
+private fun compileExpression(expression: String, entry: CacheEntry, showExpression: Boolean = false) =
+    entry.writeBytecode(compileExpression(expression, showExpression))
 
 private fun processDis(args: Array<String>) {
     val parser = ArgParser("bendu-compiler dis")
@@ -168,7 +172,6 @@ private fun processDis(args: Array<String>) {
     } else {
         val script = assembleDisScript(expression).joinToString("\n")
         val bc = compileExpression(script)
-
 
         disassembleExpression(bc)
     }

@@ -23,7 +23,7 @@ if len(rebo.args) == 4 && rebo.args[2] == "dis" -> {
       exit(1)
    }
 
-   let targetName = Str.dropEnd(fileName, 6) + ".bc"
+   let targetName = rebo.env["HOME"] + "/.bendu" + cwd() + "/" + Str.dropEnd(fileName, 6) + ".bc"
 
    if !fexists(targetName) || rebo.os.fstat(targetName).mtime < rebo.os.fstat(fileName).mtime -> {   
       print(ansi.foreground.green, "Info: ", "\x27;[37m", "Compiling ", fileName, " to ", targetName)

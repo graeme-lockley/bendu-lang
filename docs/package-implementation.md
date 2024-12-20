@@ -69,3 +69,7 @@ The collection of type and values signatures is a text file which is parsed by t
 
 ## Structure of Bendu Cache
 
+There are 2 directories in the Bendu cache:
+
+- `local` contains the assets for all scripts from the local machine, and
+- `remove` contains the assets for all scripts that are downloaded
