@@ -778,7 +778,7 @@ private fun successfulCompile(input: String): ByteArray {
 
     assertTrue(errors.hasNoErrors())
 
-    return result
+    return result.bytecode
 }
 
 private fun unsuccessfulCompile(input: String) {

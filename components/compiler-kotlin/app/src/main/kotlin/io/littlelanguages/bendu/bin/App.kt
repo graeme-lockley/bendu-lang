@@ -1,6 +1,7 @@
 package io.littlelanguages.bendu.bin
 
 import io.littlelanguages.bendu.CacheEntry
+import io.littlelanguages.bendu.CompiledScript
 import io.littlelanguages.bendu.compiler.Args
 import io.littlelanguages.bendu.compiler.Instructions
 import io.littlelanguages.bendu.openCache
@@ -157,7 +158,7 @@ private fun compileScript(scriptName: String, entry: CacheEntry) =
     compileExpression(File(scriptName).readText(), entry)
 
 private fun compileExpression(expression: String, entry: CacheEntry, showExpression: Boolean = false) =
-    entry.writeBytecode(compileExpression(expression, showExpression))
+    entry.writeBytecode(compileExpression(expression, showExpression).bytecode)
 
 private fun processDis(args: Array<String>) {
     val parser = ArgParser("bendu-compiler dis")
@@ -173,7 +174,7 @@ private fun processDis(args: Array<String>) {
         val script = assembleDisScript(expression).joinToString("\n")
         val bc = compileExpression(script)
 
-        disassembleExpression(bc)
+        disassembleExpression(bc.bytecode)
     }
 }
 private fun disassembleFile(file: String) {
@@ -275,10 +276,10 @@ private fun getInstructionByOp(op: Byte): Instructions? {
     return Instructions.entries.find { it.op == op }
 }
 
-private fun compileExpression(expression: String, showExpression: Boolean = false): ByteArray {
+private fun compileExpression(expression: String, showExpression: Boolean = false): CompiledScript {
     val errors = io.littlelanguages.bendu.Errors()
     val script = io.littlelanguages.bendu.infer(expression, errors = errors)
-    val bc = io.littlelanguages.bendu.compile(script, errors)
+    val compiled = io.littlelanguages.bendu.compile(script, errors)
 
     if (errors.hasErrors()) {
         if (showExpression) {
@@ -291,6 +292,6 @@ private fun compileExpression(expression: String, showExpression: Boolean = fals
         exitProcess(1)
     }
 
-    return bc
+    return compiled
 }
 

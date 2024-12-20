@@ -1,13 +1,21 @@
 package io.littlelanguages.bendu
 
+import io.littlelanguages.bendu.cache.ScriptDependency
+import io.littlelanguages.bendu.cache.ScriptExports
 import io.littlelanguages.bendu.compiler.*
 import io.littlelanguages.bendu.typeinference.*
 
-fun compile(script: List<Expression>, errors: Errors): ByteArray {
+class CompiledScript(
+    val dependencies: List<ScriptDependency>,
+    val exports: ScriptExports,
+    val bytecode: ByteArray
+)
+
+fun compile(script: List<Expression>, errors: Errors): CompiledScript {
     val compiler = Compiler(errors)
     compiler.compile(script)
 
-    return compiler.byteBuilder.toByteArray()
+    return CompiledScript(listOf(), ScriptExports(listOf()), compiler.byteBuilder.toByteArray())
 }
 
 private class Compiler(val errors: Errors) {
@@ -226,6 +234,7 @@ private class Compiler(val errors: Errors) {
                 compileExpression(expression.e2)
                 byteBuilder.writeIntAtPosition(jmpFalse, byteBuilder.size())
             }
+
             Op.Or -> {
                 compileExpression(expression.e1)
                 byteBuilder.appendInstruction(Instructions.JMP_DUP_TRUE)
@@ -235,26 +244,31 @@ private class Compiler(val errors: Errors) {
                 compileExpression(expression.e2)
                 byteBuilder.writeIntAtPosition(jmpFalse, byteBuilder.size())
             }
+
             Op.GreaterGreater -> {
                 compileExpression(expression.e1)
                 compileExpression(expression.e2)
                 byteBuilder.appendInstruction(Instructions.ARRAY_PREPEND_ELEMENT_DUPLICATE)
             }
+
             Op.GreaterBang -> {
                 compileExpression(expression.e1)
                 compileExpression(expression.e2)
                 byteBuilder.appendInstruction(Instructions.ARRAY_PREPEND_ELEMENT)
             }
+
             Op.LessLess -> {
                 compileExpression(expression.e1)
                 compileExpression(expression.e2)
                 byteBuilder.appendInstruction(Instructions.ARRAY_APPEND_ELEMENT_DUPLICATE)
             }
+
             Op.LessBang -> {
                 compileExpression(expression.e1)
                 compileExpression(expression.e2)
                 byteBuilder.appendInstruction(Instructions.ARRAY_APPEND_ELEMENT)
             }
+
             else -> {
                 compileExpression(expression.e1)
                 compileExpression(expression.e2)
