@@ -302,6 +302,11 @@ data class UnaryExpression(
         op.location + e.location()
 }
 
+data class UpperIDExpression(val v: StringLocation, override var type: Type? = null) : Expression(type) {
+    override fun location(): Location =
+        v.location
+}
+
 data class WhileExpression(val guard: Expression, val body: Expression, override var type: Type? = null) :
     Expression(type) {
     override fun apply(s: Subst, errors: Errors) {

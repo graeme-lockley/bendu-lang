@@ -1,6 +1,6 @@
 # Package Implementation
 
-Bendu programs can end up being a rather large collection of files which, depending in the program flow, might not be referenced.  For example a library can contain a function that parses a Bendu script and then executes that script by dynamically loading it into the runtime system.  However, should that library be referenced but this particular function not used, then an entire compiler will be dragged in for no practical purpose.
+Bendu programs can end up being a rather large collection of files which, depending on the program flow, might not be referenced.  For example, a library can contain a function that parses a Bendu script and then executes that script by dynamically loading it into the runtime system.  However, should that library be referenced but this particular function not used, then an entire compiler will be dragged in for no practical purpose.
 
 One of the design principles of Bendu is that its start-up time should be negligible.  Performing a cascading loading of packages would violate this principle.
 

@@ -85,11 +85,13 @@ QualifiedExpression
 QualifiedExpressionSuffix
     : "(" [Expression {"," Expression}] ")"
     | "!" (QualifiedExpression [":" [QualifiedExpression]] | ":" [QualifiedExpression])
+    | "." LowerID
     ;
 
 Factor
     : "(" [Expression {"," Expression}] ")"
     | LowerID
+    | UpperID
     | LiteralChar
     | LiteralFloat
     | LiteralInt

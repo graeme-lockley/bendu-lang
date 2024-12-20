@@ -27,7 +27,7 @@ Bendu also supports the `...` notation to insert arrays into a literal array.
 ["X", "a", "b", "Y", "a", "b", "Z"]: Array[String]
 ```
 
-Elements of the array can be extracted using array projection.
+Elements of an array can be extracted using array projection.
 
 ```bendu-repl
 > [1, 2, 3]!0
@@ -43,7 +43,7 @@ Elements of the array can be extracted using array projection.
 "World": String
 ```
 
-An attempt to project beyond the end of the array will result in a fatal error and your application terminating.  In future, array projection will return an optional value.
+An attempt to project beyond the end of the array will result in a fatal error and the application terminating.  In future, array projection will return an optional value.
 
 ```bendu-error
 > [1, 2]!10
@@ -91,7 +91,7 @@ It is also possible to not specify the start or end index of a range.
 [0, 1, 2, 3, 4, 5]: Array[Int]
 ```
 
-Note that the last from returns a copy of the original array.
+Note that the last form returns a copy of the original array.
 
 Arrays are mutable structures by design.  So, using the projection notation, it is possible to change then elements in an array.
 

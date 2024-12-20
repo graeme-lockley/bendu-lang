@@ -347,6 +347,8 @@ private fun inferExpression(expression: Expression, env: Environment) {
             env.addConstraint(u1, u2)
         }
 
+        is UpperIDExpression -> TODO()
+
         is WhileExpression -> {
             inferScopedExpression(expression.guard, env)
             inferScopedExpression(expression.body, env)
