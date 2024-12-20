@@ -1,0 +1,28 @@
+uses "./Scanner.llld";
+
+Program
+    : [Declaration {";" Declaration}]
+    ;
+
+Declaration
+    : "let" LowerID ["!"] Scheme "=" LiteralInt
+    | "fn" ID Scheme ["="] LiteralInt
+    ;
+
+Scheme
+    : [TypeParameters] TypeTerm
+    ;
+
+TypeParameters
+    : "[" LowerID {"," LowerID} "]"
+    ;
+
+TypeTerm
+    : TypeFactor {"*" TypeFactor}
+    ;
+
+TypeFactor
+    : "(" [TypeTerm {"," TypeTerm}] ")" ["->" TypeTerm]
+    | UpperID ["[" TypeTerm {"," TypeTerm} "]"]
+    | LowerID
+    ;

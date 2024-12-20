@@ -7,4 +7,11 @@ deno run --allow-read --allow-write --allow-net --unsafely-ignore-certificate-er
     --verbose \
     --directory="$PROJECT_HOME"/app/src/main/kotlin \
     --package=io.littlelanguages.bendu.parser \
-    "$PROJECT_HOME"/app/src/main/littlelanguages/Grammar.llgd
+    "$PROJECT_HOME"/app/src/main/littlelanguages/lang/Grammar.llgd
+
+deno run --allow-read --allow-write --allow-net --unsafely-ignore-certificate-errors \
+    "https://raw.githubusercontent.com/littlelanguages/parspiler-cli/main/mod.ts" kotlin \
+    --verbose \
+    --directory="$PROJECT_HOME"/app/src/main/kotlin \
+    --package=io.littlelanguages.bendu.cache.parser \
+    "$PROJECT_HOME"/app/src/main/littlelanguages/cache/Grammar.llgd

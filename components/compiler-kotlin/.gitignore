@@ -8,3 +8,4 @@ build
 app/src/main/kotlin/io/littlelanguages/data
 app/src/main/kotlin/io/littlelanguages/scanpiler
 app/src/main/kotlin/io/littlelanguages/bendu/parser
+app/src/main/kotlin/io/littlelanguages/bendu/cache/parser
