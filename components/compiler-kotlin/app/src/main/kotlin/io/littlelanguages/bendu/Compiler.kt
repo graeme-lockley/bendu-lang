@@ -1,7 +1,6 @@
 package io.littlelanguages.bendu
 
-import io.littlelanguages.bendu.cache.ScriptDependency
-import io.littlelanguages.bendu.cache.ScriptExports
+import io.littlelanguages.bendu.cache.*
 import io.littlelanguages.bendu.compiler.*
 import io.littlelanguages.bendu.typeinference.*
 
@@ -15,16 +14,40 @@ fun compile(script: List<Expression>, errors: Errors): CompiledScript {
     val compiler = Compiler(errors)
     compiler.compile(script)
 
-    return CompiledScript(listOf(), ScriptExports(listOf()), compiler.byteBuilder.toByteArray())
+    return CompiledScript(listOf(), ScriptExports(compiler.exports), compiler.byteBuilder.toByteArray())
 }
 
 private class Compiler(val errors: Errors) {
+    val exports = mutableListOf<ScriptExport>()
     val byteBuilder = ByteBuilder()
     val symbolTable = SymbolTable(byteBuilder)
 
     fun compile(script: List<Expression>) {
         if (errors.hasNoErrors()) {
             compileStatements(script, true)
+
+            if (errors.hasNoErrors()) {
+                script.forEach { e ->
+                    if (e is LetStatement) {
+                        e.terms.forEach { t ->
+                            if (t is LetFunctionStatementTerm) {
+                                val functionBinding = symbolTable.find(t.id.value) as FunctionBinding
+                                exports.add(
+                                    FunctionExport(
+                                        t.id.value,
+                                        t.type!!,
+                                        functionBinding.codeOffset,
+                                        functionBinding.frameOffset
+                                    )
+                                )
+                            } else if (t is LetValueStatementTerm) {
+                                val identifierBinding = symbolTable.find(t.id.value) as IdentifierBinding
+                                exports.add(ValueExport(t.id.value, t.mutable, t.type!!, identifierBinding.frameOffset))
+                            }
+                        }
+                    }
+                }
+            }
 
             symbolTable.closeScope()
         }

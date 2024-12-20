@@ -5,8 +5,8 @@ Program
     ;
 
 Declaration
-    : "let" LowerID ["!"] Scheme "=" LiteralInt
-    | "fn" ID Scheme ["="] LiteralInt
+    : "let" LowerID ["!"] ":" Scheme "=" LiteralInt
+    | "fn" ID ":" Scheme ["="] LiteralInt
     ;
 
 Scheme

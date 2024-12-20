@@ -158,7 +158,7 @@ private fun compileScript(scriptName: String, entry: CacheEntry) =
     compileExpression(File(scriptName).readText(), entry)
 
 private fun compileExpression(expression: String, entry: CacheEntry, showExpression: Boolean = false) =
-    entry.writeBytecode(compileExpression(expression, showExpression).bytecode)
+    entry.writeImage(compileExpression(expression, showExpression))
 
 private fun processDis(args: Array<String>) {
     val parser = ArgParser("bendu-compiler dis")

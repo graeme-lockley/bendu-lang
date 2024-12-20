@@ -1,5 +1,6 @@
 package io.littlelanguages.bendu
 
+import io.littlelanguages.bendu.cache.ScriptExports
 import java.io.File
 
 fun openCache(): Cache {
@@ -27,8 +28,16 @@ class Cache(private val home: File) {
 }
 
 class CacheEntry(private val dir: File, private val name: String) {
-    fun writeBytecode(bytecode: ByteArray) =
-        byteCodeFile().writeBytes(bytecode)
+    fun writeImage(image: CompiledScript) {
+        byteCodeFile().writeBytes(image.bytecode)
+        writeSignatures(image.exports)
+    }
+
+    private fun writeSignatures(signatures: ScriptExports) {
+        val file = File(dir, "$name.sig")
+
+        file.writeText(signatures.exports.joinToString(";\n") { it.toString() })
+    }
 
     private fun byteCodeFile(): File =
         File(dir, "$name.bc")
