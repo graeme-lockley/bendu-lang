@@ -31,11 +31,24 @@ class Cache(private val home: File) {
             entryDir.mkdirs()
         }
 
-        return CacheEntry(entryDir, name)
+        return FileCacheEntry(entryDir, name)
+    }
+
+    fun useExpression(sourceFile: File, expression: String): CacheEntry {
+        val entryDir = File("$home/${sourceFile.canonicalFile.parent}")
+        val name = sourceFile.nameWithoutExtension
+
+        if (!entryDir.exists()) {
+            entryDir.mkdirs()
+        }
+
+        return ExpressionCacheEntry(entryDir, name, expression)
     }
 }
 
-class CacheEntry(private val dir: File, private val name: String) {
+sealed class CacheEntry(open val dir: File, open val name: String) {
+    abstract fun script(): String
+
     fun writeImage(image: CompiledScript) {
         writeSignatures(image.exports)
         writeByteCode(image)
@@ -46,7 +59,7 @@ class CacheEntry(private val dir: File, private val name: String) {
         val importsBB = ByteBuilder()
 
         importsBB.appendInt(image.imports.size)
-        image.imports.forEach { importsBB.appendString(it.name ) ; importsBB.appendLong(it.timestamp) }
+        image.imports.forEach { importsBB.appendString(it.name); importsBB.appendLong(it.timestamp) }
         val imports = importsBB.toByteArray()
 
         BufferedOutputStream(FileOutputStream(byteCodeFile())).use {
@@ -83,4 +96,15 @@ class CacheEntry(private val dir: File, private val name: String) {
 
     fun byteCodeFileName(): String =
         byteCodeFile().absolutePath
+}
+
+class ExpressionCacheEntry(override val dir: File, override val name: String, val expression: String) :
+    CacheEntry(dir, name) {
+    override fun script(): String =
+        expression
+}
+
+class FileCacheEntry(override val dir: File, override val name: String) : CacheEntry(dir, name) {
+    override fun script(): String =
+        File(dir, "$name.bendu").readText()
 }

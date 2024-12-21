@@ -6,21 +6,30 @@ import io.littlelanguages.scanpiler.Location
 private const val LITERAL_FIX_NAME = "[bob]"
 
 fun infer(
-    script: String,
+    entry: CacheEntry,
     typeEnv: TypeEnv = emptyTypeEnv,
     pump: Pump = Pump(),
     errors: Errors = Errors(),
     constraints: Constraints = Constraints()
 ): List<Expression> {
-    val ast = parse(script, errors)
+    val ast = parse(entry.script(), errors)
 
     if (errors.hasErrors()) {
         return emptyList()
     }
 
-    inferStatements(ast.es, Environment(typeEnv, pump, errors, constraints))
+    val env = Environment(typeEnv, pump, errors, constraints)
+    inferImports(ast.imports, env)
+    inferStatements(ast.es, env)
 
     return ast.es
+}
+
+private fun inferImports(imports: List<Import>, env: Environment) =
+    imports.forEach { inferImport(it, env) }
+
+private fun inferImport(import: Import, env: Environment) {
+    TODO()
 }
 
 private fun inferStatements(statements: List<Expression>, env: Environment) =

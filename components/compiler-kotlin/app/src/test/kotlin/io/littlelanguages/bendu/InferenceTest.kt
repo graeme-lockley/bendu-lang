@@ -2,6 +2,7 @@ package io.littlelanguages.bendu
 
 import io.littlelanguages.bendu.typeinference.*
 import io.littlelanguages.scanpiler.LocationCoordinate
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -251,7 +252,7 @@ class InferenceTest {
 
 private fun assertInferExpressionEquals(expr: String, expected: String, typeEnv: TypeEnv = emptyTypeEnv) {
     val errors = Errors()
-    val ast = infer(expr, errors = errors, typeEnv = typeEnv)
+    val ast = infer(openCache().useExpression(File("test.bc"), expr), errors = errors, typeEnv = typeEnv)
 
     assertTrue(errors.hasNoErrors())
     assertEquals(expected, ast.last().type.toString())
@@ -259,7 +260,7 @@ private fun assertInferExpressionEquals(expr: String, expected: String, typeEnv:
 
 private fun assertInferFunctionEquals(expr: String, expected: String, typeEnv: TypeEnv = emptyTypeEnv) {
     val errors = Errors()
-    val ast = infer(expr, errors = errors, typeEnv = typeEnv)
+    val ast = infer(openCache().useExpression(File("test.bc"), expr), errors = errors, typeEnv = typeEnv)
 
     assertTrue(errors.hasNoErrors())
     assertEquals(expected, (ast.last() as LetStatement).terms[0].type!!.toString())
@@ -268,7 +269,7 @@ private fun assertInferFunctionEquals(expr: String, expected: String, typeEnv: T
 private fun inferErrorExpression(expr: String, typeEnv: TypeEnv = emptyTypeEnv): Errors {
     val errors = Errors()
 
-    infer(expr, typeEnv = typeEnv, errors = errors)
+    infer(openCache().useExpression(File("test.bc"), expr), typeEnv = typeEnv, errors = errors)
 
     assertTrue(errors.hasErrors())
 

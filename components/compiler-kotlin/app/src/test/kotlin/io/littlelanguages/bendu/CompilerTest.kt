@@ -1,6 +1,7 @@
 package io.littlelanguages.bendu
 
 import io.littlelanguages.bendu.compiler.Instructions
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertTrue
@@ -772,7 +773,7 @@ class CompilerTest {
 
 private fun successfulCompile(input: String): ByteArray {
     val errors = Errors()
-    val statements = infer(input, errors = errors)
+    val statements = infer(openCache().useExpression(File("test.bc"), input), errors = errors)
 
     val result = compile(statements, errors)
 
@@ -783,7 +784,7 @@ private fun successfulCompile(input: String): ByteArray {
 
 private fun unsuccessfulCompile(input: String) {
     val errors = Errors()
-    val statements = infer(input, errors = errors)
+    val statements = infer(openCache().useExpression(File("test.bc"),input), errors = errors)
     compile(statements, errors)
 
     assertTrue(errors.hasErrors())
