@@ -1,10 +1,12 @@
 package io.littlelanguages.bendu
 
+import io.littlelanguages.bendu.cache.ScriptDependency
 import io.littlelanguages.bendu.cache.ScriptExports
 import io.littlelanguages.bendu.compiler.ByteBuilder
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.io.PrintWriter
 
 private const val UPPER_VERSION: Byte = 0
 private const val LOWER_VERSION: Byte = 1
@@ -37,6 +39,7 @@ class CacheEntry(private val dir: File, private val name: String) {
     fun writeImage(image: CompiledScript) {
         writeSignatures(image.exports)
         writeByteCode(image)
+        writeDependencies(image.dependencies)
     }
 
     private fun writeByteCode(image: CompiledScript) {
@@ -61,6 +64,18 @@ class CacheEntry(private val dir: File, private val name: String) {
         val file = File(dir, "$name.sig")
 
         file.writeText(signatures.exports.joinToString(";\n") { it.toString() })
+    }
+
+    private fun writeDependencies(dependencies: List<ScriptDependency>) {
+        val file = File(dir, "$name.dep")
+
+        PrintWriter(file).use { stream ->
+            dependencies.forEach {
+                stream.print(it.name)
+                stream.print(" ")
+                stream.println(it.timestamp)
+            }
+        }
     }
 
     private fun byteCodeFile(): File =
