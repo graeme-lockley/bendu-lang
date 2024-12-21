@@ -70,8 +70,12 @@ The following is the list of big features that need to be implemented.
       - [ ] Write out script into new binary format
       - [ ] Have interpreter read in new binary format
       - [x] Parse import
+      - [ ] Implement import
       - [ ] Parse import as
-      - [ ] Parse import exposing 
+      - [ ] Implement import as
+      - [ ] Parse import exposing
+      - [ ] Implement import exposing
+      - [ ] Implement public qualifiers
       
 ## Sequence Blocks
 

@@ -1,7 +1,13 @@
 package io.littlelanguages.bendu
 
 import io.littlelanguages.bendu.cache.ScriptExports
+import io.littlelanguages.bendu.compiler.ByteBuilder
+import java.io.BufferedOutputStream
 import java.io.File
+import java.io.FileOutputStream
+
+private const val UPPER_VERSION: Byte = 0
+private const val LOWER_VERSION: Byte = 1
 
 fun openCache(): Cache {
     val home = System.getProperty("user.home")
@@ -29,8 +35,26 @@ class Cache(private val home: File) {
 
 class CacheEntry(private val dir: File, private val name: String) {
     fun writeImage(image: CompiledScript) {
-        byteCodeFile().writeBytes(image.bytecode)
         writeSignatures(image.exports)
+        writeByteCode(image)
+    }
+
+    private fun writeByteCode(image: CompiledScript) {
+        val importsBB = ByteBuilder()
+
+        importsBB.appendInt(image.imports.size)
+        image.imports.forEach { importsBB.appendString(it.name ) ; importsBB.appendLong(it.timestamp) }
+        val imports = importsBB.toByteArray()
+
+        BufferedOutputStream(FileOutputStream(byteCodeFile())).use {
+            it.write('H'.code)
+            it.write('W'.code)
+            it.write(UPPER_VERSION.toInt())
+            it.write(LOWER_VERSION.toInt())
+
+            it.write(imports)
+            it.write(image.bytecode)
+        }
     }
 
     private fun writeSignatures(signatures: ScriptExports) {

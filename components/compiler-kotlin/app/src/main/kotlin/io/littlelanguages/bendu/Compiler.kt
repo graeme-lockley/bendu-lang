@@ -7,6 +7,7 @@ import io.littlelanguages.bendu.typeinference.*
 class CompiledScript(
     val dependencies: List<ScriptDependency>,
     val exports: ScriptExports,
+    val imports: List<ScriptDependency>,
     val bytecode: ByteArray
 )
 
@@ -14,7 +15,7 @@ fun compile(script: List<Expression>, errors: Errors): CompiledScript {
     val compiler = Compiler(errors)
     compiler.compile(script)
 
-    return CompiledScript(listOf(), ScriptExports(compiler.exports), compiler.byteBuilder.toByteArray())
+    return CompiledScript(listOf(), ScriptExports(compiler.exports), listOf(), compiler.byteBuilder.toByteArray())
 }
 
 private class Compiler(val errors: Errors) {

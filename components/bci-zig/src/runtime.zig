@@ -63,8 +63,30 @@ pub const Package = struct {
     }
 
     fn loadImage(self: *Package, runtime: *Runtime) !void {
-        const buffer = try loadBinary(runtime.allocator, self.src.slice());
-        const packages = try runtime.allocator.alloc(*SP.String, 0);
+        var file = try std.fs.cwd().openFile(self.src.slice(), .{});
+        defer file.close();
+
+        var magic: [4]u8 = undefined;
+        _ = try file.read(&magic);
+        if (magic[0] != 'H' or magic[1] != 'W' or magic[2] != 0 or magic[3] != 1) {
+            try stdout.print("Error: Invalid bytecode magic: {s}\n", .{self.src.slice()});
+            std.posix.exit(1);
+        }
+
+        var intBuffer: [4]u8 = undefined;
+        _ = try file.read(&intBuffer);
+        const numberOfPackages = std.mem.readInt(u32, intBuffer[0..4], std.builtin.Endian.little);
+        const packages = try runtime.allocator.alloc(*SP.String, numberOfPackages);
+        for (0..numberOfPackages) |i| {
+            _ = try file.read(&intBuffer);
+            const packageNameLength = std.mem.readInt(u32, intBuffer[0..4], std.builtin.Endian.little);
+            const packageName = try runtime.allocator.alloc(u8, packageNameLength);
+            _ = try file.read(packageName);
+            packages[i] = try runtime.sp.internOwned(packageName);
+        }
+
+        const fileSize = try file.getEndPos();
+        const buffer: []u8 = try file.readToEndAlloc(runtime.allocator, fileSize);
 
         _ = try runtime.push_frame(null);
 
@@ -124,16 +146,6 @@ pub const Packages = struct {
         return self.load(src);
     }
 };
-
-fn loadBinary(allocator: std.mem.Allocator, fileName: []const u8) ![]u8 {
-    var file = try std.fs.cwd().openFile(fileName, .{});
-    defer file.close();
-
-    const fileSize = try file.getEndPos();
-    const buffer: []u8 = try file.readToEndAlloc(allocator, fileSize);
-
-    return buffer;
-}
 
 pub fn resolvePackageID(runtime: *Runtime, package: *Package, packageID: usize) !*Package {
     return try runtime.packages.load((try package.getImage(runtime)).packages[packageID]);
