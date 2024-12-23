@@ -21,7 +21,7 @@ let valueA! = 1
 
 let funA!(x) = x + 1
 
-let state() = (valueA, funA)
+let state(n: Int) = (valueA, funA(n))
 ```
 
 ## Import all public members into a script
@@ -55,17 +55,20 @@ Even-though `valueA` and `funA` are defined with a `!` qualifier, they are still
 ```bendu-repl
 > import "docs/example.bendu"
 
-> state()
-(1, funA): Int * (Int) -> Int
+> state(5)
+(1, 6): Int * Int
 
 > valueA := 2
 > valueA
 2: Int
 
-> state()
-(2, funA): Int * (Int) -> Int
+> state(3)
+(2, 4): Int * Int
 
 > funA := fn(n) = n + 2
 > funA(10)
 12: Int
+
+> state(3)
+(2, 5): Int * Int
 ```
