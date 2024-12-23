@@ -38,7 +38,7 @@ The following bytecode operations make reference to a package:
 | `PUSH_PACKAGE_CLOSURE` | `package_id`, `offset` | Pushes a closure made up with the package's frame and offset into the package's binary code. |
 | `CALL_PACKAGE` | `package_id`, `offset`, `arity` | Calls a function within a package located at offset into the package's binary code with arity number of arguments.  |
 
-The `package_id`, when negative, indicates that the package has not been bound.  The absolute value is the offset into the script's import table.  This is resolved into a reference into the runtime system's package array and then stored back, into the script's binary code, as a positive value.
+The `package_id`, when negative, indicates that the package has not been bound.  The absolute value less 1 is the offset into the script's import table.  This is resolved into a reference into the runtime system's package array and then stored back, into the script's binary code, as a positive value.
 
 ### Format of `.bc`
 

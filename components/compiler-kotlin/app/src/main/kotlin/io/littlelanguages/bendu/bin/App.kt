@@ -183,7 +183,7 @@ private fun processDis(args: Array<String>) {
 private fun disassembleFile(file: String) {
     val bc = File(file).readBytes()
 
-    disassembleExpression(bc)
+    disassembleFile(bc)
 }
 
 private fun assembleDisScript(expression: String): List<String> {
@@ -196,6 +196,23 @@ private fun assembleDisScript(expression: String): List<String> {
     return script
 }
 
+private fun disassembleFile(bc:  ByteArray) {
+    println("magic: '${bc[0].toInt().toChar()}':'${bc[1].toInt().toChar()}':${bc[2].toInt()}:${bc[3].toInt()}")
+
+    var codeOffset = 8
+    val imports = readU32(bc, 4)
+    if (imports > 0) {
+        println("imports:")
+        for (i in 0 until imports) {
+            val (name, length) = readString(bc, codeOffset)
+            codeOffset += length
+
+            println("  =  ${-i - 1}: $name")
+        }
+    }
+
+    disassembleExpression(bc.slice(codeOffset until bc.size).toByteArray())
+}
 private fun disassembleExpression(bc: ByteArray) {
     var offset = 0
 
@@ -289,10 +306,7 @@ private fun compileEntry(entry: CacheEntry, showExpression: Boolean = false): Co
             println(entry.script())
         }
 
-        for (e in errors) {
-            e.printError(false)
-        }
-        exitProcess(1)
+        errors.printErrors(false, true)
     }
 
     return compiled

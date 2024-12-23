@@ -289,6 +289,14 @@ class CompilerTest {
             ),
             "1"
         )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                -1, -1, -1, -1 // -1
+            ),
+            "-1"
+        )
     }
 
     @Test
@@ -769,13 +777,42 @@ class CompilerTest {
             "let add((a, b): Int * Int, c: Int): Int = a + b + c"
         )
     }
+
+    @Test
+    fun `import`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 0, // valueA
+            ),
+            "import \"test/test.bendu\" ; valueA"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.CALL_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 19, // valueA
+                0, 0, 0, 2, // 2
+            ),
+            "import \"test/test.bendu\" ; funA(1, 2)"
+        )
+    }
 }
 
 private fun successfulCompile(input: String): ByteArray {
+    val entry = openCache().useExpression(File("test.bc"), input)
     val errors = Errors()
-    val statements = infer(openCache().useExpression(File("test.bc"), input), errors = errors)
+    val statements = infer(entry, errors = errors)
 
     val result = compile(statements, errors)
+
+    entry.writeImage(result)
 
     assertTrue(errors.hasNoErrors())
 

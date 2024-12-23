@@ -6,6 +6,7 @@ import io.littlelanguages.bendu.typeinference.Type
 import io.littlelanguages.scanpiler.Location
 import io.littlelanguages.scanpiler.LocationCoordinate
 import io.littlelanguages.scanpiler.LocationRange
+import kotlin.system.exitProcess
 
 class Errors {
     private val errors = mutableListOf<BenduError>()
@@ -33,6 +34,16 @@ class Errors {
     operator fun iterator(): Iterator<BenduError> {
         return errors.iterator()
     }
+
+    fun printErrors(colours: Boolean, exit: Boolean = false) {
+        for (e in errors) {
+            e.printError(colours)
+        }
+
+        if (exit) {
+            exitProcess(1)
+        }
+    }
 }
 
 sealed class BenduError {
@@ -49,11 +60,29 @@ data class AssignmentError(val lhs: Location) : BenduError() {
     }
 }
 
-data class IdentifierImmutableError(val id: StringLocation, val location: Location) : BenduError() {
+data class CacheParsingError(
+    val found: io.littlelanguages.bendu.cache.parser.Token,
+    val expected: Set<io.littlelanguages.bendu.cache.parser.TToken>
+) : BenduError() {
     override fun printError(colours: Boolean) {
-        printMessage("Assignment Error", "Attempt to assign a value at ${locationToString(location)} to ${id.value} declared at ${locationToString(id.location)}", colours)
+        printMessage(
+            "Cache Parsing Error",
+            "found ${found.lexeme} at ${locationToString(found.location)}, expected $expected",
+            colours
+        )
     }
 }
+
+data class IdentifierImmutableError(val id: StringLocation, val location: Location) : BenduError() {
+    override fun printError(colours: Boolean) {
+        printMessage(
+            "Assignment Error",
+            "Attempt to assign a value at ${locationToString(location)} to ${id.value} declared at ${locationToString(id.location)}",
+            colours
+        )
+    }
+}
+
 data class IdentifierRedefinitionError(val id: StringLocation, val otherLocation: Location) : BenduError() {
     override fun printError(colours: Boolean) {
         printMessage(
@@ -110,16 +139,6 @@ data class SingleUnificationError(val e1: Type, val e2: Type) : BenduError() {
 data class MultipleUnificationError(val e1: List<Type>, val e2: List<Type>) : BenduError() {
     override fun printError(colours: Boolean) {
         printMessage("Unification Error", "$e1, $e2", colours)
-    }
-}
-
-data class UnificationError(val found: Type, val expected: Set<Type>) : BenduError() {
-    override fun printError(colours: Boolean) {
-        printMessage(
-            "Unification Error",
-            "found $found${if (found.location == null) "" else " ${locationToString(found.location!!)}"}, expected $expected",
-            colours
-        )
     }
 }
 

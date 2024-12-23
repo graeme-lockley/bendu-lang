@@ -247,6 +247,15 @@ class InferenceTest {
 
         assertInferExpressionEquals("let a = [1, 2, 3]; a!1 := 3; a", "Array[Int]")
     }
+
+    @Test
+    fun `infer import`() {
+        assertInferExpressionEquals("import \"test/test.bendu\" ; valueA", "Int")
+        assertInferExpressionEquals("import \"test/test.bendu\" ; funA(1, 2)", "Int")
+        assertInferExpressionEquals("import \"test/test.bendu\" ; identity(1)", "Int")
+        assertInferExpressionEquals("import \"test/test.bendu\" ; identity", "[a] (a) -> a")
+        assertInferExpressionEquals("import \"test/test.bendu\" ; constant", "[a, b] (a) -> (b) -> a")
+    }
 }
 
 
@@ -255,7 +264,7 @@ private fun assertInferExpressionEquals(expr: String, expected: String, typeEnv:
     val ast = infer(openCache().useExpression(File("test.bc"), expr), errors = errors, typeEnv = typeEnv)
 
     assertTrue(errors.hasNoErrors())
-    assertEquals(expected, ast.last().type.toString())
+    assertEquals(expected, ast.es.last().type.toString())
 }
 
 private fun assertInferFunctionEquals(expr: String, expected: String, typeEnv: TypeEnv = emptyTypeEnv) {
@@ -263,7 +272,7 @@ private fun assertInferFunctionEquals(expr: String, expected: String, typeEnv: T
     val ast = infer(openCache().useExpression(File("test.bc"), expr), errors = errors, typeEnv = typeEnv)
 
     assertTrue(errors.hasNoErrors())
-    assertEquals(expected, (ast.last() as LetStatement).terms[0].type!!.toString())
+    assertEquals(expected, (ast.es.last() as LetStatement).terms[0].type!!.toString())
 }
 
 private fun inferErrorExpression(expr: String, typeEnv: TypeEnv = emptyTypeEnv): Errors {

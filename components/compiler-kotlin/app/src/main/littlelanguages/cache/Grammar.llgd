@@ -6,7 +6,7 @@ Program
 
 Declaration
     : "let" LowerID ["!"] ":" Scheme "=" LiteralInt
-    | "fn" ID ":" Scheme ["="] LiteralInt
+    | "fn" LowerID ["!"] ":" Scheme "=" LiteralInt [LiteralInt]
     ;
 
 Scheme

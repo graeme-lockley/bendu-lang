@@ -66,10 +66,12 @@ The following is the list of big features that need to be implemented.
       - [x] Push package closure
       - [x] Call package
 - [ ] Implement package into compiler:
-      - [ ] Bendu cache
-      - [ ] Write out script into new binary format
-      - [ ] Have interpreter read in new binary format
+      - [x] Bendu cache
+      - [x] Write out script into new binary format
+      - [x] Have interpreter read in new binary format
       - [x] Parse import
+      - [ ] Add nested errors for import errors
+      - [ ] Enhance binding locations to include package details
       - [ ] Implement import
       - [ ] Parse import as
       - [ ] Implement import as

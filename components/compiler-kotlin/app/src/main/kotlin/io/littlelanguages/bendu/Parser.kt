@@ -10,7 +10,7 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         Script(a1.map { it.a }, a2.map { it.a })
 
     override fun visitImportStatement(a1: Token, a2: Token): Import =
-        Import(StringLocation(a2.lexeme, a2.location), a1.location + a2.location)
+        Import(StringLocation(parseLiteralString(a2.lexeme), a2.location), a1.location + a2.location)
 
     override fun visitExpression1(
         a1: Token,
@@ -280,41 +280,8 @@ private class ParserVisitor(val errors: Errors = Errors()) :
             LiteralIntExpression(IntLocation(Int.MAX_VALUE, a.location))
         }
 
-    override fun visitFactor7(a: Token): Expression {
-        val sb = StringBuilder()
-
-        var lp = 1
-        while (true) {
-            val c = a.lexeme[lp]
-            if (c == '"') {
-                break
-            } else if (c == '\\') {
-                val nc = a.lexeme[lp + 1]
-
-                if (nc == 'x') {
-                    lp += 2
-                    val start = lp
-                    while (a.lexeme[lp] != ';') {
-                        lp += 1
-                    }
-                    val code = a.lexeme.substring(start, lp)
-                    sb.append(code.toInt().toChar())
-                    lp += 1
-                } else {
-                    when (nc) {
-                        'n' -> sb.append('\n')
-                        '\\' -> sb.append('\\')
-                        '"' -> sb.append('"')
-                    }
-                    lp += 2
-                }
-            } else {
-                sb.append(c)
-                lp += 1
-            }
-        }
-        return LiteralStringExpression(StringLocation(sb.toString(), a.location))
-    }
+    override fun visitFactor7(a: Token): Expression =
+        LiteralStringExpression(StringLocation(parseLiteralString(a.lexeme), a.location))
 
     override fun visitFactor8(a: Token): Expression =
         LiteralBoolExpression(BoolLocation(true, a.location))
@@ -406,12 +373,11 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     ): TypeTerm =
         when (a4) {
             null -> {
-                if (a2 == null)
-                    UpperIDType(StringLocation("Unit", a1.location), emptyList(), a1.location + a3.location)
-                else if (a2.b.isEmpty())
-                    a2.a
-                else
-                    TODO("Syntax Error")
+                when {
+                    a2 == null -> UpperIDType(StringLocation("Unit", a1.location), emptyList(), a1.location + a3.location)
+                    a2.b.isEmpty() -> a2.a
+                    else -> TODO("Syntax Error")
+                }
             }
 
             else -> FunctionType(listOf(a2!!.a) + a2.b.map { it.b }, a4.b, a1.location + a4.b.location())
@@ -432,6 +398,43 @@ private class ParserVisitor(val errors: Errors = Errors()) :
 
     override fun visitTypeFactor3(a: Token): TypeTerm =
         LowerIDType(StringLocation(a.lexeme, a.location))
+}
+
+fun parseLiteralString(s: String): String {
+    val sb = StringBuilder()
+
+    var lp = 1
+    while (true) {
+        val c = s[lp]
+        if (c == '"') {
+            break
+        } else if (c == '\\') {
+            val nc = s[lp + 1]
+
+            if (nc == 'x') {
+                lp += 2
+                val start = lp
+                while (s[lp] != ';') {
+                    lp += 1
+                }
+                val code = s.substring(start, lp)
+                sb.append(code.toInt().toChar())
+                lp += 1
+            } else {
+                when (nc) {
+                    'n' -> sb.append('\n')
+                    '\\' -> sb.append('\\')
+                    '"' -> sb.append('"')
+                }
+                lp += 2
+            }
+        } else {
+            sb.append(c)
+            lp += 1
+        }
+    }
+
+    return sb.toString()
 }
 
 fun parse(scanner: Scanner, errors: Errors): Script {

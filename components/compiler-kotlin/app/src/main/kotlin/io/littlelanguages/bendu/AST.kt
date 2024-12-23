@@ -6,7 +6,7 @@ import io.littlelanguages.scanpiler.LocationCoordinate
 
 class Script(val imports: List<Import>, val es: List<Expression>)
 
-data class Import(val path: StringLocation, val location: Location)
+data class Import(val path: StringLocation, val location: Location, var entry: CacheEntry? = null)
 
 sealed class Expression(open var type: Type? = null) {
     open fun apply(s: Subst, errors: Errors) {

@@ -7,28 +7,45 @@ import io.littlelanguages.bendu.typeinference.*
 class CompiledScript(
     val dependencies: List<ScriptDependency>,
     val exports: ScriptExports,
-    val imports: List<ScriptDependency>,
+    val imports: List<String>,
     val bytecode: ByteArray
 )
 
-fun compile(script: List<Expression>, errors: Errors): CompiledScript {
+fun compile(script: Script, errors: Errors): CompiledScript {
     val compiler = Compiler(errors)
     compiler.compile(script)
 
-    return CompiledScript(listOf(), ScriptExports(compiler.exports), listOf(), compiler.byteBuilder.toByteArray())
+    return CompiledScript(listOf(), ScriptExports(compiler.exports), compiler.imports, compiler.byteBuilder.toByteArray())
 }
 
 private class Compiler(val errors: Errors) {
+    val imports = mutableListOf<String>()
     val exports = mutableListOf<ScriptExport>()
     val byteBuilder = ByteBuilder()
     val symbolTable = SymbolTable(byteBuilder)
 
-    fun compile(script: List<Expression>) {
+    fun compile(script: Script) {
         if (errors.hasNoErrors()) {
-            compileStatements(script, true)
+            script.imports.forEachIndexed { index, import ->
+                imports.add(import.entry!!.byteCodeFileName())
+
+                import.entry!!.declarations.forEach {
+                    when (it) {
+                        is FunctionExport ->
+                            symbolTable.bindFunctionExport(it.name, -index - 1, it.codeOffset, it.frameOffset)
+
+                        is ValueExport ->
+                            symbolTable.bindIdentifierExport(it.name, -index - 1, it.frameOffset)
+                    }
+                }
+
+            }
+            compileStatements(script.es, true)
 
             if (errors.hasNoErrors()) {
-                script.forEach { e ->
+                val typeEnv = TypeEnv(emptyMap())
+
+                script.es.forEach { e ->
                     if (e is LetStatement) {
                         e.terms.forEach { t ->
                             if (t is LetFunctionStatementTerm) {
@@ -36,14 +53,22 @@ private class Compiler(val errors: Errors) {
                                 exports.add(
                                     FunctionExport(
                                         t.id.value,
-                                        t.type!!,
+                                        t.mutable,
+                                        typeEnv.generalise(t.type!!),
                                         functionBinding.codeOffset,
                                         functionBinding.frameOffset
                                     )
                                 )
                             } else if (t is LetValueStatementTerm) {
                                 val identifierBinding = symbolTable.find(t.id.value) as IdentifierBinding
-                                exports.add(ValueExport(t.id.value, t.mutable, t.type!!, identifierBinding.frameOffset))
+                                exports.add(
+                                    ValueExport(
+                                        t.id.value,
+                                        t.mutable,
+                                        typeEnv.generalise(t.type!!),
+                                        identifierBinding.frameOffset
+                                    )
+                                )
                             }
                         }
                     }
@@ -128,6 +153,20 @@ private class Compiler(val errors: Errors) {
                 }
 
                 return
+            } else if (binding is ImportedFunctionBinding && binding.frameOffset == null) {
+                expression.arguments.forEach { e ->
+                    compileExpression(e)
+                }
+                byteBuilder.appendInstruction(Instructions.CALL_PACKAGE)
+                byteBuilder.appendInt(binding.packageID)
+                byteBuilder.appendInt(binding.codeOffset)
+                byteBuilder.appendInt(expression.arguments.size)
+
+                if (!keepResult) {
+                    byteBuilder.appendInstruction(Instructions.DISCARD)
+                }
+
+                return
             }
         }
 
@@ -194,16 +233,19 @@ private class Compiler(val errors: Errors) {
             }
 
             when (binding) {
-                is IdentifierBinding -> {
-                    byteBuilder.appendInstruction(Instructions.STORE)
-                    byteBuilder.appendInt(depth)
-                    byteBuilder.appendInt(binding.frameOffset)
-                }
-
                 is FunctionBinding -> {
                     byteBuilder.appendInstruction(Instructions.STORE)
                     byteBuilder.appendInt(depth)
                     byteBuilder.appendInt(binding.frameOffset!!)
+                }
+
+                is ImportedFunctionBinding -> TODO()
+                is ImportedIdentifierBinding -> TODO()
+
+                is IdentifierBinding -> {
+                    byteBuilder.appendInstruction(Instructions.STORE)
+                    byteBuilder.appendInt(depth)
+                    byteBuilder.appendInt(binding.frameOffset)
                 }
             }
         } else if (expression.lhs is ArrayElementProjectionExpression) {
@@ -708,12 +750,6 @@ private class Compiler(val errors: Errors) {
                 val (binding, depth) = symbol
 
                 when (binding) {
-                    is IdentifierBinding -> {
-                        byteBuilder.appendInstruction(Instructions.LOAD)
-                        byteBuilder.appendInt(depth)
-                        byteBuilder.appendInt(binding.frameOffset)
-                    }
-
                     is FunctionBinding -> {
                         if (binding.frameOffset == null) {
                             byteBuilder.appendInstruction(Instructions.PUSH_CLOSURE)
@@ -725,6 +761,30 @@ private class Compiler(val errors: Errors) {
                             byteBuilder.appendInt(depth)
                             byteBuilder.appendInt(binding.frameOffset)
                         }
+                    }
+
+                    is ImportedFunctionBinding -> {
+                        if (binding.frameOffset == null) {
+                            byteBuilder.appendInstruction(Instructions.PUSH_PACKAGE_CLOSURE)
+                            byteBuilder.appendInt(binding.packageID)
+                            byteBuilder.appendInt(binding.codeOffset)
+                        } else {
+                            byteBuilder.appendInstruction(Instructions.LOAD_PACKAGE)
+                            byteBuilder.appendInt(binding.packageID)
+                            byteBuilder.appendInt(binding.frameOffset)
+                        }
+                    }
+
+                    is ImportedIdentifierBinding -> {
+                        byteBuilder.appendInstruction(Instructions.LOAD_PACKAGE)
+                        byteBuilder.appendInt(binding.packageID)
+                        byteBuilder.appendInt(binding.frameOffset)
+                    }
+
+                    is IdentifierBinding -> {
+                        byteBuilder.appendInstruction(Instructions.LOAD)
+                        byteBuilder.appendInt(depth)
+                        byteBuilder.appendInt(binding.frameOffset)
                     }
                 }
             }

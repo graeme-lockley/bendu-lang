@@ -1,5 +1,6 @@
 const std = @import("std");
 
+const Interpreter = @import("interpreter.zig");
 const Memory = @import("memory.zig");
 const Pointer = @import("pointer.zig");
 const SP = @import("string_pool.zig");
@@ -54,12 +55,27 @@ pub const Package = struct {
         }
     }
 
-    pub fn getImage(self: *Package, runtime: *Runtime) !*PackageImage {
+    pub fn getByteCode(self: *Package, runtime: *Runtime) ![]u8 {
+        try self.getImage(runtime);
+        return self.image.?.bc;
+    }
+
+    pub fn getFrame(self: *Package, runtime: *Runtime) !*Memory.Value {
+        try self.getImage(runtime);
+        return self.image.?.frame;
+    }
+
+    fn getImage(self: *Package, runtime: *Runtime) !void {
         if (self.image == null) {
             try self.loadImage(runtime);
-        }
 
-        return &self.image.?;
+            const sp = runtime.stack.items.len;
+            try Interpreter.run(self, runtime);
+
+            while (runtime.stack.items.len > sp) {
+                runtime.discard();
+            }
+        }
     }
 
     fn loadImage(self: *Package, runtime: *Runtime) !void {
@@ -75,22 +91,25 @@ pub const Package = struct {
 
         var intBuffer: [4]u8 = undefined;
         _ = try file.read(&intBuffer);
-        const numberOfPackages = std.mem.readInt(u32, intBuffer[0..4], std.builtin.Endian.little);
+        const numberOfPackages = std.mem.readInt(u32, intBuffer[0..4], std.builtin.Endian.big);
         const packages = try runtime.allocator.alloc(*SP.String, numberOfPackages);
         for (0..numberOfPackages) |i| {
             _ = try file.read(&intBuffer);
-            const packageNameLength = std.mem.readInt(u32, intBuffer[0..4], std.builtin.Endian.little);
-            const packageName = try runtime.allocator.alloc(u8, packageNameLength);
+            const packageNameLength = std.mem.readInt(u32, intBuffer[0..4], std.builtin.Endian.big);
+            const packageName: []u8 = try runtime.allocator.alloc(u8, packageNameLength);
             _ = try file.read(packageName);
             packages[i] = try runtime.sp.internOwned(packageName);
         }
 
+        const currentPOS = try file.getPos();
         const fileSize = try file.getEndPos();
-        const buffer: []u8 = try file.readToEndAlloc(runtime.allocator, fileSize);
+        try file.seekTo(currentPOS);
 
         _ = try runtime.push_frame(null);
 
-        self.image = PackageImage.init(Pointer.as(*Memory.Value, runtime.pop()), packages, buffer);
+        // std.debug.print("Package.loadImage: src={s}, id={d}\n", .{ self.src.slice(), self.id });
+
+        self.image = PackageImage.init(Pointer.as(*Memory.Value, runtime.pop()), packages, try file.readToEndAlloc(runtime.allocator, fileSize - currentPOS));
     }
 };
 
@@ -143,12 +162,16 @@ pub const Packages = struct {
         const p = try Package.init(src, self.items.items.len);
         try self.items.append(p);
 
-        return self.load(src);
+        // std.debug.print("load: registered package: src={s}, id={d}\n", .{ src.slice(), p.id });
+
+        return &self.items.items[self.items.items.len - 1];
     }
 };
 
 pub fn resolvePackageID(runtime: *Runtime, package: *Package, packageID: usize) !*Package {
-    return try runtime.packages.load((try package.getImage(runtime)).packages[packageID]);
+    try package.getImage(runtime);
+
+    return try runtime.packages.load(package.image.?.packages[packageID]);
 }
 
 pub const Runtime = struct {
@@ -164,7 +187,7 @@ pub const Runtime = struct {
     allocations: u32,
 
     pub fn init(allocator: std.mem.Allocator) !Runtime {
-        var result = Runtime{
+        return Runtime{
             .allocator = allocator,
             .sp = SP.StringPool.init(allocator),
             .packages = Packages.init(allocator),
@@ -176,10 +199,6 @@ pub const Runtime = struct {
             .memory_capacity = INITIAL_HEAP_SIZE,
             .allocations = 0,
         };
-
-        _ = try result.push_frame(null);
-
-        return result;
     }
 
     pub fn deinit(self: *Runtime) void {
@@ -202,12 +221,13 @@ pub const Runtime = struct {
         }
         // std.log.info("gc: memory state stack length: values: {d} vs {d}", .{ self.memory_size, number_of_values });
 
+        self.packages.deinit();
+        self.stack.deinit();
+
         if (MAINTAIN_FREE_CHAIN) {
             self.destroyFreeList();
         }
 
-        self.packages.deinit();
-        self.stack.deinit();
         self.sp.deinit();
     }
 
@@ -428,10 +448,12 @@ pub const Runtime = struct {
     }
 
     pub inline fn load_package(self: *Runtime, packageID: usize, offset: usize) !void {
-        var package = self.packages.items.items[packageID];
-        const image = try package.getImage(self);
+        // std.debug.print("** load_package: package_id={d}, offset={d}\n", .{ packageID, offset });
 
-        const value = Memory.FrameValue.get(image.frame, 0, offset);
+        var package = &self.packages.items.items[packageID];
+        try package.getImage(self);
+
+        const value = Memory.FrameValue.get(package.image.?.frame, 0, offset);
 
         try self.stack.append(value);
     }
@@ -444,10 +466,10 @@ pub const Runtime = struct {
     }
 
     pub inline fn store_package(self: *Runtime, packageID: usize, offset: usize) !void {
-        var package = self.packages.items.items[packageID];
-        const image = try package.getImage(self);
+        const package = &self.packages.items.items[packageID];
+        try package.getImage(self);
 
-        try Memory.FrameValue.set(image.frame, 0, offset, self.pop());
+        try Memory.FrameValue.set(package.image.?.frame, 0, offset, self.pop());
     }
 
     pub inline fn store_array_element(self: *Runtime) !void {

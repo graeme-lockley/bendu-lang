@@ -4,7 +4,6 @@ sealed class NatureOfBinding {
     open fun patch(byteBuilder: ByteBuilder) {}
 }
 
-data class IdentifierBinding(val frameOffset: Int) : NatureOfBinding()
 data class FunctionBinding(
     var codeOffset: Int = 0,
     val frameOffset: Int? = null,
@@ -17,6 +16,12 @@ data class FunctionBinding(
         patches.forEach { byteBuilder.writeIntAtPosition(it, codeOffset) }
     }
 }
+
+data class IdentifierBinding(val frameOffset: Int) : NatureOfBinding()
+
+data class ImportedFunctionBinding(val packageID: Int, var codeOffset: Int = 0, val frameOffset: Int? = null) : NatureOfBinding()
+
+data class ImportedIdentifierBinding(val packageID: Int, val frameOffset: Int) : NatureOfBinding()
 
 class SymbolTable(private val byteBuilder: ByteBuilder) {
     private var scope = SymbolScope()
@@ -83,6 +88,14 @@ class SymbolTable(private val byteBuilder: ByteBuilder) {
             FunctionBinding()
 
         scope.bindings[name] = binding
+    }
+
+    fun bindFunctionExport(name: String, index: Int, codeOffset: Int, frameOffset: Int?) {
+        scope.bindings[name] = ImportedFunctionBinding(index, codeOffset, frameOffset)
+    }
+
+    fun bindIdentifierExport(name: String, index: Int, frameOffset: Int) {
+        scope.bindings[name] = ImportedIdentifierBinding(index, frameOffset)
     }
 }
 

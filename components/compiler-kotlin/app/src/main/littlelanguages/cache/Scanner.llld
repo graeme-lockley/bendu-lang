@@ -5,7 +5,6 @@ tokens
     LiteralInt = ['-'] digits;
     LiteralString = '"' {char | chr(39) | '\' ('\' | 'n' | '"' | ("x" digits ';'))} '"';
 
-    ID = id {digit | id};
     LowerID = lowerID {digit | id};
     UpperID = upperID {digit | id};
 
