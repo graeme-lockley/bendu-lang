@@ -54,7 +54,11 @@ private class ParserVisitor :
                 }
             }
 
-            else -> TArr(listOf(a2!!.a) + a2.b.map { it.b }, a4.b)
+            else ->
+                if (a2 == null)
+                    TArr(emptyList(), a4.b)
+                else
+                    TArr(listOf(a2.a) + a2.b.map { it.b }, a4.b)
         }
 
     override fun visitTypeFactor2(a1: Token, a2: Tuple4<Token, Type, List<Tuple2<Token, Type>>, Token>?): Type =

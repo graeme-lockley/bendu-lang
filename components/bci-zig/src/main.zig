@@ -33,8 +33,8 @@ fn runInterpreter(allocator: std.mem.Allocator, fileName: []const u8) !void {
     const fileNameSP = try runtime.sp.intern(fileName);
     defer fileNameSP.decRef();
 
-    const package = try runtime.packages.load(fileNameSP);
-    try Interpreter.run(package, &runtime);
+    var package = try runtime.packages.load(fileNameSP);
+    _ = try package.getByteCode(&runtime);
 }
 
 test "tests" {

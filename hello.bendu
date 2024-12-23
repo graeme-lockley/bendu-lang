@@ -1,1 +1,6 @@
+import "docs/example.bendu"
+
 println("Hello World!")
+
+let v = state()
+println(v, ": ", @v)

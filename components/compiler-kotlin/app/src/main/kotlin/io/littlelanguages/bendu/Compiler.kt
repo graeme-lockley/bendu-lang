@@ -239,8 +239,17 @@ private class Compiler(val errors: Errors) {
                     byteBuilder.appendInt(binding.frameOffset!!)
                 }
 
-                is ImportedFunctionBinding -> TODO()
-                is ImportedIdentifierBinding -> TODO()
+                is ImportedFunctionBinding -> {
+                    byteBuilder.appendInstruction(Instructions.STORE_PACKAGE)
+                    byteBuilder.appendInt(binding.packageID)
+                    byteBuilder.appendInt(binding.frameOffset!!)
+                }
+
+                is ImportedIdentifierBinding -> {
+                    byteBuilder.appendInstruction(Instructions.STORE_PACKAGE)
+                    byteBuilder.appendInt(binding.packageID)
+                    byteBuilder.appendInt(binding.frameOffset)
+                }
 
                 is IdentifierBinding -> {
                     byteBuilder.appendInstruction(Instructions.STORE)

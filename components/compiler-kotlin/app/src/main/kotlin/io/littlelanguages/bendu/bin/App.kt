@@ -70,13 +70,17 @@ private fun assembleScript(expression: String, startLineNumber: Int): List<Strin
 
     expression.split("\\n").forEachIndexed { index, it ->
         if (it.startsWith(">")) {
-            if (it.substring(1).trim().startsWith("let")) {
-                variableName = it.substring(1).trim().split(" ")[1]
-                script.add(it.substring(1).trim())
+            val line = it.substring(1).trim()
+            if (line.startsWith("let")) {
+                variableName = line.split(" ")[1]
+                script.add(line)
+                state = 1
+            } else if (line.startsWith("import")) {
+                script.add(line)
                 state = 1
             } else {
                 variableName = "vvvv${counter++}"
-                script.add("let $variableName = ${it.substring(1).trim()}")
+                script.add("let $variableName = $line")
                 state = 1
             }
         } else if (it.startsWith(".")) {

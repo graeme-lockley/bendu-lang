@@ -16,6 +16,6 @@ data class ValueExport(override val name: String, val mutable: Boolean, val sche
 data class FunctionExport(override val name: String, val mutable: Boolean, val scheme: Scheme, val codeOffset: Int, val frameOffset: Int?) :
     ScriptExport(name) {
     override fun toString(): String {
-        return "fn $name: $scheme = $codeOffset${if (frameOffset != null) " $frameOffset" else ""}"
+        return "fn $name${if (mutable) "!" else ""}: $scheme = $codeOffset${if (frameOffset != null) " $frameOffset" else ""}"
     }
 }
