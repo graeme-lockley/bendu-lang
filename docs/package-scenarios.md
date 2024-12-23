@@ -72,3 +72,26 @@ Even-though `valueA` and `funA` are defined with a `!` qualifier, they are still
 > state(3)
 (2, 5): Int * Int
 ```
+
+The handling of calling `identity` and `funA` is quite different.  Looking at the generated code, you will notice that `identity` is a simple function call, while `funA` is a closure call.  This is because `funA` is variable and, on assignment, the closure value is updated to reflect the new value of `funA`.
+
+```bendu-dis
+> import "docs/example.bendu"
+> identity(10)
+> funA(10)
+
+ 0: PUSH_I32_LITERAL 10
+ 5: CALL_PACKAGE -1 19 1
+18: DISCARD
+19: LOAD_PACKAGE -1 2
+28: PUSH_I32_LITERAL 10
+33: CALL_CLOSURE 1
+```
+
+Some further comments on this code:
+
+- The `import` statement itself does not generate any bytecode.
+- The `CALL_PACKAGE` and `LOAD_PACKAGE` make reference to a package with a negative index.  This index is a reference into the package table in the bytecode interpreter and a negative value indicates that the reference has not yet been bound due to late binding.  The bytecode interpreter will update this value when the package is loaded.
+- The `LOAD_PACKAGE` instruction is to load the variable `funA` into the stack.  This is a reference to the closure value of `funA`.  The 2 indicates that this is the 3 variable in the package's frame with the first two being used for `pi` and `valueA`.
+
+More information about the bytecode format can be found in [Package Implementation](./package-implementation.md).
