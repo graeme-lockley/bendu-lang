@@ -1020,10 +1020,9 @@ test "store and load - string" {
 }
 
 test "not_bool" {
-    const bc: [1]u8 = [_]u8{@intFromEnum(Op.not_bool)};
+    const bc: [2]u8 = [_]u8{ @intFromEnum(Op.push_bool_true), @intFromEnum(Op.not_bool) };
     var runtime = try Runtime.Runtime.init(std.testing.allocator);
     defer runtime.deinit();
-    try runtime.push_bool_true();
     try runBytecode(&bc, &runtime);
 
     try std.testing.expectEqual(Pointer.asBool(runtime.pop()), false);
