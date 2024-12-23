@@ -72,7 +72,7 @@ The following is the list of big features that need to be implemented.
       - [x] Parse import
       - [ ] Add nested errors for import errors
       - [ ] Enhance binding locations to include package details
-      - [ ] Implement import
+      - [x] Implement import
       - [ ] Parse import as
       - [ ] Implement import as
       - [ ] Parse import exposing
