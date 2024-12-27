@@ -27,9 +27,9 @@ fun infer(
 }
 
 private fun inferImports(entry: CacheEntry, imports: List<Import>, env: Environment) =
-    imports.forEach { inferImport(entry, it, env) }
+    imports.forEachIndexed { index, import -> inferImport(entry, index, import, env) }
 
-private fun inferImport(entry: CacheEntry, import: Import, env: Environment) {
+private fun inferImport(entry: CacheEntry, index: Int, import: Import, env: Environment) {
     import.entry = entry.relativeEntry(import.path.value)
 
     val importEntry = import.entry!!
@@ -42,17 +42,56 @@ private fun inferImport(entry: CacheEntry, import: Import, env: Environment) {
         return
     }
 
-    val declarations = importEntry.declarations
+    when (import) {
+        is ImportAll -> {
+            importEntry.declarations.forEach { declaration ->
+                when (declaration) {
+                    is ValueExport ->
+                        env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
 
-    declarations.forEach { declaration ->
-        when (declaration) {
-            is ValueExport ->
-                env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
-
-            is FunctionExport ->
-                env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
+                    is FunctionExport ->
+                        env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
+                }
+            }
         }
+
+        is ImportID -> {
+            if (env.hasImport(import.name.value)) {
+                env.errors.addError(IdentifierRedefinitionError(import.name, import.location))
+            }
+
+            env.addImport(import.name.value, index, importEntry.declarations)
+        }
+
+//        is ImportList -> {
+//            import.names.forEach { name ->
+//                val declaration = importEntry.declarations.find { it.name == name }
+//
+//                if (declaration != null) {
+//                    when (declaration) {
+//                        is ValueExport ->
+//                            env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
+//
+//                        is FunctionExport ->
+//                            env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
+//                    }
+//                } else {
+//                    env.errors.addError(UnknownIdentifierError(StringLocation(name, import.location)))
+//                }
+//            }
+//        }
     }
+//    val declarations = importEntry.declarations
+//
+//    declarations.forEach { declaration ->
+//        when (declaration) {
+//            is ValueExport ->
+//                env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
+//
+//            is FunctionExport ->
+//                env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
+//        }
+//    }
 }
 
 private fun inferStatements(statements: List<Expression>, env: Environment) =
@@ -130,22 +169,30 @@ private fun inferExpression(expression: Expression, env: Environment) {
         }
 
         is AssignmentExpression -> {
-            if (expression.lhs is LowerIDExpression) {
-                val binding = env.binding(expression.lhs.v.value)
-                if (binding != null && !binding.mutable) {
-                    env.errors.addError(
-                        IdentifierImmutableError(
-                            StringLocation(
-                                expression.lhs.v.value,
-                                binding.location
-                            ), expression.lhs.location()
-                        )
-                    )
-                }
-            } else if (expression.lhs !is ArrayElementProjectionExpression && expression.lhs !is ArrayRangeProjectionExpression) {
-                env.errors.addError(AssignmentError(expression.lhs.location()))
-            }
             inferScopedExpression(expression.lhs, env)
+
+            when {
+                expression.lhs is LowerIDExpression -> {
+                    val binding = expression.lhs.binding
+                    if (binding != null && !binding.mutable) {
+                        env.errors.addError(
+                            IdentifierImmutableError(
+                                StringLocation(expression.lhs.v.value, binding.location),
+                                expression.lhs.location()
+                            )
+                        )
+                    }
+                }
+
+                expression.lhs is ModuleReferenceExpression ->
+                    if (expression.lhs.declaration?.mutable == false) {
+                        env.errors.addError(AssignmentError(expression.lhs.location()))
+                    }
+
+                expression.lhs !is ArrayElementProjectionExpression && expression.lhs !is ArrayRangeProjectionExpression ->
+                    env.errors.addError(AssignmentError(expression.lhs.location()))
+            }
+
             inferScopedExpression(expression.rhs, env)
 
             env.addConstraint(expression.lhs.type!!, expression.rhs.type!!)
@@ -337,13 +384,34 @@ private fun inferExpression(expression: Expression, env: Environment) {
             expression.type = typeUnit.withLocation(expression.location())
 
         is LowerIDExpression -> {
-            val scheme = env[expression.v.value]
+            val binding = env.binding(expression.v.value)
 
-            if (scheme == null) {
+            if (binding == null) {
                 env.errors.addError(UnknownIdentifierError(expression.v))
                 expression.type = typeError.withLocation(expression.location())
             } else {
-                expression.type = env.instantiateScheme(scheme).withLocation(expression.location())
+                expression.binding = binding
+                expression.type = env.instantiateScheme(binding.scheme).withLocation(expression.location())
+            }
+        }
+
+        is ModuleReferenceExpression -> {
+            val binding = env.getImport(expression.moduleID.value)
+
+            if (binding == null) {
+                env.errors.addError(UnknownIdentifierError(expression.moduleID))
+                expression.type = typeError.withLocation(expression.location())
+            } else {
+                val declaration = binding.second[expression.id.value]
+
+                if (declaration == null) {
+                    env.errors.addError(UnknownIdentifierError(expression.id))
+                    expression.type = typeError.withLocation(expression.location())
+                } else {
+                    expression.importID = binding.first
+                    expression.declaration = declaration
+                    expression.type = env.instantiateScheme(declaration.scheme)
+                }
             }
         }
 
@@ -378,8 +446,6 @@ private fun inferExpression(expression: Expression, env: Environment) {
 
             env.addConstraint(u1, u2)
         }
-
-        is UpperIDExpression -> TODO()
 
         is WhileExpression -> {
             inferScopedExpression(expression.guard, env)
@@ -439,13 +505,34 @@ private val binaryOperatorSignatures = mapOf(
     Pair(Op.Modulo, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), TVar(0))))),
     Pair(Op.Power, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TVar(0)), TVar(0))))),
 
-    Pair(Op.LessLess, Scheme(setOf(0), TArr(listOf(TCon("Array", listOf(TVar(0)))), TArr(listOf(TVar(0)), TCon("Array", listOf(TVar(0))))))),
-    Pair(Op.LessBang, Scheme(setOf(0), TArr(listOf(TCon("Array", listOf(TVar(0)))), TArr(listOf(TVar(0)), TCon("Array", listOf(TVar(0))))))),
+    Pair(
+        Op.LessLess,
+        Scheme(
+            setOf(0),
+            TArr(listOf(TCon("Array", listOf(TVar(0)))), TArr(listOf(TVar(0)), TCon("Array", listOf(TVar(0)))))
+        )
+    ),
+    Pair(
+        Op.LessBang,
+        Scheme(
+            setOf(0),
+            TArr(listOf(TCon("Array", listOf(TVar(0)))), TArr(listOf(TVar(0)), TCon("Array", listOf(TVar(0)))))
+        )
+    ),
     Pair(
         Op.GreaterGreater,
-        Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TCon("Array", listOf(TVar(0)))), TCon("Array", listOf(TVar(0))))))
+        Scheme(
+            setOf(0),
+            TArr(listOf(TVar(0)), TArr(listOf(TCon("Array", listOf(TVar(0)))), TCon("Array", listOf(TVar(0)))))
+        )
     ),
-    Pair(Op.GreaterBang, Scheme(setOf(0), TArr(listOf(TVar(0)), TArr(listOf(TCon("Array", listOf(TVar(0)))), TCon("Array", listOf(TVar(0)))))))
+    Pair(
+        Op.GreaterBang,
+        Scheme(
+            setOf(0),
+            TArr(listOf(TVar(0)), TArr(listOf(TCon("Array", listOf(TVar(0)))), TCon("Array", listOf(TVar(0)))))
+        )
+    )
 )
 
 private val unaryOperatorSignatures = mapOf(

@@ -59,6 +59,8 @@ Even-though `valueA` and `funA` are defined with a `!` qualifier, they are still
 (1, 6): Int * Int
 
 > valueA := 2
+2: Int
+
 > valueA
 2: Int
 
@@ -66,6 +68,8 @@ Even-though `valueA` and `funA` are defined with a `!` qualifier, they are still
 (2, 4): Int * Int
 
 > funA := fn(n) = n + 2
+fn: (Int) -> Int
+
 > funA(10)
 12: Int
 
@@ -95,3 +99,56 @@ Some further comments on this code:
 - The `LOAD_PACKAGE` instruction is to load the variable `funA` into the stack.  This is a reference to the closure value of `funA`.  The 2 indicates that this is the 3 variable in the package's frame with the first two being used for `pi` and `valueA`.
 
 More information about the bytecode format can be found in [Package Implementation](./package-implementation.md).
+
+## Import using a name
+
+This form of import is similar to the previous form, but all public members are imported under a distinct name.  The following script imports all public members of the example script under the name `E`.
+
+```bendu-repl
+> import "docs/example.bendu" as E
+
+> E.pi
+3.1415926: Float
+
+> E.identity
+fn: [a] (a) -> a
+
+> E.identity("hello")
+"hello": String
+
+> E.constant(10)("hello")
+10: Int
+
+> E.valueA
+1: Int
+
+> E.funA(10)
+11: Int
+```
+
+Using the same example as before, the following script shows that the mutation of `valueA` and `funA` is visible across all uses of the package.
+
+```bendu-repl
+> import "docs/example.bendu" as E
+
+> E.state(5)
+(1, 6): Int * Int
+
+> E.valueA := 2
+2: Int
+
+> E.valueA
+2: Int
+
+> E.state(3)
+(2, 4): Int * Int
+
+> E.funA := fn(n) = n + 2
+fn: (Int) -> Int
+
+> E.funA(10)
+12: Int
+
+> E.state(3)
+(2, 5): Int * Int
+```

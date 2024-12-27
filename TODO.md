@@ -70,11 +70,12 @@ The following is the list of big features that need to be implemented.
       - [x] Write out script into new binary format
       - [x] Have interpreter read in new binary format
       - [x] Parse import
+      - [ ] Record and use script dependencies
       - [ ] Add nested errors for import errors
       - [ ] Enhance binding locations to include package details
       - [x] Implement import
-      - [ ] Parse import as
-      - [ ] Implement import as
+      - [x] Parse import as
+      - [x] Implement import as
       - [ ] Parse import exposing
       - [ ] Implement import exposing
       - [ ] Implement public qualifiers

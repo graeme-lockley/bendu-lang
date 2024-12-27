@@ -3,6 +3,7 @@ package io.littlelanguages.bendu.typeinference
 import io.littlelanguages.bendu.Errors
 import io.littlelanguages.bendu.IdentifierRedefinitionError
 import io.littlelanguages.bendu.StringLocation
+import io.littlelanguages.bendu.cache.ScriptExport
 import io.littlelanguages.scanpiler.Location
 
 data class Environment(
@@ -13,6 +14,7 @@ data class Environment(
 ) {
     private val typeEnvs = mutableListOf(typeEnv)
     private val typeVariables = mutableListOf<MutableMap<String, Pair<Location, Type>>>(mutableMapOf())
+    private val imports = mutableMapOf<String, ImportBinding>()
 
     fun bind(name: String, location: Location, mutable: Boolean, scheme: Scheme) {
         val binding = typeEnv[name]
@@ -49,9 +51,6 @@ data class Environment(
         typeVariables.removeAt(typeVariables.size - 1)
     }
 
-    operator fun get(name: String): Scheme? =
-        binding(name)?.scheme
-
     fun binding(name: String): Binding? = typeEnv[name]
 
     fun parameter(name: String): Type? {
@@ -87,4 +86,16 @@ data class Environment(
 
     fun generalise(type: Type): Scheme =
         typeEnv.generalise(type)
+
+    fun hasImport(value: String): Boolean =
+        imports.containsKey(value)
+
+    fun addImport(name: String, packageID: Int, declarations: List<ScriptExport>) {
+        imports[name] = Pair(packageID, declarations.associateBy { it.name })
+    }
+
+    fun getImport(value: String): ImportBinding? =
+        imports[value]
 }
+
+typealias ImportBinding = Pair<Int, Map<String, ScriptExport>>

@@ -3,3 +3,6 @@ let valueA = 10
 let funA(a, b): Int = a + b
 let identity(a) = a
 let constant(a) = fn(b) a
+
+let valueB! = 20
+let funB!(a, b): Int = a - b

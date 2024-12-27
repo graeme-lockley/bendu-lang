@@ -246,15 +246,26 @@ class InferenceTest {
         assertInferExpressionEquals("let a! = () ; a := (); a", "Unit")
 
         assertInferExpressionEquals("let a = [1, 2, 3]; a!1 := 3; a", "Array[Int]")
+
+        assertInferExpressionEquals("import \"test/test.bendu\" as T; T.valueB := 30; T.valueB", "Int")
     }
 
     @Test
-    fun `infer import`() {
+    fun `infer import all`() {
         assertInferExpressionEquals("import \"test/test.bendu\" ; valueA", "Int")
         assertInferExpressionEquals("import \"test/test.bendu\" ; funA(1, 2)", "Int")
         assertInferExpressionEquals("import \"test/test.bendu\" ; identity(1)", "Int")
         assertInferExpressionEquals("import \"test/test.bendu\" ; identity", "[a] (a) -> a")
         assertInferExpressionEquals("import \"test/test.bendu\" ; constant", "[a, b] (a) -> (b) -> a")
+    }
+
+    @Test
+    fun `infer import id`() {
+        assertInferExpressionEquals("import \"test/test.bendu\" as M; M.valueA", "Int")
+        assertInferExpressionEquals("import \"test/test.bendu\" as M ; M.funA(1, 2)", "Int")
+        assertInferExpressionEquals("import \"test/test.bendu\" as M ; M.identity(1)", "Int")
+        assertInferExpressionEquals("import \"test/test.bendu\" as M ; M.identity", "[a] (a) -> a")
+        assertInferExpressionEquals("import \"test/test.bendu\" as M ; M.constant", "[a, b] (a) -> (b) -> a")
     }
 }
 

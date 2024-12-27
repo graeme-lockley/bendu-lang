@@ -1,12 +1,26 @@
 package io.littlelanguages.bendu
 
+import io.littlelanguages.bendu.cache.ScriptExport
 import io.littlelanguages.bendu.typeinference.*
 import io.littlelanguages.scanpiler.Location
 import io.littlelanguages.scanpiler.LocationCoordinate
 
 class Script(val imports: List<Import>, val es: List<Expression>)
 
-data class Import(val path: StringLocation, val location: Location, var entry: CacheEntry? = null)
+sealed class Import(open val path: StringLocation, open val location: Location, open var entry: CacheEntry? = null)
+
+data class ImportAll(
+    override val path: StringLocation,
+    override val location: Location,
+    override var entry: CacheEntry? = null
+) : Import(path, location, entry)
+
+data class ImportID(
+    override val path: StringLocation,
+    override val location: Location,
+    val name: StringLocation,
+    override var entry: CacheEntry? = null
+) : Import(path, location, entry)
 
 sealed class Expression(open var type: Type? = null) {
     open fun apply(s: Subst, errors: Errors) {
@@ -187,7 +201,11 @@ data class LetFunctionStatementTerm(
     }
 }
 
-data class LiteralArrayExpression(val es: List<Pair<Expression, Boolean>>, val location: Location, override var type: Type? = null) :
+data class LiteralArrayExpression(
+    val es: List<Pair<Expression, Boolean>>,
+    val location: Location,
+    override var type: Type? = null
+) :
     Expression(type) {
     override fun location(): Location =
         location
@@ -252,9 +270,21 @@ data class LiteralUnitExpression(val location: Location, override var type: Type
         location
 }
 
-data class LowerIDExpression(val v: StringLocation, override var type: Type? = null) : Expression(type) {
+data class LowerIDExpression(val v: StringLocation, override var type: Type? = null, var binding: Binding? = null) :
+    Expression(type) {
     override fun location(): Location =
         v.location
+}
+
+data class ModuleReferenceExpression(
+    val moduleID: StringLocation,
+    val id: StringLocation,
+    override var type: Type? = null,
+    var importID: Int? = null,
+    var declaration: ScriptExport? = null
+) : Expression(type) {
+    override fun location(): Location =
+        moduleID.location + id.location
 }
 
 data class PrintStatement(val es: List<Expression>, private val location: Location, override var type: Type? = null) :
@@ -300,11 +330,6 @@ data class UnaryExpression(
 
     override fun location(): Location =
         op.location + e.location()
-}
-
-data class UpperIDExpression(val v: StringLocation, override var type: Type? = null) : Expression(type) {
-    override fun location(): Location =
-        v.location
 }
 
 data class WhileExpression(val guard: Expression, val body: Expression, override var type: Type? = null) :

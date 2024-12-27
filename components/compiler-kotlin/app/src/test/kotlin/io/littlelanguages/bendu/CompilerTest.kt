@@ -779,7 +779,7 @@ class CompilerTest {
     }
 
     @Test
-    fun `import`() {
+    fun `import all`() {
         assertCompiledBC(
             byteArrayOf(
                 Instructions.LOAD_PACKAGE.op,
@@ -791,16 +791,141 @@ class CompilerTest {
 
         assertCompiledBC(
             byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 1, // valueB
+            ),
+            "import \"test/test.bendu\" ; valueB"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 1, // 1
                 Instructions.PUSH_I32_LITERAL.op,
                 0, 0, 0, 2, // 2
                 Instructions.CALL_PACKAGE.op,
                 -1, -1, -1, -1, // -1
-                0, 0, 0, 19, // valueA
+                0, 0, 0, 19, // funA
                 0, 0, 0, 2, // 2
             ),
             "import \"test/test.bendu\" ; funA(1, 2)"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 2, // funB
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.CALL_CLOSURE.op,
+                0, 0, 0, 2, // 2
+            ),
+            "import \"test/test.bendu\"; funB(1, 2)"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_PACKAGE_CLOSURE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 19, // funA
+            ),
+            "import \"test/test.bendu\" ; funA"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 2, // funB
+            ),
+            "import \"test/test.bendu\"; funB"
+        )
+    }
+
+    @Test
+    fun `import ID`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 0, // valueA
+            ),
+            "import \"test/test.bendu\" as T ; T.valueA"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 1, // valueB
+            ),
+            "import \"test/test.bendu\" as T ; T.valueB"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.CALL_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 19, // funA
+                0, 0, 0, 2, // 2
+            ),
+            "import \"test/test.bendu\" as T; T.funA(1, 2)"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 2, // funB
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.CALL_CLOSURE.op,
+                0, 0, 0, 2, // 2
+            ),
+            "import \"test/test.bendu\" as T; T.funB(1, 2)"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_PACKAGE_CLOSURE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 19, // funA
+            ),
+            "import \"test/test.bendu\" as T; T.funA"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 2, // funB
+            ),
+            "import \"test/test.bendu\" as T; T.funB"
+        )
+    }
+
+    @Test
+    fun `assign import ID declaration`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 30, // valueA
+                Instructions.DUP.op, // at a top-level we keep the result
+                Instructions.STORE_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 1, // valueB
+            ),
+            "import \"test/test.bendu\" as T; T.valueB := 30"
         )
     }
 }

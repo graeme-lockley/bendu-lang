@@ -5,7 +5,7 @@ Program
     ;
 
 ImportStatement
-    : "import" LiteralString
+    : "import" LiteralString ["as" UpperID]
     ;
 
 Expression
@@ -85,13 +85,12 @@ QualifiedExpression
 QualifiedExpressionSuffix
     : "(" [Expression {"," Expression}] ")"
     | "!" (QualifiedExpression [":" [QualifiedExpression]] | ":" [QualifiedExpression])
-    | "." LowerID
     ;
 
 Factor
     : "(" [Expression {"," Expression}] ")"
     | LowerID
-    | UpperID
+    | UpperID "." LowerID
     | LiteralChar
     | LiteralFloat
     | LiteralInt

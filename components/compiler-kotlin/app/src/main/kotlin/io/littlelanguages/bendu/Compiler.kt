@@ -15,7 +15,12 @@ fun compile(script: Script, errors: Errors): CompiledScript {
     val compiler = Compiler(errors)
     compiler.compile(script)
 
-    return CompiledScript(listOf(), ScriptExports(compiler.exports), compiler.imports, compiler.byteBuilder.toByteArray())
+    return CompiledScript(
+        listOf(),
+        ScriptExports(compiler.exports),
+        compiler.imports,
+        compiler.byteBuilder.toByteArray()
+    )
 }
 
 private class Compiler(val errors: Errors) {
@@ -114,11 +119,11 @@ private class Compiler(val errors: Errors) {
             is LiteralTupleExpression -> compileLiteralTupleExpression(expression, keepResult)
             is LiteralUnitExpression -> compileLiteralUnitExpression(expression, keepResult)
             is LowerIDExpression -> compileLowerIDExpression(expression, keepResult)
+            is ModuleReferenceExpression -> compileModuleReferenceExpression(expression, keepResult)
             is PrintStatement -> compilePrintExpression(expression, keepResult)
             is PrintlnStatement -> compilePrintlnExpression(expression, keepResult)
             is TypedExpression -> compileExpression(expression.e, keepResult)
             is UnaryExpression -> compileUnaryExpression(expression, keepResult)
-            is UpperIDExpression -> TODO()
             is WhileExpression -> compileWhileExpression(expression, keepResult)
         }
     }
@@ -168,6 +173,18 @@ private class Compiler(val errors: Errors) {
 
                 return
             }
+        } else if (expression.f is ModuleReferenceExpression && expression.f.declaration?.mutable != true) {
+            val b = expression.f.declaration!! as FunctionExport
+
+            expression.arguments.forEach { e ->
+                compileExpression(e)
+            }
+            byteBuilder.appendInstruction(Instructions.CALL_PACKAGE)
+            byteBuilder.appendInt(-(expression.f.importID ?: 0) - 1)
+            byteBuilder.appendInt(b.codeOffset)
+            byteBuilder.appendInt(expression.arguments.size)
+
+            return
         }
 
         compileExpression(expression.f)
@@ -287,11 +304,23 @@ private class Compiler(val errors: Errors) {
                 expression.lhs.start != null && expression.lhs.end != null -> byteBuilder.appendInstruction(Instructions.STORE_ARRAY_RANGE)
                 expression.lhs.end != null -> byteBuilder.appendInstruction(Instructions.STORE_ARRAY_RANGE_TO)
                 else -> byteBuilder.appendInstruction(Instructions.STORE_ARRAY_RANGE_FROM)
-
             }
 
             if (!keepResult) {
                 byteBuilder.appendInstruction(Instructions.DISCARD)
+            }
+        } else if (expression.lhs is ModuleReferenceExpression) {
+            compileExpression(expression.rhs)
+            if (keepResult) {
+                byteBuilder.appendInstruction(Instructions.DUP)
+            }
+
+            byteBuilder.appendInstruction(Instructions.STORE_PACKAGE)
+            byteBuilder.appendInt(-(expression.lhs.importID ?: 0) - 1)
+            when (val declaration = expression.lhs.declaration) {
+                is FunctionExport -> byteBuilder.appendInt(declaration.frameOffset ?: 0)
+                is ValueExport -> byteBuilder.appendInt(declaration.frameOffset)
+                null -> {}
             }
         } else {
             errors.addError(AssignmentError(expression.lhs.location()))
@@ -602,9 +631,8 @@ private class Compiler(val errors: Errors) {
         }
     }
 
-
     private fun compileFunctionTupleParameters(parameters: List<FunctionParameter>) {
-        parameters.forEachIndexed() { index, parameter ->
+        parameters.forEachIndexed { index, parameter ->
             if (index < parameters.size - 1) {
                 byteBuilder.appendInstruction(Instructions.DUP)
             }
@@ -795,6 +823,32 @@ private class Compiler(val errors: Errors) {
                         byteBuilder.appendInt(depth)
                         byteBuilder.appendInt(binding.frameOffset)
                     }
+                }
+            }
+        }
+    }
+
+    private fun compileModuleReferenceExpression(expression: ModuleReferenceExpression, keepResult: Boolean) {
+        if (keepResult) {
+            when (val declaration = expression.declaration) {
+                null -> {}
+
+                is FunctionExport -> {
+                    if (declaration.mutable) {
+                        byteBuilder.appendInstruction(Instructions.LOAD_PACKAGE)
+                        byteBuilder.appendInt(-(expression.importID ?: 0) - 1)
+                        byteBuilder.appendInt(declaration.frameOffset ?: 0)
+                    } else {
+                        byteBuilder.appendInstruction(Instructions.PUSH_PACKAGE_CLOSURE)
+                        byteBuilder.appendInt(-(expression.importID ?: 0) - 1)
+                        byteBuilder.appendInt(declaration.codeOffset)
+                    }
+                }
+
+                is ValueExport -> {
+                    byteBuilder.appendInstruction(Instructions.LOAD_PACKAGE)
+                    byteBuilder.appendInt(-(expression.importID ?: 0) - 1)
+                    byteBuilder.appendInt(declaration.frameOffset)
                 }
             }
         }

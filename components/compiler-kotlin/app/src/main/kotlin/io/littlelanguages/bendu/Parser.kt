@@ -9,8 +9,15 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     override fun visitProgram(a1: List<Tuple2<Import, Token?>>, a2: List<Tuple2<Expression, Token?>>): Script =
         Script(a1.map { it.a }, a2.map { it.a })
 
-    override fun visitImportStatement(a1: Token, a2: Token): Import =
-        Import(StringLocation(parseLiteralString(a2.lexeme), a2.location), a1.location + a2.location)
+    override fun visitImportStatement(a1: Token, a2: Token, a3: Tuple2<Token, Token>?): Import =
+        if (a3 == null)
+            ImportAll(StringLocation(parseLiteralString(a2.lexeme), a2.location), a1.location + a2.location)
+        else
+            ImportID(
+                StringLocation(parseLiteralString(a2.lexeme), a2.location),
+                a1.location + a2.location,
+                StringLocation(a3.b.lexeme, a3.b.location)
+            )
 
     override fun visitExpression1(
         a1: Token,
@@ -234,16 +241,11 @@ private class ParserVisitor(val errors: Errors = Errors()) :
             }
         }
 
-    override fun visitQualifiedExpressionSuffix3(a1: Token, a2: Token): (Expression) -> Expression {
-        TODO("Not yet implemented")
-    }
-
     override fun visitFactor1(
         a1: Token,
         a2: Tuple2<Expression, List<Tuple2<Token, Expression>>>?,
         a3: Token
     ): Expression =
-
         when {
             a2 == null -> LiteralUnitExpression(a1.location + a3.location)
             a2.b.isEmpty() -> a2.a
@@ -253,8 +255,8 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     override fun visitFactor2(a: Token): Expression =
         LowerIDExpression(StringLocation(a.lexeme, a.location))
 
-    override fun visitFactor3(a: Token): Expression =
-        UpperIDExpression(StringLocation(a.lexeme, a.location))
+    override fun visitFactor3(a1: Token, a2: Token, a3: Token): Expression =
+        ModuleReferenceExpression(StringLocation(a1.lexeme, a1.location), StringLocation(a3.lexeme, a3.location))
 
     override fun visitFactor4(a: Token): Expression =
         when {
@@ -374,7 +376,12 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         when (a4) {
             null -> {
                 when {
-                    a2 == null -> UpperIDType(StringLocation("Unit", a1.location), emptyList(), a1.location + a3.location)
+                    a2 == null -> UpperIDType(
+                        StringLocation("Unit", a1.location),
+                        emptyList(),
+                        a1.location + a3.location
+                    )
+
                     a2.b.isEmpty() -> a2.a
                     else -> TODO("Syntax Error")
                 }
