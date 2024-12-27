@@ -83,6 +83,16 @@ data class IdentifierImmutableError(val id: StringLocation, val location: Locati
     }
 }
 
+data class IdentifierNotExported(val id: StringLocation, val exportFileName: String) : BenduError() {
+    override fun printError(colours: Boolean) {
+        printMessage(
+            "Identifier Not Exported",
+            "${id.value} at ${locationToString(id.location)} is not exported from $exportFileName",
+            colours
+        )
+    }
+}
+
 data class IdentifierRedefinitionError(val id: StringLocation, val otherLocation: Location) : BenduError() {
     override fun printError(colours: Boolean) {
         printMessage(

@@ -267,6 +267,30 @@ class InferenceTest {
         assertInferExpressionEquals("import \"test/test.bendu\" as M ; M.identity", "[a] (a) -> a")
         assertInferExpressionEquals("import \"test/test.bendu\" as M ; M.constant", "[a, b] (a) -> (b) -> a")
     }
+
+    @Test
+    fun `infer import exposing`() {
+        assertInferExpressionEquals("import \"test/test.bendu\" exposing (valueA); valueA", "Int")
+        assertInferExpressionEquals("import \"test/test.bendu\" exposing(funA) ; funA(1, 2)", "Int")
+        assertInferExpressionEquals("import \"test/test.bendu\" exposing (identity) ; identity(1)", "Int")
+        assertInferExpressionEquals("import \"test/test.bendu\" exposing (identity) ; identity", "[a] (a) -> a")
+        assertInferExpressionEquals(
+            "import \"test/test.bendu\" exposing (constant) ; constant",
+            "[a, b] (a) -> (b) -> a"
+        )
+    }
+
+    @Test
+    fun `infer import exposing alias`() {
+        assertInferExpressionEquals("import \"test/test.bendu\" exposing (valueA as fff); fff", "Int")
+        assertInferExpressionEquals("import \"test/test.bendu\" exposing(funA as fff) ; fff(1, 2)", "Int")
+        assertInferExpressionEquals("import \"test/test.bendu\" exposing (identity as fff) ; fff(1)", "Int")
+        assertInferExpressionEquals("import \"test/test.bendu\" exposing (identity as fff) ; fff", "[a] (a) -> a")
+        assertInferExpressionEquals(
+            "import \"test/test.bendu\" exposing (constant as fff) ; fff",
+            "[a, b] (a) -> (b) -> a"
+        )
+    }
 }
 
 

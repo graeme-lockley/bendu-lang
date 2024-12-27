@@ -152,3 +152,62 @@ fn: (Int) -> Int
 > E.state(3)
 (2, 5): Int * Int
 ```
+
+## Import specific members
+
+This form of import is the most restrictive.  Only the specified members are imported into the script.  The following script imports only the `pi` and `identity` members of the example script.
+
+```bendu-repl
+> import "docs/example.bendu" exposing (pi, identity)
+
+> pi
+3.1415926: Float
+
+> identity
+fn: [a] (a) -> a
+
+> identity("hello")
+"hello": String
+```
+
+It is possible to use an alias for each of the imported members.  This is helpful to avoid name clashes.
+
+```bendu-repl
+> import "docs/example.bendu" exposing (pi as pieConstant, identity as id)
+
+> pieConstant
+3.1415926: Float
+
+> id
+fn: [a] (a) -> a
+
+> id("hello")
+"hello": String
+```
+
+Finally, it is possible to import certain members and, at the same time, import the entire package under a distinct name.
+
+```bendu-repl
+> import "docs/example.bendu" as E exposing (pi, identity as id)
+
+> E.pi
+3.1415926: Float
+
+> pi
+3.1415926: Float
+
+> id
+fn: [a] (a) -> a
+
+> id("hello")
+"hello": String
+
+> E.identity
+fn: [a] (a) -> a
+
+> E.identity("hello")
+"hello": String
+
+> E.constant(10)("hello")
+10: Int
+```

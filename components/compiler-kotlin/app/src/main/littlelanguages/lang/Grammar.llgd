@@ -5,7 +5,11 @@ Program
     ;
 
 ImportStatement
-    : "import" LiteralString ["as" UpperID]
+    : "import" LiteralString ["as" UpperID] ["exposing" "(" ImportDeclaration {"," ImportDeclaration} ")"]
+    ;
+
+ImportDeclaration
+    : LowerID ["as" LowerID]
     ;
 
 Expression

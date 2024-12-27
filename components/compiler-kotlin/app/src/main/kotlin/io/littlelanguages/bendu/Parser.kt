@@ -5,19 +5,29 @@ import io.littlelanguages.data.*
 import java.io.StringReader
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<Script, Import, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, (Expression) -> Expression, Expression, List<FunctionParameter>, FunctionParameter, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm> {
+    Visitor<Script, Import, ImportDeclaration, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, (Expression) -> Expression, Expression, List<FunctionParameter>, FunctionParameter, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm> {
     override fun visitProgram(a1: List<Tuple2<Import, Token?>>, a2: List<Tuple2<Expression, Token?>>): Script =
         Script(a1.map { it.a }, a2.map { it.a })
 
-    override fun visitImportStatement(a1: Token, a2: Token, a3: Tuple2<Token, Token>?): Import =
-        if (a3 == null)
+    override fun visitImportStatement(
+        a1: Token,
+        a2: Token,
+        a3: Tuple2<Token, Token>?,
+        a4: Tuple5<Token, Token, ImportDeclaration, List<Tuple2<Token, ImportDeclaration>>, Token>?
+    ): Import =
+        if (a3 == null && a4 == null)
             ImportAll(StringLocation(parseLiteralString(a2.lexeme), a2.location), a1.location + a2.location)
         else
-            ImportID(
-                StringLocation(parseLiteralString(a2.lexeme), a2.location),
-                a1.location + a2.location,
-                StringLocation(a3.b.lexeme, a3.b.location)
+            ImportList(
+                StringLocation(parseLiteralString(a2.lexeme), a2.location), a1.location + a2.location,
+                a3?.let { StringLocation(it.b.lexeme, it.b.location) },
+                if (a4 == null) emptyList() else listOf(a4.c) + a4.d.map { it.b }
             )
+
+    override fun visitImportDeclaration(a1: Token, a2: Tuple2<Token, Token>?): ImportDeclaration =
+        ImportDeclaration(
+            StringLocation(a1.lexeme, a1.location),
+            a2?.let { StringLocation(it.b.lexeme, it.b.location) })
 
     override fun visitExpression1(
         a1: Token,

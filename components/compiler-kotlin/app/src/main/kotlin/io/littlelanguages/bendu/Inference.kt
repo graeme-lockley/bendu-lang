@@ -55,43 +55,33 @@ private fun inferImport(entry: CacheEntry, index: Int, import: Import, env: Envi
             }
         }
 
-        is ImportID -> {
-            if (env.hasImport(import.name.value)) {
-                env.errors.addError(IdentifierRedefinitionError(import.name, import.location))
+        is ImportList -> {
+            if (import.name != null) {
+                if (env.hasImport(import.name.value)) {
+                    env.errors.addError(IdentifierRedefinitionError(import.name, import.location))
+                }
+
+                env.addImport(import.name.value, index, importEntry.declarations)
             }
 
-            env.addImport(import.name.value, index, importEntry.declarations)
-        }
+            import.ids.forEach { name ->
+                val declaration = importEntry[name.id.value]
 
-//        is ImportList -> {
-//            import.names.forEach { name ->
-//                val declaration = importEntry.declarations.find { it.name == name }
-//
-//                if (declaration != null) {
-//                    when (declaration) {
-//                        is ValueExport ->
-//                            env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
-//
-//                        is FunctionExport ->
-//                            env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
-//                    }
-//                } else {
-//                    env.errors.addError(UnknownIdentifierError(StringLocation(name, import.location)))
-//                }
-//            }
-//        }
+                if (declaration != null) {
+                    val declarationAlias = name.alias?.value ?: name.id.value
+                    when (declaration) {
+                        is ValueExport ->
+                            env.bind(declarationAlias, import.location, declaration.mutable, declaration.scheme)
+
+                        is FunctionExport ->
+                            env.bind(declarationAlias, import.location, declaration.mutable, declaration.scheme)
+                    }
+                } else {
+                    env.errors.addError(IdentifierNotExported(name.id, import.path.value))
+                }
+            }
+        }
     }
-//    val declarations = importEntry.declarations
-//
-//    declarations.forEach { declaration ->
-//        when (declaration) {
-//            is ValueExport ->
-//                env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
-//
-//            is FunctionExport ->
-//                env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
-//        }
-//    }
 }
 
 private fun inferStatements(statements: List<Expression>, env: Environment) =

@@ -54,6 +54,9 @@ sealed class CacheEntry(open val srcDir: File, open val dir: File, open val name
     abstract fun script(): String
     abstract fun isUptoDate(): Boolean
 
+    operator fun get(name: String): ScriptExport? =
+        declarations.find { it.name == name }
+
     fun relativeEntry(name: String): CacheEntry {
         val nameFile = File(name)
         val srcDir = File("$srcDir/$name").canonicalFile.parentFile

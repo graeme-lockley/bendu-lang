@@ -34,16 +34,42 @@ private class Compiler(val errors: Errors) {
             script.imports.forEachIndexed { index, import ->
                 imports.add(import.entry!!.byteCodeFileName())
 
-                import.entry!!.declarations.forEach {
-                    when (it) {
-                        is FunctionExport ->
-                            symbolTable.bindFunctionExport(it.name, -index - 1, it.codeOffset, it.frameOffset)
+                when (import) {
+                    is ImportAll -> {
+                        import.entry!!.declarations.forEach {
+                            when (it) {
+                                is FunctionExport ->
+                                    symbolTable.bindFunctionExport(it.name, -index - 1, it.codeOffset, it.frameOffset)
 
-                        is ValueExport ->
-                            symbolTable.bindIdentifierExport(it.name, -index - 1, it.frameOffset)
+                                is ValueExport ->
+                                    symbolTable.bindIdentifierExport(it.name, -index - 1, it.frameOffset)
+                            }
+                        }
+                    }
+
+                    is ImportList -> {
+                        import.ids.forEach { id ->
+                            when (val entry = import.entry!![id.id.value]) {
+                                is FunctionExport ->
+                                    symbolTable.bindFunctionExport(
+                                        id.alias?.value ?: entry.name,
+                                        -index - 1,
+                                        entry.codeOffset,
+                                        entry.frameOffset
+                                    )
+
+                                is ValueExport ->
+                                    symbolTable.bindIdentifierExport(
+                                        id.alias?.value ?: entry.name,
+                                        -index - 1,
+                                        entry.frameOffset
+                                    )
+
+                                null -> TODO()
+                            }
+                        }
                     }
                 }
-
             }
             compileStatements(script.es, true)
 

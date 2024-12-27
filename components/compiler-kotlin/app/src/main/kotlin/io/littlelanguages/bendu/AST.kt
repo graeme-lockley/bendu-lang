@@ -15,12 +15,18 @@ data class ImportAll(
     override var entry: CacheEntry? = null
 ) : Import(path, location, entry)
 
-data class ImportID(
+data class ImportList(
     override val path: StringLocation,
     override val location: Location,
-    val name: StringLocation,
+    val name: StringLocation?,
+    val ids: List<ImportDeclaration>,
     override var entry: CacheEntry? = null
 ) : Import(path, location, entry)
+
+data class ImportDeclaration(
+    val id: StringLocation,
+    val alias: StringLocation? = null
+)
 
 sealed class Expression(open var type: Type? = null) {
     open fun apply(s: Subst, errors: Errors) {

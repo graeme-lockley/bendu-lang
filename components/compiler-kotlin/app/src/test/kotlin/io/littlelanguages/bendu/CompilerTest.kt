@@ -915,6 +915,142 @@ class CompilerTest {
     }
 
     @Test
+    fun `import exposing`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 0, // valueA
+            ),
+            "import \"test/test.bendu\" exposing (valueA); valueA"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 1, // valueB
+            ),
+            "import \"test/test.bendu\" exposing (valueB); valueB"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.CALL_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 19, // funA
+                0, 0, 0, 2, // 2
+            ),
+            "import \"test/test.bendu\" exposing (funA); funA(1, 2)"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 2, // funB
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.CALL_CLOSURE.op,
+                0, 0, 0, 2, // 2
+            ),
+            "import \"test/test.bendu\" exposing (funB); funB(1, 2)"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_PACKAGE_CLOSURE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 19, // funA
+            ),
+            "import \"test/test.bendu\" exposing (funA); funA"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 2, // funB
+            ),
+            "import \"test/test.bendu\" exposing (funB); funB"
+        )
+    }
+
+    @Test
+    fun `import exposing alias`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 0, // valueA
+            ),
+            "import \"test/test.bendu\" exposing (valueA as fff); fff"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 1, // valueB
+            ),
+            "import \"test/test.bendu\" exposing (valueB as fff); fff"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.CALL_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 19, // funA
+                0, 0, 0, 2, // 2
+            ),
+            "import \"test/test.bendu\" exposing (funA as fff); fff(1, 2)"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 2, // funB
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1, // 1
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2, // 2
+                Instructions.CALL_CLOSURE.op,
+                0, 0, 0, 2, // 2
+            ),
+            "import \"test/test.bendu\" exposing (funB as fff); fff(1, 2)"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_PACKAGE_CLOSURE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 19, // funA
+            ),
+            "import \"test/test.bendu\" exposing (funA as fff); fff"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.LOAD_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 2, // funB
+            ),
+            "import \"test/test.bendu\" exposing (funB as fff); fff"
+        )
+    }
+
+    @Test
     fun `assign import ID declaration`() {
         assertCompiledBC(
             byteArrayOf(
@@ -946,7 +1082,7 @@ private fun successfulCompile(input: String): ByteArray {
 
 private fun unsuccessfulCompile(input: String) {
     val errors = Errors()
-    val statements = infer(openCache().useExpression(File("test.bc"),input), errors = errors)
+    val statements = infer(openCache().useExpression(File("test.bc"), input), errors = errors)
     compile(statements, errors)
 
     assertTrue(errors.hasErrors())
