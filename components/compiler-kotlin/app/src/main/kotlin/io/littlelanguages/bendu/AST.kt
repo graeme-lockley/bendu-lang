@@ -169,6 +169,7 @@ data class LetStatement(val terms: List<LetStatementTerm>, override var type: Ty
 sealed class LetStatementTerm(
     open val id: StringLocation,
     open val mutable: Boolean,
+    open val exported: Boolean,
     open val typeVariables: List<StringLocation>,
     open val typeQualifier: TypeTerm?,
     open val location: Location,
@@ -180,11 +181,12 @@ sealed class LetStatementTerm(
 data class LetValueStatementTerm(
     override val id: StringLocation,
     override val mutable: Boolean,
+    override val exported: Boolean,
     override val typeVariables: List<StringLocation>,
     override val typeQualifier: TypeTerm?,
     val e: Expression,
     override val location: Location, override var type: Type? = null
-) : LetStatementTerm(id, mutable, typeVariables, typeQualifier, location, type) {
+) : LetStatementTerm(id, mutable, exported, typeVariables, typeQualifier, location, type) {
     override fun apply(s: Subst, errors: Errors) {
         type = type!!.apply(s)
         e.apply(s, errors)
@@ -194,13 +196,14 @@ data class LetValueStatementTerm(
 data class LetFunctionStatementTerm(
     override val id: StringLocation,
     override val mutable: Boolean,
+    override val exported: Boolean,
     override val typeVariables: List<StringLocation>,
     val parameters: List<FunctionParameter>,
     override val typeQualifier: TypeTerm?,
     val body: Expression,
     override val location: Location,
     override var type: Type? = null
-) : LetStatementTerm(id, mutable, typeVariables, typeQualifier, location, type) {
+) : LetStatementTerm(id, mutable, exported, typeVariables, typeQualifier, location, type) {
     override fun apply(s: Subst, errors: Errors) {
         type = type!!.apply(s)
         body.apply(s, errors)

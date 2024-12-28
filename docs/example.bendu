@@ -1,11 +1,13 @@
-let pi = 3.1415926
+let pi* = 3.1415926
 
-let identity(x) = x
+let identity*(x) = x
 
-let constant(x) = fn(y) = x
+let constant*(x) = fn(y) = x
 
-let valueA! = 1
+let valueA!* = 1
 
-let funA!(x) = x + 1
+let funA!*(x) = x + 1
 
-let state(n: Int) = (valueA, funA(n))
+let state*(n: Int) = (valueA, funA(n))
+
+let doubleState(n: Int) = state(n * 2)

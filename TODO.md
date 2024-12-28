@@ -76,9 +76,9 @@ The following is the list of big features that need to be implemented.
       - [x] Implement import
       - [x] Parse import as
       - [x] Implement import as
-      - [ ] Parse import exposing
-      - [ ] Implement import exposing
-      - [ ] Implement public qualifiers
+      - [x] Parse import exposing
+      - [x] Implement import exposing
+      - [x] Implement public qualifiers on let declarations
       
 ## Sequence Blocks
 

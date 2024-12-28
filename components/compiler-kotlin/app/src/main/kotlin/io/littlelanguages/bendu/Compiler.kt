@@ -81,25 +81,31 @@ private class Compiler(val errors: Errors) {
                         e.terms.forEach { t ->
                             if (t is LetFunctionStatementTerm) {
                                 val functionBinding = symbolTable.find(t.id.value) as FunctionBinding
-                                exports.add(
-                                    FunctionExport(
-                                        t.id.value,
-                                        t.mutable,
-                                        typeEnv.generalise(t.type!!),
-                                        functionBinding.codeOffset,
-                                        functionBinding.frameOffset
+
+                                if (t.exported) {
+                                    exports.add(
+                                        FunctionExport(
+                                            t.id.value,
+                                            t.mutable,
+                                            typeEnv.generalise(t.type!!),
+                                            functionBinding.codeOffset,
+                                            functionBinding.frameOffset
+                                        )
                                     )
-                                )
+                                }
                             } else if (t is LetValueStatementTerm) {
                                 val identifierBinding = symbolTable.find(t.id.value) as IdentifierBinding
-                                exports.add(
-                                    ValueExport(
-                                        t.id.value,
-                                        t.mutable,
-                                        typeEnv.generalise(t.type!!),
-                                        identifierBinding.frameOffset
+
+                                if (t.exported) {
+                                    exports.add(
+                                        ValueExport(
+                                            t.id.value,
+                                            t.mutable,
+                                            typeEnv.generalise(t.type!!),
+                                            identifierBinding.frameOffset
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
                     }

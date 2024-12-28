@@ -23,7 +23,7 @@ Expression
     ;
 
 LetDeclaration
-    : LowerID ["!"] [TypeParameters] [FunctionParameters] [TypeQualifier] "=" Expression
+    : LowerID ["!"] ["*"] [TypeParameters] [FunctionParameters] [TypeQualifier] "=" Expression
     ;
 
 OrExpression

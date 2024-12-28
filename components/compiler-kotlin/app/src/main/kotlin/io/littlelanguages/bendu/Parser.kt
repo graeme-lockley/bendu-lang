@@ -103,30 +103,33 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     override fun visitLetDeclaration(
         a1: Token,
         a2: Token?,
-        a3: List<StringLocation>?,
-        a4: List<FunctionParameter>?,
-        a5: TypeTerm?,
-        a6: Token,
-        a7: Expression
+        a3: Token?,
+        a4: List<StringLocation>?,
+        a5: List<FunctionParameter>?,
+        a6: TypeTerm?,
+        a7: Token,
+        a8: Expression
     ): LetStatementTerm =
-        if (a4 == null)
+        if (a5 == null)
             LetValueStatementTerm(
                 StringLocation(a1.lexeme, a1.location),
                 a2 != null,
-                a3 ?: emptyList(),
-                a5,
-                a7,
-                a1.location + a7.location()
+                a3 != null,
+                a4 ?: emptyList(),
+                a6,
+                a8,
+                a1.location + a8.location()
             )
         else
             LetFunctionStatementTerm(
                 StringLocation(a1.lexeme, a1.location),
                 a2 != null,
-                a3 ?: emptyList(),
-                a4,
+                a3 != null,
+                a4 ?: emptyList(),
                 a5,
-                a7,
-                a1.location + a7.location()
+                a6,
+                a8,
+                a1.location + a8.location()
             )
 
     override fun visitOrExpression(a: Expression): Expression =

@@ -11,18 +11,22 @@ Each of these scenarios is different in how they are implemented both in the com
 To assist with the explanation, the following package is used:
 
 ```bendu
-let pi = 3.1415926
+let pi* = 3.1415926
 
-let identity(x) = x
+let identity*(x) = x
 
-let constant(x) = fn(y) = x
+let constant*(x) = fn(y) = x
 
-let valueA! = 1
+let valueA!* = 1
 
-let funA!(x) = x + 1
+let funA!*(x) = x + 1
 
-let state(n: Int) = (valueA, funA(n))
+let state*(n: Int) = (valueA, funA(n))
+
+let doubleState(n: Int) = state(n * 2)
 ```
+
+You will note that all of the declarations have a `*` following their name.  This qualifier is used to indicate that the identifier is public and can be imported into other scripts.
 
 ## Import all public members into a script
 
@@ -210,4 +214,27 @@ fn: [a] (a) -> a
 
 > E.constant(10)("hello")
 10: Int
+```
+
+To close out this section, note that an attempt to access a value not exported will result in an error.
+
+```bendu-error
+> import "docs/example.bendu"
+
+> doubleState(10)
+Unknown Identifier: doubleState at 2:13-23
+```
+
+```bendu-error
+> import "docs/example.bendu" as E
+
+> E.doubleState(10)
+Unknown Identifier: doubleState at 2:15-25
+```
+
+```bendu-error
+> import "docs/example.bendu" exposing (doubleState)
+
+> doubleState(10)
+Identifier Not Exported: doubleState at 1:39-49 is not exported from docs/example.bendu
 ```

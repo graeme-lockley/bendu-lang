@@ -78,6 +78,7 @@ private fun inferImport(entry: CacheEntry, index: Int, import: Import, env: Envi
                     }
                 } else {
                     env.errors.addError(IdentifierNotExported(name.id, import.path.value))
+                    env.bind(name.id.value, import.location, false, Scheme(emptySet(), typeError))
                 }
             }
         }
