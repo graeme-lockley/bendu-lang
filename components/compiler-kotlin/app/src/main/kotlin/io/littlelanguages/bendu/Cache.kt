@@ -85,14 +85,14 @@ sealed class CacheEntry(open val srcDir: File, open val dir: File, open val name
         val declarations = io.littlelanguages.bendu.cache.parse(script, errors)
 
         if (errors.hasErrors()) {
-            errors.printErrors(true, true)
+            errors.printErrors(true)
         }
 
         return declarations
     }
 
-    fun compile(errors: Errors): CompiledScript? {
-//        println("Compiling ${File("$srcDir/$name.bendu").canonicalFile}")
+    fun compile(errors: Errors = Errors()): CompiledScript {
+        val startTime = System.currentTimeMillis()
 
         if (errors.hasNoErrors()) {
             val script = infer(this, errors = errors)
@@ -100,11 +100,15 @@ sealed class CacheEntry(open val srcDir: File, open val dir: File, open val name
 
             if (errors.hasNoErrors()) {
                 writeImage(compiled)
+                reportCompileStats(this, startTime, System.currentTimeMillis(), true, BenduOptions.showCompile)
                 return compiled
             }
         }
 
-        return null
+        reportCompileStats(this, startTime, System.currentTimeMillis(), success = false, BenduOptions.showCompile)
+        errors.printErrors(true)
+
+        TODO("Should never reach here")
     }
 
     fun writeImage(image: CompiledScript) {
@@ -152,7 +156,7 @@ sealed class CacheEntry(open val srcDir: File, open val dir: File, open val name
     protected fun depFile(): File =
         File(dir, "$name.dep")
 
-    private fun sigFile(): File =
+    fun sigFile(): File =
         File(dir, "$name.sig")
 
     fun byteCodeFileName(): String =
@@ -224,5 +228,28 @@ class FileCacheEntry(override val srcDir: File, override val dir: File, override
         }
 
         return result
+    }
+}
+
+fun reportCompileStats(entry: CacheEntry, startTime: Long, endTime: Long, success: Boolean, showCompile: Boolean) {
+    if (showCompile) {
+        val delta = endTime - startTime
+
+        if (BenduOptions.colours) {
+            println("\u001B[32mCompiling\u001B[0m \u001B[37m${entry.sourceFile().canonicalFile} (${delta}ms)\u001B[0m")
+        } else {
+            println("Compiling ${entry.sourceFile().canonicalFile} (${delta}ms)")
+        }
+
+        if (success && BenduOptions.showExportedSignature) {
+            entry.sigFile().readText().trim().lines().filter { it.isNotBlank() }.forEach {
+                val indexOfEqual = it.indexOf('=')
+                if (indexOfEqual == -1) {
+                    println(it)
+                } else {
+                    println(it.substring(0, indexOfEqual).trim())
+                }
+            }
+        }
     }
 }

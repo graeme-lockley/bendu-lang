@@ -1,8 +1,8 @@
 package io.littlelanguages.bendu.bin
 
+import io.littlelanguages.bendu.BenduOptions
 import io.littlelanguages.bendu.CacheEntry
 import io.littlelanguages.bendu.CacheManager
-import io.littlelanguages.bendu.CompiledScript
 import io.littlelanguages.bendu.compiler.Args
 import io.littlelanguages.bendu.compiler.Instructions
 import kotlinx.cli.ArgParser
@@ -21,17 +21,22 @@ fun main(args: Array<String>) {
         val script by parser.option(ArgType.String, description = "Script file to compiler")
         val expression by parser.option(ArgType.String, description = "Expression to be compiled")
             .default("println(\"Hello, World!\")")
+        val verbose by parser.option(ArgType.Boolean, description = "Show files being compiled").default(false)
+        val signatures by parser.option(ArgType.Boolean, description = "Show exported signatures").default(false)
+        val colours by parser.option(ArgType.Boolean, description = "Use colours in output").default(true)
 
         parser.parse(args)
 
+        BenduOptions.colours = colours
+        BenduOptions.showCompile = verbose
+        BenduOptions.showExportedSignature = signatures
+
         if (script == null) {
-            val entry = CacheManager.useExpression(File("out.bendu"), expression)
-            compileExpression(entry)
+            CacheManager.useExpression(File("out.bendu"), expression).compile()
         } else if (!script!!.endsWith(".bendu")) {
             println("Unknown file type")
         } else {
-            val entry = CacheManager.getEntry(File(script!!))
-            compileScript(entry)
+            CacheManager.getEntry(File(script!!)).compile()
         }
     }
 }
@@ -47,6 +52,10 @@ private fun processTests(args: Array<String>) {
 
     parser.parse(args)
 
+    BenduOptions.colours = false
+    BenduOptions.showCompile = false
+    BenduOptions.showExportedSignature = false
+
     val script = assembleScript(expression, line).joinToString("\n")
 
     if (verbose) {
@@ -54,7 +63,7 @@ private fun processTests(args: Array<String>) {
     }
 
     val entry = CacheManager.useExpression(File("test.bendu"), script)
-    compileExpression(entry, false)
+    entry.compile()
 
     executeTest(bc, entry)
 }
@@ -158,11 +167,11 @@ private fun executeTest(bc: String, entry: CacheEntry) {
     }
 }
 
-private fun compileScript(entry: CacheEntry) =
-    compileExpression(entry)
-
-private fun compileExpression(entry: CacheEntry, showExpression: Boolean = false) =
-    compileEntry(entry, showExpression)
+//private fun compileScript(entry: CacheEntry) =
+//    compileExpression(entry)
+//
+//private fun compileExpression(entry: CacheEntry) =
+//    compileEntry(entry)
 
 private fun processDis(args: Array<String>) {
     val parser = ArgParser("bendu-compiler dis")
@@ -172,12 +181,16 @@ private fun processDis(args: Array<String>) {
 
     parser.parse(args)
 
+    BenduOptions.colours = false
+    BenduOptions.showCompile = false
+    BenduOptions.showExportedSignature = false
+
     if (file != null) {
         disassembleFile(file!!)
     } else {
         val script = assembleDisScript(expression).joinToString("\n")
         val entry = CacheManager.useExpression(File("out.bendu"), script)
-        val bc = compileEntry(entry)
+        val bc = entry.compile()
 
         disassembleExpression(bc.bytecode)
     }
@@ -297,19 +310,3 @@ private fun readString(bc: ByteArray, offset: Int): Pair<String, Int> {
 private fun getInstructionByOp(op: Byte): Instructions? {
     return Instructions.entries.find { it.op == op }
 }
-
-private fun compileEntry(entry: CacheEntry, showExpression: Boolean = false): CompiledScript {
-    val errors = io.littlelanguages.bendu.Errors()
-    val compiled = entry.compile(errors)
-
-    if (compiled == null || errors.hasErrors()) {
-        if (showExpression) {
-            println(entry.script())
-        }
-
-        errors.printErrors(false, true)
-    }
-
-    return compiled!!
-}
-

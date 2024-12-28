@@ -21,11 +21,8 @@ let isUpToDate(dependencies) {
       let parts = line |> split(" ")
 
       if parts[0] != "" && (!fexists(parts[0]) || rebo.os.fstat(parts[0]).mtime / 1000000 != int(parts[1])) -> {
-         # if fexists(parts[0]) -> {
-         #    println("Failed: ", parts[0], " ", rebo.os.fstat(parts[0]).mtime / 1000000, " ", int(parts[1]))
-         # } | {
-         #    println("Failed: ", parts[0], " does not exist")
-         # }
+         # if fexists(parts[0]) -> println("Failed: ", parts[0], " ", rebo.os.fstat(parts[0]).mtime / 1000000, " ", int(parts[1]))
+         # | println("Failed: ", parts[0], " does not exist")
 
          continue := false
       }
@@ -54,17 +51,11 @@ if len(rebo.args) == 4 && rebo.args[2] == "dis" -> {
    let depName = rebo.env["HOME"] + "/.bendu" + cwd() + "/" + Str.dropEnd(fileName, 6) + ".dep"
 
    if !fexists(depName) || !isUpToDate(FS.readFile(depName)) -> {   
-      print(ansi.foreground.green, "Info: ", "\x27;[37m", "Compiling ", fileName, " to ", targetName)
-
-      let startTime = milliTimestamp()
-      let result = rebo.os.exec(["java", "-jar", projectHome + "/components/compiler-kotlin/app/build/libs/app.jar", "--script", fileName])
-      let endTime = milliTimestamp()
-
-      println(" (", endTime - startTime, "ms)", ansi.control.reset)
+      let result = rebo.os.exec(["java", "-jar", projectHome + "/components/compiler-kotlin/app/build/libs/app.jar", "--script", fileName, "--colours", "--verbose", "--signatures"])
 
       if result.code != 0 || result.stderr != "" -> {
-         println(ansi.foreground.red, "Error: ", ansi.control.reset, result.stderr)
-         exit(1)
+         println(result.stdout + result.stderr)
+         exit(result.code)
       } | {
          println(result.stdout)
       }

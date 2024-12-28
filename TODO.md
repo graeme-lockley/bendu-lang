@@ -25,7 +25,7 @@ The following is the list of big features that need to be implemented.
 - [x] Control flow
 - [x] Tuples
 - [x] Arrays
-- [ ] Packages
+- [x] Packages
 - [ ] Garbage collector
 - [ ] ADTs
 - [ ] Records
@@ -71,8 +71,8 @@ The following is the list of big features that need to be implemented.
       - [x] Have interpreter read in new binary format
       - [x] Parse import
       - [x] Record and use script dependencies
-      - [ ] Improve compiler info to show when each file is being compiled in the same format as the bendu script
-      - [ ] Add nested errors for import errors
+      - [x] Improve compiler info to show when each file is being compiled in the same format as the bendu script
+      - [x] Add nested errors for import errors
       - [ ] Enhance binding locations to include package details
       - [x] Implement import
       - [x] Parse import as
