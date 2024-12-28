@@ -11,12 +11,12 @@ class CompiledScript(
     val bytecode: ByteArray
 )
 
-fun compile(script: Script, errors: Errors): CompiledScript {
+fun compile(entry: CacheEntry, script: Script, errors: Errors): CompiledScript {
     val compiler = Compiler(errors)
-    compiler.compile(script)
+    compiler.compile(entry, script)
 
     return CompiledScript(
-        listOf(),
+        compiler.dependencies.toList(),
         ScriptExports(compiler.exports),
         compiler.imports,
         compiler.byteBuilder.toByteArray()
@@ -24,53 +24,60 @@ fun compile(script: Script, errors: Errors): CompiledScript {
 }
 
 private class Compiler(val errors: Errors) {
+    val dependencies = mutableSetOf<ScriptDependency>()
     val imports = mutableListOf<String>()
     val exports = mutableListOf<ScriptExport>()
     val byteBuilder = ByteBuilder()
     val symbolTable = SymbolTable(byteBuilder)
 
-    fun compile(script: Script) {
+    fun compile(entry: CacheEntry, script: Script) {
         if (errors.hasNoErrors()) {
             script.imports.forEachIndexed { index, import ->
+                import.entry!!.includeDependencies(dependencies)
                 imports.add(import.entry!!.byteCodeFileName())
 
                 when (import) {
                     is ImportAll -> {
                         import.entry!!.declarations.forEach {
+                            val packageID = -index - 1
+
                             when (it) {
                                 is FunctionExport ->
-                                    symbolTable.bindFunctionExport(it.name, -index - 1, it.codeOffset, it.frameOffset)
+                                    symbolTable.bindFunctionExport(it.name, packageID, it.codeOffset, it.frameOffset)
 
                                 is ValueExport ->
-                                    symbolTable.bindIdentifierExport(it.name, -index - 1, it.frameOffset)
+                                    symbolTable.bindIdentifierExport(it.name, packageID, it.frameOffset)
                             }
                         }
                     }
 
                     is ImportList -> {
                         import.ids.forEach { id ->
-                            when (val entry = import.entry!![id.id.value]) {
+                            val importEntry = import.entry!![id.id.value]
+                            val aliasName = id.alias?.value ?: importEntry?.name
+                            val packageID = -index - 1
+
+                            when (importEntry) {
                                 is FunctionExport ->
                                     symbolTable.bindFunctionExport(
-                                        id.alias?.value ?: entry.name,
-                                        -index - 1,
-                                        entry.codeOffset,
-                                        entry.frameOffset
+                                        aliasName!!,
+                                        packageID,
+                                        importEntry.codeOffset,
+                                        importEntry.frameOffset
                                     )
 
                                 is ValueExport ->
-                                    symbolTable.bindIdentifierExport(
-                                        id.alias?.value ?: entry.name,
-                                        -index - 1,
-                                        entry.frameOffset
-                                    )
+                                    symbolTable.bindIdentifierExport(aliasName!!, packageID, importEntry.frameOffset)
 
-                                null -> TODO()
+                                null -> TODO("Internal Error: importEntry is null")
                             }
                         }
                     }
                 }
             }
+
+            dependencies.add(ScriptDependency.from(entry))
+
             compileStatements(script.es, true)
 
             if (errors.hasNoErrors()) {

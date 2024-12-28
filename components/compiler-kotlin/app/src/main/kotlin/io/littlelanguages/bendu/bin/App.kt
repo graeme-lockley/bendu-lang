@@ -1,10 +1,10 @@
 package io.littlelanguages.bendu.bin
 
 import io.littlelanguages.bendu.CacheEntry
+import io.littlelanguages.bendu.CacheManager
 import io.littlelanguages.bendu.CompiledScript
 import io.littlelanguages.bendu.compiler.Args
 import io.littlelanguages.bendu.compiler.Instructions
-import io.littlelanguages.bendu.openCache
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
@@ -24,15 +24,13 @@ fun main(args: Array<String>) {
 
         parser.parse(args)
 
-        val cache = openCache()
-
         if (script == null) {
-            val entry = cache.useExpression(File("out.bendu"), expression)
+            val entry = CacheManager.useExpression(File("out.bendu"), expression)
             compileExpression(entry)
         } else if (!script!!.endsWith(".bendu")) {
             println("Unknown file type")
         } else {
-            val entry = cache.getEntry(File(script!!))
+            val entry = CacheManager.getEntry(File(script!!))
             compileScript(entry)
         }
     }
@@ -55,7 +53,7 @@ private fun processTests(args: Array<String>) {
         println(script)
     }
 
-    val entry = openCache().useExpression(File("test.bendu"), script)
+    val entry = CacheManager.useExpression(File("test.bendu"), script)
     compileExpression(entry, false)
 
     executeTest(bc, entry)
@@ -164,7 +162,7 @@ private fun compileScript(entry: CacheEntry) =
     compileExpression(entry)
 
 private fun compileExpression(entry: CacheEntry, showExpression: Boolean = false) =
-    entry.writeImage(compileEntry(entry, showExpression))
+    compileEntry(entry, showExpression)
 
 private fun processDis(args: Array<String>) {
     val parser = ArgParser("bendu-compiler dis")
@@ -178,7 +176,7 @@ private fun processDis(args: Array<String>) {
         disassembleFile(file!!)
     } else {
         val script = assembleDisScript(expression).joinToString("\n")
-        val entry = openCache().useExpression(File("out.bendu"), script)
+        val entry = CacheManager.useExpression(File("out.bendu"), script)
         val bc = compileEntry(entry)
 
         disassembleExpression(bc.bytecode)
@@ -302,10 +300,9 @@ private fun getInstructionByOp(op: Byte): Instructions? {
 
 private fun compileEntry(entry: CacheEntry, showExpression: Boolean = false): CompiledScript {
     val errors = io.littlelanguages.bendu.Errors()
-    val script = io.littlelanguages.bendu.infer(entry, errors = errors)
-    val compiled = io.littlelanguages.bendu.compile(script, errors)
+    val compiled = entry.compile(errors)
 
-    if (errors.hasErrors()) {
+    if (compiled == null || errors.hasErrors()) {
         if (showExpression) {
             println(entry.script())
         }
@@ -313,6 +310,6 @@ private fun compileEntry(entry: CacheEntry, showExpression: Boolean = false): Co
         errors.printErrors(false, true)
     }
 
-    return compiled
+    return compiled!!
 }
 

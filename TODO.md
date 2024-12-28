@@ -70,7 +70,8 @@ The following is the list of big features that need to be implemented.
       - [x] Write out script into new binary format
       - [x] Have interpreter read in new binary format
       - [x] Parse import
-      - [ ] Record and use script dependencies
+      - [x] Record and use script dependencies
+      - [ ] Improve compiler info to show when each file is being compiled in the same format as the bendu script
       - [ ] Add nested errors for import errors
       - [ ] Enhance binding locations to include package details
       - [x] Implement import

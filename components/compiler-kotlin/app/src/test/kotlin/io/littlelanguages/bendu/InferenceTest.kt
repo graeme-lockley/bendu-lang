@@ -296,7 +296,7 @@ class InferenceTest {
 
 private fun assertInferExpressionEquals(expr: String, expected: String, typeEnv: TypeEnv = emptyTypeEnv) {
     val errors = Errors()
-    val ast = infer(openCache().useExpression(File("test.bc"), expr), errors = errors, typeEnv = typeEnv)
+    val ast = infer(CacheManager.useExpression(File("test.bc"), expr), errors = errors, typeEnv = typeEnv)
 
     assertTrue(errors.hasNoErrors())
     assertEquals(expected, ast.es.last().type.toString())
@@ -304,7 +304,7 @@ private fun assertInferExpressionEquals(expr: String, expected: String, typeEnv:
 
 private fun assertInferFunctionEquals(expr: String, expected: String, typeEnv: TypeEnv = emptyTypeEnv) {
     val errors = Errors()
-    val ast = infer(openCache().useExpression(File("test.bc"), expr), errors = errors, typeEnv = typeEnv)
+    val ast = infer(CacheManager.useExpression(File("test.bc"), expr), errors = errors, typeEnv = typeEnv)
 
     assertTrue(errors.hasNoErrors())
     assertEquals(expected, (ast.es.last() as LetStatement).terms[0].type!!.toString())
@@ -313,7 +313,7 @@ private fun assertInferFunctionEquals(expr: String, expected: String, typeEnv: T
 private fun inferErrorExpression(expr: String, typeEnv: TypeEnv = emptyTypeEnv): Errors {
     val errors = Errors()
 
-    infer(openCache().useExpression(File("test.bc"), expr), typeEnv = typeEnv, errors = errors)
+    infer(CacheManager.useExpression(File("test.bc"), expr), typeEnv = typeEnv, errors = errors)
 
     assertTrue(errors.hasErrors())
 

@@ -12,7 +12,17 @@ import java.io.PrintWriter
 private const val UPPER_VERSION: Byte = 0
 private const val LOWER_VERSION: Byte = 1
 
-fun openCache(): Cache {
+object CacheManager {
+    private val cache = openCache()
+
+    fun getEntry(sourceFile: File): CacheEntry =
+        cache.getEntry(sourceFile)
+
+    fun useExpression(sourceFile: File, expression: String): CacheEntry =
+        cache.useExpression(sourceFile, expression)
+}
+
+private fun openCache(): Cache {
     val home = System.getProperty("user.home")
     val cacheHome = File(home).resolve(".bendu")
 
@@ -23,7 +33,7 @@ fun openCache(): Cache {
     return Cache(cacheHome)
 }
 
-class Cache(private val home: File) {
+private class Cache(private val home: File) {
     fun getEntry(sourceFile: File): CacheEntry {
         val srcDir = sourceFile.canonicalFile.parentFile
         val entryDir = File("$home/${srcDir}")
@@ -81,15 +91,20 @@ sealed class CacheEntry(open val srcDir: File, open val dir: File, open val name
         return declarations
     }
 
-    fun compile(errors: Errors) {
+    fun compile(errors: Errors): CompiledScript? {
+//        println("Compiling ${File("$srcDir/$name.bendu").canonicalFile}")
+
         if (errors.hasNoErrors()) {
             val script = infer(this, errors = errors)
-            val compiled = compile(script, errors)
+            val compiled = compile(this, script, errors)
 
             if (errors.hasNoErrors()) {
                 writeImage(compiled)
+                return compiled
             }
         }
+
+        return null
     }
 
     fun writeImage(image: CompiledScript) {
@@ -128,13 +143,13 @@ sealed class CacheEntry(open val srcDir: File, open val dir: File, open val name
             }
         }
 
-    protected fun srcFile(): File =
+    fun sourceFile(): File =
         File(srcDir, "$name.bendu")
 
-    private fun byteCodeFile(): File =
+    fun byteCodeFile(): File =
         File(dir, "$name.bc")
 
-    private fun depFile(): File =
+    protected fun depFile(): File =
         File(dir, "$name.dep")
 
     private fun sigFile(): File =
@@ -142,6 +157,8 @@ sealed class CacheEntry(open val srcDir: File, open val dir: File, open val name
 
     fun byteCodeFileName(): String =
         byteCodeFile().absolutePath
+
+    abstract fun includeDependencies(dependencies: MutableSet<ScriptDependency>)
 }
 
 class ExpressionCacheEntry(
@@ -156,17 +173,56 @@ class ExpressionCacheEntry(
 
     override fun isUptoDate(): Boolean =
         false
+
+    override fun includeDependencies(dependencies: MutableSet<ScriptDependency>) {}
 }
 
 class FileCacheEntry(override val srcDir: File, override val dir: File, override val name: String) :
     CacheEntry(srcDir, dir, name) {
+
+    private var dependencies: Set<ScriptDependency>? = null
+
     override fun script(): String =
-        srcFile().readText()
+        sourceFile().readText()
 
     override fun isUptoDate(): Boolean {
-        val sourceFile = File(srcDir, "$name.bendu")
-        val bcFile = File(dir, "$name.bc")
+        if (depFile().exists()) {
+            val deps = loadDependencies()
+            deps.forEach {
+                val depScript = CacheManager.getEntry(File(it.name))
 
-        return bcFile.exists() && bcFile.lastModified() > sourceFile.lastModified()
+                if (depScript.sourceFile().lastModified() != it.timestamp || !depScript.byteCodeFile().exists()) {
+                    return false
+                }
+            }
+
+            this.dependencies = deps
+
+            return true
+        } else {
+            return false
+        }
+    }
+
+    override fun includeDependencies(dependencies: MutableSet<ScriptDependency>) {
+        if (this.isUptoDate()) {
+            dependencies.addAll(this.dependencies!!)
+        } else {
+            dependencies.add(ScriptDependency.from(this))
+        }
+    }
+
+    private fun loadDependencies(): Set<ScriptDependency> {
+        val result = mutableSetOf<ScriptDependency>()
+        val depFileContent = depFile().readText().trim()
+
+        if (depFileContent.isNotBlank()) {
+            depFileContent.lines().forEach {
+                val (name, timestamp) = it.split(" ")
+                result.add(ScriptDependency(name, timestamp.toLong()))
+            }
+        }
+
+        return result
     }
 }

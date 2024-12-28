@@ -1067,11 +1067,11 @@ class CompilerTest {
 }
 
 private fun successfulCompile(input: String): ByteArray {
-    val entry = openCache().useExpression(File("test.bc"), input)
+    val entry = CacheManager.useExpression(File("test.bc"), input)
     val errors = Errors()
     val statements = infer(entry, errors = errors)
 
-    val result = compile(statements, errors)
+    val result = compile(entry, statements, errors)
 
     entry.writeImage(result)
 
@@ -1082,8 +1082,9 @@ private fun successfulCompile(input: String): ByteArray {
 
 private fun unsuccessfulCompile(input: String) {
     val errors = Errors()
-    val statements = infer(openCache().useExpression(File("test.bc"), input), errors = errors)
-    compile(statements, errors)
+    val entry = CacheManager.useExpression(File("test.bc"), input)
+    val statements = infer(entry, errors = errors)
+    compile(entry, statements, errors)
 
     assertTrue(errors.hasErrors())
 }

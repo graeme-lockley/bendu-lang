@@ -1,6 +1,9 @@
+import "inter.bendu" as I
 import "docs/example.bendu"
 
 println("Hello World!")
 
-let v = state()
+let v = state(1)
 println(v, ": ", @v)
+
+I.hello()

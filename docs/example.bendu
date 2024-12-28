@@ -6,7 +6,7 @@ let constant*(x) = fn(y) = x
 
 let valueA!* = 1
 
-let funA!*(x) = x + 1
+let funA!*(x) = x + 1 
 
 let state*(n: Int) = (valueA, funA(n))
 
