@@ -2,12 +2,39 @@
 
 rebo.lang["import.verbose"] := false
 
+let FS = import("fs")
 let Path = import("path")
 let Str = import("str")
 
 let projectHome = 
    if Str.startsWith?(rebo.args[1], "/") -> Path.dir(rebo.args[1]) + "/.."
    | (Path.join(cwd(), rebo.args[1]) |> Path.dir()) + "/.."
+
+let isUpToDate(dependencies) {
+   let lines = dependencies |> split("\n")
+   let numLines = len(lines)
+   let continue = true
+   let index = 0
+
+   while continue && index < numLines -> {
+      let line = lines[index]
+      let parts = line |> split(" ")
+
+      if parts[0] != "" && (!fexists(parts[0]) || rebo.os.fstat(parts[0]).mtime / 1000000 != int(parts[1])) -> {
+         # if fexists(parts[0]) -> {
+         #    println("Failed: ", parts[0], " ", rebo.os.fstat(parts[0]).mtime / 1000000, " ", int(parts[1]))
+         # } | {
+         #    println("Failed: ", parts[0], " does not exist")
+         # }
+
+         continue := false
+      }
+
+      index := index + 1
+   }
+
+   continue
+}
 
 if len(rebo.args) == 4 && rebo.args[2] == "dis" -> {
    let result = rebo.os.exec(["java", "-jar", projectHome + "/components/compiler-kotlin/app/build/libs/app.jar", "dis", "--file", rebo.args[3]])
@@ -24,8 +51,9 @@ if len(rebo.args) == 4 && rebo.args[2] == "dis" -> {
    }
 
    let targetName = rebo.env["HOME"] + "/.bendu" + cwd() + "/" + Str.dropEnd(fileName, 6) + ".bc"
+   let depName = rebo.env["HOME"] + "/.bendu" + cwd() + "/" + Str.dropEnd(fileName, 6) + ".dep"
 
-   if !fexists(targetName) || rebo.os.fstat(targetName).mtime < rebo.os.fstat(fileName).mtime -> {   
+   if !fexists(depName) || !isUpToDate(FS.readFile(depName)) -> {   
       print(ansi.foreground.green, "Info: ", "\x27;[37m", "Compiling ", fileName, " to ", targetName)
 
       let startTime = milliTimestamp()
@@ -37,6 +65,8 @@ if len(rebo.args) == 4 && rebo.args[2] == "dis" -> {
       if result.code != 0 || result.stderr != "" -> {
          println(ansi.foreground.red, "Error: ", ansi.control.reset, result.stderr)
          exit(1)
+      } | {
+         println(result.stdout)
       }
    }
 
