@@ -60,13 +60,13 @@ The following is the list of big features that need to be implemented.
 ## Packages
 
 - [x] High-level design
-- [ ] Implement package into runtime:
+- [x] Implement package into runtime:
       - [x] Package table
       - [x] Load package
       - [x] Store package
       - [x] Push package closure
       - [x] Call package
-- [ ] Implement package into compiler:
+- [x] Implement package into compiler:
       - [x] Bendu cache
       - [x] Write out script into new binary format
       - [x] Have interpreter read in new binary format
@@ -74,7 +74,6 @@ The following is the list of big features that need to be implemented.
       - [x] Record and use script dependencies
       - [x] Improve compiler info to show when each file is being compiled in the same format as the bendu script
       - [x] Add nested errors for import errors
-      - [ ] Enhance binding locations to include package details
       - [x] Implement import
       - [x] Parse import as
       - [x] Implement import as
@@ -222,7 +221,7 @@ The following is the list of big features that need to be implemented.
 
 # Typing
 
-- [ ] Report an error when attempt is made to reference unknown type variable
+- [x] Report an error when attempt is made to reference unknown type variable
 
 # Builtins
 
