@@ -26,12 +26,13 @@ The following is the list of big features that need to be implemented.
 - [x] Tuples
 - [x] Arrays
 - [x] Packages
-- [ ] Garbage collector
+- [x] Garbage collector
 - [ ] ADTs
 - [ ] Records
 - [ ] Type aliases
 - [ ] Patterns
 - [ ] Signals
+- [ ] Integrate libuv
 
 # Scaffolding
 

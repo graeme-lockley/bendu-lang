@@ -27,6 +27,10 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
 
     try runtime.push(Pointer.fromPointer(*Memory.Value, try package.getFrame(runtime)));
 
+    if (DEBUG) {
+        Runtime.gc(runtime);
+    }
+
     while (ip < bc.len) {
         const op = @as(Op, @enumFromInt(bc[ip]));
 
@@ -411,9 +415,9 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const oldFP = fp;
                 fp = runtime.stack.items.len;
                 try runtime.push(newFramePointer);
-                try runtime.push(package.id);
-                try runtime.push(ip + 12);
-                try runtime.push(oldFP);
+                try runtime.push(Pointer.fromInt(@intCast(package.id)));
+                try runtime.push(Pointer.fromInt(@intCast(ip + 12)));
+                try runtime.push(Pointer.fromInt(@intCast(oldFP)));
 
                 ip = offset;
             },
@@ -437,9 +441,9 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const oldFP = fp;
                 fp = runtime.stack.items.len;
                 try runtime.push(newFramePointer);
-                try runtime.push(package.id);
-                try runtime.push(ip + 4);
-                try runtime.push(oldFP);
+                try runtime.push(Pointer.fromInt(@intCast(package.id)));
+                try runtime.push(Pointer.fromInt(@intCast(ip + 4)));
+                try runtime.push(Pointer.fromInt(@intCast(oldFP)));
 
                 ip = closure.v.ClosureKind.function;
 
@@ -481,9 +485,9 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const oldFP = fp;
                 fp = runtime.stack.items.len;
                 try runtime.push(newFramePointer);
-                try runtime.push(package.id);
-                try runtime.push(ip + 12);
-                try runtime.push(oldFP);
+                try runtime.push(Pointer.fromInt(@intCast(package.id)));
+                try runtime.push(Pointer.fromInt(@intCast(ip + 12)));
+                try runtime.push(Pointer.fromInt(@intCast(oldFP)));
 
                 ip = offset;
 
@@ -499,9 +503,9 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 }
 
                 const v = runtime.pop();
-                fp = runtime.pop();
-                ip = runtime.pop();
-                const newPackageID = runtime.pop();
+                fp = @intCast(Pointer.asInt(runtime.pop()));
+                ip = @intCast(Pointer.asInt(runtime.pop()));
+                const newPackageID: usize = @intCast(Pointer.asInt(runtime.pop()));
                 _ = runtime.discard();
                 try runtime.push(v);
 
@@ -905,6 +909,10 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
             },
 
             else => std.debug.panic("unknown op code: {d}\n", .{bc[ip - 1]}),
+        }
+
+        if (DEBUG) {
+            Runtime.gc(runtime);
         }
     }
     if (DEBUG) {

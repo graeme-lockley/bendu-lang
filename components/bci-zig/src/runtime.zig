@@ -7,6 +7,9 @@ const SP = @import("string_pool.zig");
 
 const stdout = std.io.getStdOut().writer();
 
+const DEBUG = false;
+const DEBUG_VERBOSE = false;
+
 const MAINTAIN_FREE_CHAIN = true;
 const INITIAL_HEAP_SIZE = 1;
 const HEAP_GROW_THRESHOLD = 0.25;
@@ -131,6 +134,13 @@ pub const Packages = struct {
         self.items.deinit();
     }
 
+    pub fn clear(self: *Packages) void {
+        for (self.items.items) |*p| {
+            p.deinit(self.allocator);
+        }
+        self.items.clearAndFree();
+    }
+
     pub fn useBytecode(self: *Packages, bc: []const u8, runtime: *Runtime) !*Package {
         var buffer = std.ArrayList(u8).init(self.allocator);
         defer buffer.deinit();
@@ -202,30 +212,42 @@ pub const Runtime = struct {
     }
 
     pub fn deinit(self: *Runtime) void {
+        const count = self.stack.items.len;
+
+        _ = force_gc(self);
+
+        self.packages.clear();
+
         while (self.stack.items.len > 0) {
             self.discard();
         }
 
-        var number_of_values: u32 = 0;
-        {
-            var runner: ?*Memory.Value = self.root;
-            while (runner != null) {
-                const next = runner.?.next;
-                number_of_values += 1;
+        _ = force_gc(self);
 
-                runner.?.deinit(self.allocator);
-                self.allocator.destroy(runner.?);
+        // var number_of_values: u32 = 0;
+        // {
+        //     var runner: ?*Memory.Value = self.root;
+        //     while (runner != null) {
+        //         const next = runner.?.next;
+        //         number_of_values += 1;
 
-                runner = next;
-            }
-        }
-        // std.log.info("gc: memory state stack length: values: {d} vs {d}", .{ self.memory_size, number_of_values });
+        //         runner.?.deinit(self.allocator);
+        //         self.allocator.destroy(runner.?);
+
+        //         runner = next;
+        //     }
+        // }
+        // std.debug.print("gc: memory state stack length: values: {d} vs {d}\n", .{ self.memory_size, number_of_values });
 
         self.packages.deinit();
         self.stack.deinit();
 
         if (MAINTAIN_FREE_CHAIN) {
             self.destroyFreeList();
+        }
+
+        if (DEBUG_VERBOSE) {
+            std.debug.print("gc: memory state stack length: {d} vs {d}, values: {d}, stringpool: {d}\n", .{ self.stack.items.len, count, self.memory_size, self.sp.count() });
         }
 
         self.sp.deinit();
@@ -253,6 +275,10 @@ pub const Runtime = struct {
         self.root = v;
 
         try self.stack.append(Pointer.fromPointer(*Memory.Value, v));
+
+        if (!DEBUG) {
+            gc(self);
+        }
 
         return v;
     }
@@ -367,11 +393,11 @@ pub const Runtime = struct {
     }
 
     pub inline fn push_bool_true(self: *Runtime) !void {
-        try self.stack.append(Pointer.fromInt(1));
+        try self.stack.append(Pointer.fromBool(true));
     }
 
     pub inline fn push_bool_false(self: *Runtime) !void {
-        try self.stack.append(Pointer.fromInt(0));
+        try self.stack.append(Pointer.fromBool(false));
     }
 
     pub inline fn push_closure(self: *Runtime, packageID: usize, function: usize, frame: *Memory.Value) !void {
@@ -980,3 +1006,146 @@ pub const Runtime = struct {
         try stdout.print("()", .{});
     }
 };
+
+inline fn markPointer(value: Pointer.Pointer, colour: Memory.Colour) void {
+    if (!Pointer.isPointer(value)) {
+        return;
+    }
+
+    markValue(Pointer.as(*Memory.Value, value), colour);
+}
+
+fn markValue(v: *Memory.Value, colour: Memory.Colour) void {
+    if (v.colour == colour) {
+        return;
+    }
+
+    v.colour = colour;
+
+    switch (v.v) {
+        .ArrayKind => {
+            for (v.v.ArrayKind.items()) |item| {
+                markPointer(item, colour);
+            }
+        },
+        .ClosureKind => {
+            markValue(v.v.ClosureKind.frame, colour);
+        },
+        .FrameKind => {
+            if (v.v.FrameKind.enclosing != null) {
+                markValue(v.v.FrameKind.enclosing.?, colour);
+            }
+            for (v.v.FrameKind.values.items) |item| {
+                markPointer(item, colour);
+            }
+        },
+        .TupleKind => {
+            for (v.v.TupleKind.values) |item| {
+                markPointer(item, colour);
+            }
+        },
+    }
+}
+
+fn sweep(state: *Runtime, colour: Memory.Colour) void {
+    var runner: *?*Memory.Value = &state.root;
+    while (runner.* != null) {
+        if (runner.*.?.colour != colour) {
+            // std.debug.print("sweep: freeing {}\n", .{runner.*.?.v});
+            const next = runner.*.?.next;
+            runner.*.?.deinit(state.allocator);
+
+            if (MAINTAIN_FREE_CHAIN) {
+                runner.*.?.next = state.free;
+                state.free = runner.*.?;
+            } else {
+                state.allocator.destroy(runner.*.?);
+            }
+
+            state.memory_size -= 1;
+            runner.* = next;
+        } else {
+            runner = &(runner.*.?.next);
+        }
+    }
+}
+
+pub const GCResult = struct {
+    capacity: u32,
+    oldSize: u32,
+    newSize: u32,
+    duration: i64,
+};
+
+pub fn force_gc(state: *Runtime) GCResult {
+    if (DEBUG) {
+        std.debug.print("force_gc: start\n", .{});
+    }
+
+    const start_time = std.time.milliTimestamp();
+    const old_size = state.memory_size;
+
+    const new_colour = if (state.colour == Memory.Colour.Black) Memory.Colour.White else Memory.Colour.Black;
+
+    if (DEBUG) {
+        std.debug.print("force_gc: mark packages\n", .{});
+    }
+    for (state.packages.items.items) |package| {
+        if (package.image != null) {
+            markValue(package.image.?.frame, new_colour);
+        }
+    }
+    if (DEBUG) {
+        std.debug.print("force_gc: mark stack: size={d}\n", .{state.stack.items.len});
+    }
+    // for (state.stack.items) |value| {
+    for (state.stack.items, 0..) |value, i| {
+        if (DEBUG) {
+            std.debug.print("force_gc: mark stack item: i={d}: value=", .{i});
+            @import("./runtime/printdebug.zig").print(value);
+            std.debug.print("\n", .{});
+        }
+
+        markPointer(value, new_colour);
+    }
+
+    if (DEBUG) {
+        std.debug.print("force_gc: sweep\n", .{});
+    }
+    sweep(state, new_colour);
+    const end_time = std.time.milliTimestamp();
+
+    state.colour = new_colour;
+
+    if (DEBUG) {
+        std.debug.print("force_gc: end\n", .{});
+    }
+
+    return GCResult{ .capacity = state.memory_capacity, .oldSize = old_size, .newSize = state.memory_size, .duration = end_time - start_time };
+}
+
+pub fn gc(state: *Runtime) void {
+    if (DEBUG) {
+        const gcResult = force_gc(state);
+
+        if (DEBUG_VERBOSE) {
+            std.debug.print("gc: time={d}ms, nodes freed={d}, heap size: {d}\n", .{ gcResult.duration, gcResult.oldSize - gcResult.newSize, gcResult.newSize });
+        }
+
+        if (@as(f32, @floatFromInt(state.memory_size)) / @as(f32, @floatFromInt(state.memory_capacity)) > HEAP_GROW_THRESHOLD) {
+            state.memory_capacity *= 2;
+            if (DEBUG_VERBOSE) {
+                std.debug.print("gc: double heap capacity to {}\n", .{state.memory_capacity});
+            }
+        }
+    } else if (state.memory_size > state.memory_capacity) {
+        _ = force_gc(state);
+
+        if (@as(f32, @floatFromInt(state.memory_size)) / @as(f32, @floatFromInt(state.memory_capacity)) > HEAP_GROW_THRESHOLD) {
+            state.memory_capacity *= 2;
+            if (DEBUG_VERBOSE) {
+                std.debug.print("gc: double heap capacity to {}\n", .{state.memory_capacity});
+            }
+        }
+    }
+}
