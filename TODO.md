@@ -91,6 +91,10 @@ The following is the list of big features that need to be implemented.
 
 # Data Types
 
+## Abstract Data Types
+
+- [ ] Parse ADT
+
 ## Arrays
 
 - [x] Parse literal

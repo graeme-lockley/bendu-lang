@@ -21,7 +21,7 @@ fun infer(
 
     val env = Environment(typeEnv, pump, errors, constraints)
     inferImports(entry, ast.imports, env)
-    inferStatements(ast.es, env)
+    inferStatements(ast.decs.filterIsInstance<DeclarationExpression>().map { it.e }, env)
 
     return ast
 }

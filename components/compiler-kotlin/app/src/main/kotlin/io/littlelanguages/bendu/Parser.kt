@@ -5,8 +5,8 @@ import io.littlelanguages.data.*
 import java.io.StringReader
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<Script, Import, ImportDeclaration, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, (Expression) -> Expression, Expression, List<FunctionParameter>, FunctionParameter, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm> {
-    override fun visitProgram(a1: List<Tuple2<Import, Token?>>, a2: List<Tuple2<Expression, Token?>>): Script =
+    Visitor<Script, Import, ImportDeclaration, Declaration, TypeConstructor, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, (Expression) -> Expression, Expression, List<FunctionParameter>, FunctionParameter, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm> {
+    override fun visitProgram(a1: List<Tuple2<Import, Token?>>, a2: List<Tuple2<Declaration, Token?>>): Script =
         Script(a1.map { it.a }, a2.map { it.a })
 
     override fun visitImportStatement(
@@ -28,6 +28,28 @@ private class ParserVisitor(val errors: Errors = Errors()) :
         ImportDeclaration(
             StringLocation(a1.lexeme, a1.location),
             a2?.let { StringLocation(it.b.lexeme, it.b.location) })
+
+    override fun visitDeclaration1(
+        a1: Token,
+        a2: Token,
+        a3: List<StringLocation>?,
+        a4: Token,
+        a5: TypeConstructor,
+        a6: List<Tuple2<Token, TypeConstructor>>
+    ): Declaration =
+        DeclarationType(StringLocation(a2.lexeme, a2.location), a3 ?: emptyList(), listOf(a5) + a6.map { it.b })
+
+    override fun visitDeclaration2(a: Expression): Declaration =
+        DeclarationExpression(a)
+
+    override fun visitTypeConstructor(
+        a1: Token,
+        a2: Tuple4<Token, TypeTerm, List<Tuple2<Token, TypeTerm>>, Token>?
+    ): TypeConstructor =
+        if (a2 == null)
+            TypeConstructor(StringLocation(a1.lexeme, a1.location), emptyList())
+        else
+            TypeConstructor(StringLocation(a1.lexeme, a1.location), listOf(a2.b) + a2.c.map { it.b })
 
     override fun visitExpression1(
         a1: Token,

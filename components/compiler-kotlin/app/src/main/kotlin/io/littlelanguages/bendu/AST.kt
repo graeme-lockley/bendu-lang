@@ -5,7 +5,10 @@ import io.littlelanguages.bendu.typeinference.*
 import io.littlelanguages.scanpiler.Location
 import io.littlelanguages.scanpiler.LocationCoordinate
 
-class Script(val imports: List<Import>, val es: List<Expression>)
+class Script(val imports: List<Import>, val decs: List<Declaration>) {
+    fun es(): List<Expression> =
+        decs.filterIsInstance<DeclarationExpression>().map { it.e }
+}
 
 sealed class Import(open val path: StringLocation, open val location: Location, open var entry: CacheEntry? = null)
 
@@ -27,6 +30,18 @@ data class ImportDeclaration(
     val id: StringLocation,
     val alias: StringLocation? = null
 )
+
+sealed class Declaration
+
+data class DeclarationExpression(val e: Expression) : Declaration()
+
+data class DeclarationType(
+    val id: StringLocation,
+    val typeParameters: List<StringLocation>,
+    val constructors: List<TypeConstructor>
+) : Declaration()
+
+data class TypeConstructor(val id: StringLocation, val parameters: List<TypeTerm>)
 
 sealed class Expression(open var type: Type? = null) {
     open fun apply(s: Subst, errors: Errors) {

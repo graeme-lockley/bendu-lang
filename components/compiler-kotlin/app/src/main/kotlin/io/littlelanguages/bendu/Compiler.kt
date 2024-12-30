@@ -78,14 +78,26 @@ private class Compiler(val errors: Errors) {
 
             dependencies.add(ScriptDependency.from(entry))
 
-            compileStatements(script.es, true)
+            compileDeclarations(script.decs)
 
-            if (errors.hasNoErrors()) {
-                val typeEnv = TypeEnv(emptyMap())
+            symbolTable.closeScope()
+        }
+    }
 
-                script.es.forEach { e ->
-                    if (e is LetStatement) {
-                        e.terms.forEach { t ->
+    private fun compileDeclarations(declarations: List<Declaration>) {
+        val lastStatementIdx = declarations.dropLastWhile { it !is DeclarationExpression }.size - 1
+
+        declarations.forEachIndexed { index, declaration ->
+            when (declaration) {
+                is DeclarationExpression -> {
+                    val keepExpressionResult = index == lastStatementIdx
+
+                    compileExpression(declaration.e, keepExpressionResult)
+
+                    if (declaration.e is LetStatement) {
+                        val typeEnv = TypeEnv(emptyMap())
+
+                        declaration.e.terms.forEach { t ->
                             if (t is LetFunctionStatementTerm) {
                                 val functionBinding = symbolTable.find(t.id.value) as FunctionBinding
 
@@ -115,12 +127,14 @@ private class Compiler(val errors: Errors) {
                                 }
                             }
                         }
+
                     }
                 }
-            }
 
-            symbolTable.closeScope()
+                is DeclarationType -> TODO()
+            }
         }
+
     }
 
     private fun compileStatements(statements: List<Expression>, keepResult: Boolean) {

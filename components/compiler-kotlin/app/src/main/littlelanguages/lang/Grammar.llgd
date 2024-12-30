@@ -1,7 +1,7 @@
 uses "./Scanner.llld";
 
 Program
-    : {ImportStatement [";"]} {Expression [";"]}
+    : {ImportStatement [";"]} {Declaration [";"]}
     ;
 
 ImportStatement
@@ -10,6 +10,15 @@ ImportStatement
 
 ImportDeclaration
     : LowerID ["as" LowerID]
+    ;
+
+Declaration
+    : "type" UpperID [TypeParameters] "=" TypeConstructor {"|" TypeConstructor}
+    | Expression
+    ;
+
+TypeConstructor
+    : UpperID ["[" TypeTerm {"," TypeTerm} "]"]
     ;
 
 Expression

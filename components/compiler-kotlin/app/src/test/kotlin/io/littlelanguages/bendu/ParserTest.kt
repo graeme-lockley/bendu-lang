@@ -1,6 +1,9 @@
 package io.littlelanguages.bendu
 
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class ParserTest {
     @Test
@@ -214,13 +217,27 @@ class ParserTest {
 
         assertIs<LiteralUnitExpression>(statements[0])
     }
+
+    @Test
+    fun `type declaration`() {
+        listOf(
+            "type A = Int",
+            "type A = Int; type B = A",
+            "type A = Int; type B = A; type C = B",
+            "type List[a] = Nil | Cons[a, List[a]]",
+            "type Optional[a] = None | Some[a]",
+            "type Either[a, b] = Left[a] | Right[b]",
+        ).forEach { input ->
+            successfulParse(input, 0)
+        }
+    }
 }
 
 private fun successfulParse(input: String, numberOfStatements: Int): List<Expression> {
     val errors = Errors()
     val script = parse(input, errors)
     assertTrue(errors.hasNoErrors())
-    assertEquals(script.es.size, numberOfStatements)
+    assertEquals(script.es().size, numberOfStatements)
 
-    return script.es
+    return script.es()
 }
