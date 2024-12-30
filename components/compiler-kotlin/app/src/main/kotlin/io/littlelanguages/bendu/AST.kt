@@ -38,8 +38,12 @@ data class DeclarationExpression(val e: Expression) : Declaration()
 data class DeclarationType(
     val id: StringLocation,
     val typeParameters: List<StringLocation>,
-    val constructors: List<TypeConstructor>
-) : Declaration()
+    val constructors: List<TypeConstructor>,
+    var typeDecl: TypeDecl? = null
+) : Declaration() {
+    fun location(): Location =
+        constructors.map { it.id.location }.fold(id.location, Location::plus)
+}
 
 data class TypeConstructor(val id: StringLocation, val parameters: List<TypeTerm>)
 
@@ -356,6 +360,12 @@ data class UnaryExpression(
         op.location + e.location()
 }
 
+data class UpperIDExpression(val v: StringLocation, override var type: Type? = null) :
+    Expression(type) {
+    override fun location(): Location =
+        v.location
+}
+
 data class WhileExpression(val guard: Expression, val body: Expression, override var type: Type? = null) :
     Expression(type) {
     override fun apply(s: Subst, errors: Errors) {
@@ -446,6 +456,6 @@ data class UpperIDType(val v: StringLocation, val parameters: List<TypeTerm>, va
         location
 
     override fun toType(env: Environment): Type =
-        TCon(v.value, parameters.map { it.toType(env) }, location)
+        TCon(v.value, parameters.map { it.toType(env) }, location = location)
 }
 

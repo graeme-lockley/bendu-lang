@@ -291,6 +291,36 @@ class InferenceTest {
             "[a, b] (a) -> (b) -> a"
         )
     }
+
+    @Test
+    fun `infer ADT`() {
+        assertInferExpressionEquals("type Maybe[a] = Just[a] | Nothing; Just(1)", "Maybe[Int]")
+        assertInferExpressionEquals("type Maybe[a] = Just[a] | Nothing; Nothing()", "[a] Maybe[a]")
+
+        assertInferExpressionEquals("type Maybe[a] = Just[a] | Nothing; Just", "[a] (a) -> Maybe[a]")
+        assertInferExpressionEquals("type Maybe[a] = Just[a] | Nothing; Nothing", "[a] () -> Maybe[a]")
+
+        assertInferExpressionEquals("type Maybe[a] = Just[a] | Nothing; let a = Just(1); a", "Maybe[Int]")
+        assertInferExpressionEquals("type Maybe[a] = Just[a] | Nothing; let a = Nothing; a", "[a] () -> Maybe[a]")
+        assertInferExpressionEquals("type Maybe[a] = Just[a] | Nothing; let a = Nothing(); a", "[a] Maybe[a]")
+
+        assertInferExpressionEquals("type Either[a, b] = Left[a] | Right[b]; Left(1)", "[a] Either[Int, a]")
+        assertInferExpressionEquals("type Either[a, b] = Left[a] | Right[b]; Right(1)", "[a] Either[a, Int]")
+
+        assertInferExpressionEquals("type Either[a, b] = Left[a] | Right[b]; Left", "[a, b] (a) -> Either[a, b]")
+        assertInferExpressionEquals("type Either[a, b] = Left[a] | Right[b]; Right", "[a, b] (a) -> Either[b, a]")
+
+        assertInferExpressionEquals("type Either[a, b] = Left[a] | Right[b]; let a = Left(1); a", "[a] Either[Int, a]")
+        assertInferExpressionEquals("type Either[a, b] = Left[a] | Right[b]; let a = Right(1); a", "[a] Either[a, Int]")
+        assertInferExpressionEquals(
+            "type Either[a, b] = Left[a] | Right[b]; let a = Left; a",
+            "[a, b] (a) -> Either[a, b]"
+        )
+        assertInferExpressionEquals(
+            "type Either[a, b] = Left[a] | Right[b]; let a = Right; a",
+            "[a, b] (a) -> Either[b, a]"
+        )
+    }
 }
 
 
@@ -298,6 +328,9 @@ private fun assertInferExpressionEquals(expr: String, expected: String, typeEnv:
     val errors = Errors()
     val ast = infer(CacheManager.useExpression(File("test.bc"), expr), errors = errors, typeEnv = typeEnv)
 
+    if (errors.hasErrors()) {
+        errors.printErrors(false)
+    }
     assertTrue(errors.hasNoErrors())
     assertEquals(expected, ast.es().last().type.toString())
 }

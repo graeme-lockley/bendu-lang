@@ -103,7 +103,7 @@ QualifiedExpressionSuffix
 Factor
     : "(" [Expression {"," Expression}] ")"
     | LowerID
-    | UpperID "." LowerID
+    | UpperID ["." LowerID]
     | LiteralChar
     | LiteralFloat
     | LiteralInt

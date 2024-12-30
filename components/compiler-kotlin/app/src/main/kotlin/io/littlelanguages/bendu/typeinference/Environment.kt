@@ -14,7 +14,18 @@ data class Environment(
 ) {
     private val typeEnvs = mutableListOf(typeEnv)
     private val typeVariables = mutableListOf<MutableMap<String, Pair<Location, Type>>>(mutableMapOf())
+    private val typeDecls = mutableMapOf<String, TypeDecl>()
     private val imports = mutableMapOf<String, ImportBinding>()
+
+    init {
+        typeDecls["Bool"] = TypeDecl("Bool", emptyList(), emptyList())
+        typeDecls["Char"] = TypeDecl("Char", emptyList(), emptyList())
+        typeDecls["Float"] = TypeDecl("Float", emptyList(), emptyList())
+        typeDecls["Int"] = TypeDecl("Int", emptyList(), emptyList())
+        typeDecls["String"] = TypeDecl("String", emptyList(), emptyList())
+        typeDecls["Unit"] = TypeDecl("Unit", emptyList(), emptyList())
+        typeDecls["Error"] = TypeDecl("Error", emptyList(), emptyList())
+    }
 
     fun bind(name: String, location: Location, mutable: Boolean, scheme: Scheme) {
         val binding = typeEnv[name]
@@ -31,14 +42,21 @@ data class Environment(
         typeEnv += (name to Binding(binding.location, binding.mutable, scheme))
     }
 
-    fun bindParameter(name: String, location: Location) {
+    fun bindParameter(name: String, location: Location): TVar {
         val variables = typeVariables[typeVariables.size - 1]
 
         if (variables.containsKey(name)) {
             errors.addError(IdentifierRedefinitionError(StringLocation(name, location), variables[name]!!.first))
         }
 
-        variables[name] = Pair(location, nextVar())
+        val variable = nextVar()
+        variables[name] = Pair(location, variable)
+
+        return variable
+    }
+
+    fun bindTypeDecl(name: String, typeDecl: TypeDecl) {
+        typeDecls[name] = typeDecl
     }
 
     fun openTypeEnv() {
@@ -67,6 +85,9 @@ data class Environment(
 
         return null
     }
+
+    fun typeDecl(name: String): TypeDecl? =
+        typeDecls[name]
 
     fun solveConstraints(): Subst = constraints.solve(errors)
 

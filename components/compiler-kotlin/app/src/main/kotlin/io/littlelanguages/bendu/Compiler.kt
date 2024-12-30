@@ -177,6 +177,7 @@ private class Compiler(val errors: Errors) {
             is PrintlnStatement -> compilePrintlnExpression(expression, keepResult)
             is TypedExpression -> compileExpression(expression.e, keepResult)
             is UnaryExpression -> compileUnaryExpression(expression, keepResult)
+            is UpperIDExpression -> TODO()
             is WhileExpression -> compileWhileExpression(expression, keepResult)
         }
     }

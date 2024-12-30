@@ -21,7 +21,7 @@ fun infer(
 
     val env = Environment(typeEnv, pump, errors, constraints)
     inferImports(entry, ast.imports, env)
-    inferStatements(ast.decs.filterIsInstance<DeclarationExpression>().map { it.e }, env)
+    inferDeclarations(ast.decs, env)
 
     return ast
 }
@@ -85,8 +85,34 @@ private fun inferImport(entry: CacheEntry, index: Int, import: Import, env: Envi
     }
 }
 
-private fun inferStatements(statements: List<Expression>, env: Environment) =
-    statements.forEach { statement -> inferStatement(statement, env) }
+private fun inferDeclarations(decls: List<Declaration>, env: Environment) =
+    decls.forEach { decl ->
+        when (decl) {
+            is DeclarationExpression -> inferStatement(decl.e, env)
+
+            is DeclarationType -> {
+                val inferEnv = Environment(emptyTypeEnv, Pump(), env.errors, Constraints())
+                val tvs = decl.typeParameters.map { parameter ->
+                    inferEnv.bindParameter(parameter.value, parameter.location)
+                }
+
+                val typeDecl = TypeDecl(
+                    decl.id.value,
+                    decl.typeParameters.map { it.value },
+                    decl.constructors.map { Constructor(it.id.value, it.parameters.map { tt -> tt.toType(inferEnv) }) })
+
+                env.bindTypeDecl(decl.id.value, typeDecl)
+                decl.typeDecl = typeDecl
+
+                typeDecl.constructors.forEach { constructor ->
+                    val scheme =
+                        Scheme(tvs.map { it.name }.toSet(), TArr(constructor.parameters, TCon(decl.id.value, tvs)))
+
+                    env.bind(constructor.name, decl.location(), false, scheme)
+                }
+            }
+        }
+    }
 
 private fun inferStatement(statement: Expression, env: Environment) {
     env.resetConstraints()
@@ -96,12 +122,7 @@ private fun inferStatement(statement: Expression, env: Environment) {
     statement.apply(env.solveConstraints(), env.errors)
 
     if (statement is LetStatement) {
-        statement.terms.forEach { term ->
-            env.rebind(
-                term.id.value,
-                env.generalise(term.type!!)
-            )
-        }
+        statement.terms.forEach { term -> env.rebind(term.id.value, env.generalise(term.type!!)) }
     }
 }
 
@@ -211,12 +232,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
                 e.apply(env.solveConstraints(), env.errors)
 
                 if (e is LetStatement) {
-                    e.terms.forEach { term ->
-                        env.rebind(
-                            term.id.value,
-                            env.generalise(term.type!!)
-                        )
-                    }
+                    e.terms.forEach { term -> env.rebind(term.id.value, env.generalise(term.type!!)) }
                 }
             }
             env.closeTypeEnv()
@@ -436,6 +452,17 @@ private fun inferExpression(expression: Expression, env: Environment) {
             val u2 = env.instantiateScheme(unaryOperatorSignatures[expression.op.op] ?: Scheme(setOf(), typeError))
 
             env.addConstraint(u1, u2)
+        }
+
+        is UpperIDExpression -> {
+            val binding = env.binding(expression.v.value)
+
+            if (binding == null) {
+                env.errors.addError(UnknownIdentifierError(expression.v))
+                expression.type = typeError.withLocation(expression.location())
+            } else {
+                expression.type = env.instantiateScheme(binding.scheme).withLocation(expression.location())
+            }
         }
 
         is WhileExpression -> {
