@@ -136,20 +136,22 @@ private class Compiler(val errors: Errors) {
                     val jumpOffset = byteBuilder.size()
                     byteBuilder.appendInt(0)
 
-                    declaration.constructors.forEachIndexed { idx, constructor ->
-                        val binding = symbolTable.bindFunction(constructor.id.value, false)
-                        binding.codeOffset = byteBuilder.size()
+                    declaration.declarations.forEach { typeDecl ->
+                        typeDecl.constructors.forEachIndexed { idx, constructor ->
+                            val binding = symbolTable.bindFunction(constructor.id.value, false)
+                            binding.codeOffset = byteBuilder.size()
 
-                        for (i in 0 until constructor.parameters.size) {
-                            byteBuilder.appendInstruction(Instructions.LOAD)
-                            byteBuilder.appendInt(0)
-                            byteBuilder.appendInt(i)
+                            for (i in 0 until constructor.parameters.size) {
+                                byteBuilder.appendInstruction(Instructions.LOAD)
+                                byteBuilder.appendInt(0)
+                                byteBuilder.appendInt(i)
+                            }
+                            byteBuilder.appendInstruction(Instructions.PUSH_CUSTOM)
+                            byteBuilder.appendString(constructor.id.value)
+                            byteBuilder.appendInt(idx)
+                            byteBuilder.appendInt(constructor.parameters.size)
+                            byteBuilder.appendInstruction(Instructions.RET)
                         }
-                        byteBuilder.appendInstruction(Instructions.PUSH_CUSTOM)
-                        byteBuilder.appendString(constructor.id.value)
-                        byteBuilder.appendInt(idx)
-                        byteBuilder.appendInt(constructor.parameters.size)
-                        byteBuilder.appendInstruction(Instructions.RET)
                     }
 
                     byteBuilder.writeIntAtPosition(jumpOffset, byteBuilder.size())

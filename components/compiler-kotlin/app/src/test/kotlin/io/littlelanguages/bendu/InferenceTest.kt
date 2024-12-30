@@ -345,6 +345,9 @@ class InferenceTest {
             "type List[a] = Nil | Cons[a, List[a]] ; fn(x) = fn(xs) = Cons(x, xs)",
             "[a] (a) -> (List[a]) -> List[a]"
         )
+
+        assertInferExpressionEquals("type A[a] = ANil | AB[B[a]] and B[a] = BNil | BA[A[a]]; ANil", "[a] () -> A[a]")
+        assertInferExpressionEquals("type A[a] = ANil | AB[B[a]] and B[a] = BNil | BA[A[a]]; AB(BNil())", "[a] A[a]")
     }
 }
 

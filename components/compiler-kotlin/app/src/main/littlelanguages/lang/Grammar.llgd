@@ -13,8 +13,12 @@ ImportDeclaration
     ;
 
 Declaration
-    : "type" UpperID [TypeParameters] "=" TypeConstructor {"|" TypeConstructor}
+    : "type" TypeDeclaration {"and" TypeDeclaration}
     | Expression
+    ;
+
+TypeDeclaration
+    : UpperID [TypeParameters] "=" TypeConstructor {"|" TypeConstructor}
     ;
 
 TypeConstructor

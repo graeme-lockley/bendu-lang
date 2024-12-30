@@ -36,11 +36,18 @@ sealed class Declaration
 data class DeclarationExpression(val e: Expression) : Declaration()
 
 data class DeclarationType(
+    val declarations: List<TypeDeclaration>
+) : Declaration() {
+    fun location(): Location =
+        declarations.map { it.location() }.fold(declarations[0].location(), Location::plus)
+}
+
+data class TypeDeclaration(
     val id: StringLocation,
     val typeParameters: List<StringLocation>,
     val constructors: List<TypeConstructor>,
     var typeDecl: TypeDecl? = null
-) : Declaration() {
+) {
     fun location(): Location =
         constructors.map { it.id.location }.fold(id.location, Location::plus)
 }

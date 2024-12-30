@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const Pointer = @import("pointer.zig");
+const SP = @import("string_pool.zig");
 
 pub const Colour = enum(u2) {
     Black = 0,
@@ -17,6 +18,7 @@ pub const Value = struct {
         switch (self.v) {
             .ArrayKind => self.v.ArrayKind.deinit(),
             .ClosureKind => self.v.ClosureKind.deinit(),
+            .CustomKind => self.v.CustomKind.deinit(allocator),
             .FrameKind => self.v.FrameKind.deinit(),
             .TupleKind => self.v.TupleKind.deinit(allocator),
         }
@@ -26,6 +28,7 @@ pub const Value = struct {
 pub const ValueKind = enum {
     ArrayKind,
     ClosureKind,
+    CustomKind,
     FrameKind,
     TupleKind,
 
@@ -33,6 +36,7 @@ pub const ValueKind = enum {
         return switch (self) {
             ValueKind.ArrayKind => "Array",
             ValueKind.ClosureKind => "Closure",
+            ValueKind.CustomKind => "Custom",
             ValueKind.FrameKind => "Frame",
             ValueKind.TupleKind => "Tuple",
         };
@@ -42,6 +46,7 @@ pub const ValueKind = enum {
 pub const ValueValue = union(ValueKind) {
     ArrayKind: ArrayValue,
     ClosureKind: ClosureValue,
+    CustomKind: CustomValue,
     FrameKind: FrameValue,
     TupleKind: TupleValue,
 };
@@ -129,6 +134,33 @@ pub const ClosureValue = struct {
     }
 };
 
+pub const CustomValue = struct {
+    name: *SP.String,
+    id: usize,
+    values: []Pointer.Pointer,
+
+    pub fn init(allocator: std.mem.Allocator, name: *SP.String, id: usize, size: usize) !CustomValue {
+        const result = CustomValue{
+            .name = name,
+            .id = id,
+            .values = try allocator.alloc(Pointer.Pointer, size),
+        };
+
+        return result;
+    }
+
+    pub fn deinit(self: *CustomValue, allocator: std.mem.Allocator) void {
+        self.name.decRef();
+        for (self.values) |v| {
+            if (Pointer.isString(v)) {
+                Pointer.asString(v).decRef();
+            }
+        }
+
+        allocator.free(self.values);
+    }
+};
+
 pub const FrameValue = struct {
     enclosing: ?*Value,
     values: std.ArrayList(Pointer.Pointer),
@@ -144,9 +176,7 @@ pub const FrameValue = struct {
 
     pub fn deinit(self: *FrameValue) void {
         for (self.values.items) |v| {
-            if (Pointer.isString(v)) {
-                Pointer.asString(v).decRef();
-            }
+            decRef(v);
         }
         self.values.deinit();
     }
@@ -201,9 +231,7 @@ pub const TupleValue = struct {
 
     pub fn deinit(self: *TupleValue, allocator: std.mem.Allocator) void {
         for (self.values) |v| {
-            if (Pointer.isString(v)) {
-                Pointer.asString(v).decRef();
-            }
+            decRef(v);
         }
 
         allocator.free(self.values);
