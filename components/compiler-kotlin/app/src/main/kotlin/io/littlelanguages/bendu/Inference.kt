@@ -3,6 +3,7 @@ package io.littlelanguages.bendu
 import io.littlelanguages.bendu.cache.FunctionExport
 import io.littlelanguages.bendu.cache.ValueExport
 import io.littlelanguages.bendu.typeinference.*
+import io.littlelanguages.scanpiler.Location
 
 private const val LITERAL_FIX_NAME = "[bob]"
 
@@ -91,28 +92,51 @@ private fun inferDeclarations(decls: List<Declaration>, env: Environment) =
             is DeclarationExpression -> inferStatement(decl.e, env)
 
             is DeclarationType -> {
-                val inferEnv = Environment(emptyTypeEnv, Pump(), env.errors, Constraints())
-                val tvs = decl.typeParameters.map { parameter ->
-                    inferEnv.bindParameter(parameter.value, parameter.location)
-                }
+                val inferEnv = ASTInference(env)
+                val tvs =
+                    decl.typeParameters.map { parameter -> inferEnv.bindParameter(parameter.value, parameter.location) }
+                val tvsIds = tvs.map { it.name }
 
                 val typeDecl = TypeDecl(
                     decl.id.value,
-                    decl.typeParameters.map { it.value },
+                    tvsIds,
                     decl.constructors.map { Constructor(it.id.value, it.parameters.map { tt -> tt.toType(inferEnv) }) })
-
                 env.bindTypeDecl(decl.id.value, typeDecl)
                 decl.typeDecl = typeDecl
 
                 typeDecl.constructors.forEach { constructor ->
                     val scheme =
-                        Scheme(tvs.map { it.name }.toSet(), TArr(constructor.parameters, TCon(decl.id.value, tvs)))
+                        Scheme(tvsIds.toSet(), TArr(constructor.parameters, TCon(decl.id.value, tvs)))
 
                     env.bind(constructor.name, decl.location(), false, scheme)
                 }
             }
         }
     }
+
+class ASTInference(private val env: Environment) : ASTTypeToTypeEnvironment {
+    private val typeVariables = mutableMapOf<String, Pair<Location, Type>>()
+
+    override fun parameter(name: String): Type? =
+        typeVariables[name]?.second
+
+    override fun typeDecl(name: String): TypeDecl? =
+        env.typeDecl(name)
+
+    override fun bindParameter(name: String, location: Location): TVar {
+        if (typeVariables.containsKey(name)) {
+            addError(IdentifierRedefinitionError(StringLocation(name, location), typeVariables[name]!!.first))
+        }
+
+        val variable = env.nextVar()
+        typeVariables[name] = Pair(location, variable)
+
+        return variable
+    }
+
+    override fun addError(error: BenduError) =
+        env.addError(error)
+}
 
 private fun inferStatement(statement: Expression, env: Environment) {
     env.resetConstraints()

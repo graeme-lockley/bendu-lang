@@ -93,7 +93,16 @@ The following is the list of big features that need to be implemented.
 
 ## Abstract Data Types
 
-- [ ] Parse ADT
+- [x] Parse ADT
+- [x] Incorporate ADT into type inference
+- [ ] Compile ADT
+- [ ] Make an ADT exportable
+      - [ ] Enhance cache grammar to incorporate ADTs
+      - [ ] Enhance lang grammar to allow ADTs to be exported
+      - [ ] Incorporate ADTs into the sig file
+      - [ ] Include ADTs in import all
+      - [ ] Include ADTs in import as
+      - [ ] Include ADTs in import exposing
 
 ## Arrays
 

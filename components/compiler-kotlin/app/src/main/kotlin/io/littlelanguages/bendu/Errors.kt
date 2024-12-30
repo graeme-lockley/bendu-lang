@@ -143,9 +143,15 @@ data class UnknownIdentifierError(val id: StringLocation) : BenduError() {
     }
 }
 
+data class UnknownTypeError(val id: String, val location: Location) : BenduError() {
+    override fun printError() {
+        printMessage("Unknown Type", "$id at ${locationToString(location)}")
+    }
+}
+
 data class UnknownTypeVariableError(val id: String, val location: Location) : BenduError() {
     override fun printError() {
-        printMessage("Unknown Type Variable", "${id} at ${locationToString(location)}")
+        printMessage("Unknown Type Variable", "$id at ${locationToString(location)}")
     }
 }
 

@@ -1,17 +1,26 @@
 package io.littlelanguages.bendu.typeinference
 
+import io.littlelanguages.bendu.BenduError
 import io.littlelanguages.bendu.Errors
 import io.littlelanguages.bendu.IdentifierRedefinitionError
 import io.littlelanguages.bendu.StringLocation
 import io.littlelanguages.bendu.cache.ScriptExport
 import io.littlelanguages.scanpiler.Location
 
+interface ASTTypeToTypeEnvironment {
+    fun parameter(name: String): Type?
+    fun typeDecl(name: String): TypeDecl?
+    fun bindParameter(name: String, location: Location): TVar
+
+    fun addError(error: BenduError)
+}
+
 data class Environment(
     private var typeEnv: TypeEnv,
     private val pump: Pump,
     val errors: Errors,
     private val constraints: Constraints
-) {
+) : ASTTypeToTypeEnvironment {
     private val typeEnvs = mutableListOf(typeEnv)
     private val typeVariables = mutableListOf<MutableMap<String, Pair<Location, Type>>>(mutableMapOf())
     private val typeDecls = mutableMapOf<String, TypeDecl>()
@@ -25,6 +34,8 @@ data class Environment(
         typeDecls["String"] = TypeDecl("String", emptyList(), emptyList())
         typeDecls["Unit"] = TypeDecl("Unit", emptyList(), emptyList())
         typeDecls["Error"] = TypeDecl("Error", emptyList(), emptyList())
+
+        typeDecls["Array"] = TypeDecl("Array", listOf(1), listOf(Constructor("Array", listOf(TVar(1)))))
     }
 
     fun bind(name: String, location: Location, mutable: Boolean, scheme: Scheme) {
@@ -42,7 +53,7 @@ data class Environment(
         typeEnv += (name to Binding(binding.location, binding.mutable, scheme))
     }
 
-    fun bindParameter(name: String, location: Location): TVar {
+    override fun bindParameter(name: String, location: Location): TVar {
         val variables = typeVariables[typeVariables.size - 1]
 
         if (variables.containsKey(name)) {
@@ -71,7 +82,7 @@ data class Environment(
 
     fun binding(name: String): Binding? = typeEnv[name]
 
-    fun parameter(name: String): Type? {
+    override fun parameter(name: String): Type? {
         var i = typeVariables.size - 1
         while (i >= 0) {
             val type = typeVariables[i][name]
@@ -86,7 +97,7 @@ data class Environment(
         return null
     }
 
-    fun typeDecl(name: String): TypeDecl? =
+    override fun typeDecl(name: String): TypeDecl? =
         typeDecls[name]
 
     fun solveConstraints(): Subst = constraints.solve(errors)
@@ -117,6 +128,10 @@ data class Environment(
 
     fun getImport(value: String): ImportBinding? =
         imports[value]
+
+    override fun addError(error: BenduError) {
+        errors.addError(error)
+    }
 }
 
 typealias ImportBinding = Pair<Int, Map<String, ScriptExport>>

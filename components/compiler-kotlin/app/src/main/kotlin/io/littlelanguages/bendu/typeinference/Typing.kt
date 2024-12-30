@@ -90,7 +90,7 @@ data class TCon(val name: String, val args: List<Type> = emptyList(), override v
     override fun ftv(): Set<Var> = args.fold(emptySet()) { acc, t -> acc + t.ftv() }
 
     override fun withLocation(location: Location?): Type =
-        TCon(name, args, location)
+        TCon(name, args, location = location)
 
     override fun isSimilar(other: Type): Boolean =
         other is TCon && other.name == name && other.args.size == args.size && args.zip(other.args)

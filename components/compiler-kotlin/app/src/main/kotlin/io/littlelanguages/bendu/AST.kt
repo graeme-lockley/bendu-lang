@@ -415,7 +415,7 @@ enum class UnaryOp { Not, TypeOf }
 sealed class TypeTerm {
     abstract fun location(): Location
 
-    abstract fun toType(env: Environment): Type
+    abstract fun toType(env: ASTTypeToTypeEnvironment): Type
 }
 
 data class FunctionType(val parameters: List<TypeTerm>, val returnType: TypeTerm, val location: Location) :
@@ -423,7 +423,7 @@ data class FunctionType(val parameters: List<TypeTerm>, val returnType: TypeTerm
     override fun location(): Location =
         location
 
-    override fun toType(env: Environment): Type =
+    override fun toType(env: ASTTypeToTypeEnvironment): Type =
         TArr(parameters.map { it.toType(env) }, returnType.toType(env))
 }
 
@@ -431,11 +431,11 @@ data class LowerIDType(val v: StringLocation) : TypeTerm() {
     override fun location(): Location =
         v.location
 
-    override fun toType(env: Environment): Type {
+    override fun toType(env: ASTTypeToTypeEnvironment): Type {
         val parameter = env.parameter(v.value)
 
         if (parameter == null) {
-            env.errors.addError(UnknownTypeVariableError(v.value, v.location))
+            env.addError(UnknownTypeVariableError(v.value, v.location))
             return typeError
         } else {
             return parameter
@@ -447,7 +447,7 @@ data class TupleType(val types: List<TypeTerm>, val location: Location) : TypeTe
     override fun location(): Location =
         location
 
-    override fun toType(env: Environment): Type =
+    override fun toType(env: ASTTypeToTypeEnvironment): Type =
         TTuple(types.map { it.toType(env) })
 }
 
@@ -455,7 +455,15 @@ data class UpperIDType(val v: StringLocation, val parameters: List<TypeTerm>, va
     override fun location(): Location =
         location
 
-    override fun toType(env: Environment): Type =
-        TCon(v.value, parameters.map { it.toType(env) }, location = location)
+    override fun toType(env: ASTTypeToTypeEnvironment): Type {
+        val typeDecl = env.typeDecl(v.value)
+
+        if (typeDecl == null) {
+            env.addError(UnknownTypeError(v.value, v.location))
+            return typeError
+        } else {
+            return TCon(v.value, parameters.map { it.toType(env) }, location = location)
+        }
+    }
 }
 

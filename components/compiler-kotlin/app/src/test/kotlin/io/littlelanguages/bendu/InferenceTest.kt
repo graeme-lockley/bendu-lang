@@ -320,6 +320,22 @@ class InferenceTest {
             "type Either[a, b] = Left[a] | Right[b]; let a = Right; a",
             "[a, b] (a) -> Either[b, a]"
         )
+
+        assertInferExpressionEquals("type Maybe[a] = Just[a] | Nothing; Just([1, 2, 3])", "Maybe[Array[Int]]")
+        assertInferExpressionEquals("type Maybe[a] = Just[a] | Nothing; Just([]: Array[Int])", "Maybe[Array[Int]]")
+
+        assertInferExpressionEquals(
+            "type Maybe[a] = Just[a] | Nothing; type Either[a, b] = Left[a] | Right[b]; Just(Left(1): Either[Int, String])",
+            "Maybe[Either[Int, String]]"
+        )
+        assertInferExpressionEquals(
+            "type Either[a, b] = Left[a] | Right[b]; type EitherLeft[a] = EitherLeft[Either[Int, a]]; EitherLeft(Left(1))",
+            "[a] EitherLeft[a]"
+        )
+        assertInferExpressionEquals(
+            "type Either[a, b] = Left[a] | Right[b]; type EitherLeft[a] = EitherLeft[Either[Int, a]]; EitherLeft(Right(\"hello\"))",
+            "EitherLeft[String]"
+        )
     }
 }
 
