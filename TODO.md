@@ -96,10 +96,10 @@ The following is the list of big features that need to be implemented.
 - [x] Parse ADT
 - [x] Incorporate ADT into type inference
 - [x] Compile ADT
-- [ ] Recursive ADTs
-      - [ ] Parse recursive ADT
-      - [ ] Incorporate recursive ADT into type inference
-      - [ ] Compile recursive ADTs
+- [x] Recursive ADTs
+      - [x] Parse recursive ADT
+      - [x] Incorporate recursive ADT into type inference
+      - [x] Compile recursive ADTs
 - [ ] Make an ADT exportable
       - [ ] Enhance cache grammar to incorporate ADTs
       - [ ] Enhance lang grammar to allow ADTs to be exported
