@@ -23,6 +23,22 @@ pub fn neq(p1: Pointer.Pointer, p2: Pointer.Pointer) bool {
                 return false;
             },
             .ClosureKind => return p1 != p2,
+            .CustomKind => {
+                const v2 = Pointer.as(*Memory.Value, p2);
+
+                if (v1.v.CustomKind.name != v2.v.CustomKind.name) {
+                    return true;
+                }
+                if (v1.v.CustomKind.id != v2.v.CustomKind.id) {
+                    return true;
+                }
+                for (0..v1.v.CustomKind.values.len) |i| {
+                    if (neq(v1.v.CustomKind.values[i], v2.v.CustomKind.values[i])) {
+                        return true;
+                    }
+                }
+                return false;
+            },
             .FrameKind => return p1 != p2,
             .TupleKind => {
                 const v2 = Pointer.as(*Memory.Value, p2);

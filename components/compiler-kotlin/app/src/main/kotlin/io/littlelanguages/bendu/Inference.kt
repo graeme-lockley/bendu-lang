@@ -93,24 +93,44 @@ private fun inferDeclarations(decls: List<Declaration>, env: Environment) =
 
             is DeclarationType -> {
                 val inferEnv = ASTInference(env)
-                val tvs =
-                    decl.typeParameters.map { parameter -> inferEnv.bindParameter(parameter.value, parameter.location) }
-                val tvsIds = tvs.map { it.name }
+                val tvss = mutableListOf<Pair<List<TVar>, List<Var>>>()
 
-                inferEnv.bindTypeDecl(decl.id.value, TypeDecl(decl.id.value, tvsIds, emptyList()))
+                decl.declarations.forEach { declaration ->
+                    inferEnv.clearParameters()
+                    val tvs = declaration.typeParameters.map { parameter ->
+                        inferEnv.bindParameter(
+                            parameter.value,
+                            parameter.location
+                        )
+                    }
+                    val tvsIds = tvs.map { it.name }
+                    tvss.add(Pair(tvs, tvsIds))
 
-                val typeDecl = TypeDecl(
-                    decl.id.value,
-                    tvsIds,
-                    decl.constructors.map { Constructor(it.id.value, it.parameters.map { tt -> tt.toType(inferEnv) }) })
-                env.bindTypeDecl(decl.id.value, typeDecl)
-                decl.typeDecl = typeDecl
+                    inferEnv.bindTypeDecl(declaration.id.value, TypeDecl(declaration.id.value, tvsIds, emptyList()))
+                }
 
-                typeDecl.constructors.forEach { constructor ->
-                    val scheme =
-                        Scheme(tvsIds.toSet(), TArr(constructor.parameters, TCon(decl.id.value, tvs)))
+                decl.declarations.forEachIndexed { idx, declaration ->
+                    val tvs = tvss[idx].first
+                    val tvsIds = tvss[idx].second
 
-                    env.bind(constructor.name, decl.location(), false, scheme)
+
+                    val typeDecl = TypeDecl(
+                        declaration.id.value,
+                        tvsIds,
+                        declaration.constructors.map {
+                            Constructor(
+                                it.id.value,
+                                it.parameters.map { tt -> tt.toType(inferEnv) })
+                        })
+                    env.bindTypeDecl(declaration.id.value, typeDecl)
+                    declaration.typeDecl = typeDecl
+
+                    typeDecl.constructors.forEach { constructor ->
+                        val scheme =
+                            Scheme(tvsIds.toSet(), TArr(constructor.parameters, TCon(declaration.id.value, tvs)))
+
+                        env.bind(constructor.name, decl.location(), false, scheme)
+                    }
                 }
             }
         }
@@ -122,6 +142,10 @@ class ASTInference(private val env: Environment) : ASTTypeToTypeEnvironment {
 
     override fun parameter(name: String): Type? =
         typeVariables[name]?.second
+
+    fun clearParameters() {
+        typeVariables.clear()
+    }
 
     override fun typeDecl(name: String): TypeDecl? =
         typeDecls[name] ?: env.typeDecl(name)

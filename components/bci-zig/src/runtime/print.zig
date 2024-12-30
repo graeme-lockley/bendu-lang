@@ -29,6 +29,17 @@ pub fn print(value: Pointer.Pointer) !void {
                 try stdout.print("]", .{});
             },
             .ClosureKind => try stdout.print("fn", .{}),
+            .CustomKind => {
+                try stdout.print("{s}", .{v.v.CustomKind.name.slice()});
+                try stdout.print("(", .{});
+                for (v.v.CustomKind.values, 0..) |item, i| {
+                    if (i > 0) {
+                        try stdout.print(", ", .{});
+                    }
+                    try print(item);
+                }
+                try stdout.print(")", .{});
+            },
             .FrameKind => try stdout.print("frame", .{}),
             .TupleKind => {
                 try stdout.print("(", .{});
