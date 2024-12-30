@@ -404,6 +404,17 @@ pub const Runtime = struct {
         _ = try self.pushNewValue(Memory.ValueValue{ .ClosureKind = Memory.ClosureValue.init(packageID, function, frame) });
     }
 
+    pub inline fn push_custom(self: *Runtime, name: []const u8, id: usize, arity: usize) !void {
+        const custom = try self.pushNewValue(Memory.ValueValue{ .CustomKind = try Memory.CustomValue.init(self.allocator, try self.sp.intern(name), id, arity) });
+
+        const value = self.pop();
+        for (0..arity) |i| {
+            custom.v.CustomKind.values[arity - i - 1] = self.pop();
+        }
+
+        try self.push(value);
+    }
+
     pub inline fn push_f32_literal(self: *Runtime, value: f32) !void {
         try self.stack.append(Pointer.fromFloat(value));
     }
@@ -1030,6 +1041,11 @@ fn markValue(v: *Memory.Value, colour: Memory.Colour) void {
         },
         .ClosureKind => {
             markValue(v.v.ClosureKind.frame, colour);
+        },
+        .CustomKind => {
+            for (v.v.CustomKind.values) |item| {
+                markPointer(item, colour);
+            }
         },
         .FrameKind => {
             if (v.v.FrameKind.enclosing != null) {

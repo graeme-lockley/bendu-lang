@@ -81,13 +81,15 @@ class SymbolTable(private val byteBuilder: ByteBuilder) {
         return binding
     }
 
-    fun bindFunction(name: String, mutable: Boolean) {
+    fun bindFunction(name: String, mutable: Boolean): FunctionBinding {
         val binding = if (mutable)
             FunctionBinding(frameOffset = scope.offset++)
         else
             FunctionBinding()
 
         scope.bindings[name] = binding
+
+        return binding
     }
 
     fun bindFunctionExport(name: String, index: Int, codeOffset: Int, frameOffset: Int?) {

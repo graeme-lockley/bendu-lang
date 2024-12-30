@@ -336,6 +336,15 @@ class InferenceTest {
             "type Either[a, b] = Left[a] | Right[b]; type EitherLeft[a] = EitherLeft[Either[Int, a]]; EitherLeft(Right(\"hello\"))",
             "EitherLeft[String]"
         )
+
+        assertInferExpressionEquals("type List[a] = Nil | Cons[a, List[a]] ; Cons(10, Nil())", "List[Int]")
+        assertInferExpressionEquals("type List[a] = Nil | Cons[a, List[a]] ; Nil()", "[a] List[a]")
+        assertInferExpressionEquals("type List[a] = Nil | Cons[a, List[a]] ; Nil", "[a] () -> List[a]")
+        assertInferExpressionEquals("type List[a] = Nil | Cons[a, List[a]] ; Cons", "[a] (a, List[a]) -> List[a]")
+        assertInferExpressionEquals(
+            "type List[a] = Nil | Cons[a, List[a]] ; fn(x) = fn(xs) = Cons(x, xs)",
+            "[a] (a) -> (List[a]) -> List[a]"
+        )
     }
 }
 

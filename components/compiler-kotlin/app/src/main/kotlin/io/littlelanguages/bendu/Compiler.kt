@@ -131,7 +131,29 @@ private class Compiler(val errors: Errors) {
                     }
                 }
 
-                is DeclarationType -> TODO()
+                is DeclarationType -> {
+                    byteBuilder.appendInstruction(Instructions.JMP)
+                    val jumpOffset = byteBuilder.size()
+                    byteBuilder.appendInt(0)
+
+                    declaration.constructors.forEachIndexed { idx, constructor ->
+                        val binding = symbolTable.bindFunction(constructor.id.value, false)
+                        binding.codeOffset = byteBuilder.size()
+
+                        for (i in 0 until constructor.parameters.size) {
+                            byteBuilder.appendInstruction(Instructions.LOAD)
+                            byteBuilder.appendInt(0)
+                            byteBuilder.appendInt(i)
+                        }
+                        byteBuilder.appendInstruction(Instructions.PUSH_CUSTOM)
+                        byteBuilder.appendString(constructor.id.value)
+                        byteBuilder.appendInt(idx)
+                        byteBuilder.appendInt(constructor.parameters.size)
+                        byteBuilder.appendInstruction(Instructions.RET)
+                    }
+
+                    byteBuilder.writeIntAtPosition(jumpOffset, byteBuilder.size())
+                }
             }
         }
 
@@ -177,7 +199,7 @@ private class Compiler(val errors: Errors) {
             is PrintlnStatement -> compilePrintlnExpression(expression, keepResult)
             is TypedExpression -> compileExpression(expression.e, keepResult)
             is UnaryExpression -> compileUnaryExpression(expression, keepResult)
-            is UpperIDExpression -> TODO()
+            is UpperIDExpression -> compileIDExpression(expression.v, keepResult)
             is WhileExpression -> compileWhileExpression(expression, keepResult)
         }
     }
@@ -227,6 +249,22 @@ private class Compiler(val errors: Errors) {
 
                 return
             }
+        } else if (expression.f is UpperIDExpression) {
+            val (binding, depth) = symbolTable.findIndexed(expression.f.v.value)!!
+
+            expression.arguments.forEach { e ->
+                compileExpression(e)
+            }
+            byteBuilder.appendInstruction(Instructions.CALL)
+            byteBuilder.appendInt((binding as FunctionBinding).codeOffset)
+            byteBuilder.appendInt(expression.arguments.size)
+            byteBuilder.appendInt(depth)
+
+            if (!keepResult) {
+                byteBuilder.appendInstruction(Instructions.DISCARD)
+            }
+
+            return
         } else if (expression.f is ModuleReferenceExpression && expression.f.declaration?.mutable != true) {
             val b = expression.f.declaration!! as FunctionExport
 
@@ -833,10 +871,14 @@ private class Compiler(val errors: Errors) {
     }
 
     private fun compileLowerIDExpression(expression: LowerIDExpression, keepResult: Boolean) {
+        compileIDExpression(expression.v, keepResult)
+    }
+
+    private fun compileIDExpression(id: StringLocation, keepResult: Boolean) {
         if (keepResult) {
-            val symbol = symbolTable.findIndexed(expression.v.value)
+            val symbol = symbolTable.findIndexed(id.value)
             if (symbol == null) {
-                throw IllegalArgumentException("${expression.v.value} referenced at ${expression.v.location} not found")
+                throw IllegalArgumentException("${id.value} referenced at ${id.location} not found")
             } else {
                 val (binding, depth) = symbol
 

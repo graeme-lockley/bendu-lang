@@ -9,7 +9,9 @@ tokens
     UpperID = upperID {digit | id};
 
 comments
-   "--" {!cr};
+   "//" {!cr};
+   "#" {!cr};
+   "/*" to "*/" nested;
 
 whitespace
   chr(0)-' ';

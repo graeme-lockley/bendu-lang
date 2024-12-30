@@ -65,6 +65,24 @@
       "description": "Create a closure for a function with the frame.  The frame, starting at 0 indicates how many frames to traverse to get to the correct frame."
     },
     {
+      "name": "PUSH_CUSTOM",
+      "args": [
+        {
+          "name": "constructor_name",
+          "type": "string"
+        },
+        {
+          "name": "id",
+          "type": "u32"
+        },
+        {
+          "name": "arity",
+          "type": "u32"
+        }
+      ],
+      "description": "Pushes a custom value from the top arity number of values on the stack."
+    },
+    {
       "name": "PUSH_F32_LITERAL",
       "args": [
         {

@@ -97,6 +97,8 @@ private fun inferDeclarations(decls: List<Declaration>, env: Environment) =
                     decl.typeParameters.map { parameter -> inferEnv.bindParameter(parameter.value, parameter.location) }
                 val tvsIds = tvs.map { it.name }
 
+                inferEnv.bindTypeDecl(decl.id.value, TypeDecl(decl.id.value, tvsIds, emptyList()))
+
                 val typeDecl = TypeDecl(
                     decl.id.value,
                     tvsIds,
@@ -116,12 +118,13 @@ private fun inferDeclarations(decls: List<Declaration>, env: Environment) =
 
 class ASTInference(private val env: Environment) : ASTTypeToTypeEnvironment {
     private val typeVariables = mutableMapOf<String, Pair<Location, Type>>()
+    private val typeDecls = mutableMapOf<String, TypeDecl>()
 
     override fun parameter(name: String): Type? =
         typeVariables[name]?.second
 
     override fun typeDecl(name: String): TypeDecl? =
-        env.typeDecl(name)
+        typeDecls[name] ?: env.typeDecl(name)
 
     override fun bindParameter(name: String, location: Location): TVar {
         if (typeVariables.containsKey(name)) {
@@ -132,6 +135,10 @@ class ASTInference(private val env: Environment) : ASTTypeToTypeEnvironment {
         typeVariables[name] = Pair(location, variable)
 
         return variable
+    }
+
+    override fun bindTypeDecl(name: String, typeDecl: TypeDecl) {
+        typeDecls[name] = typeDecl
     }
 
     override fun addError(error: BenduError) =

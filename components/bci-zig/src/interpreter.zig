@@ -113,6 +113,20 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
 
                 ip += 8;
             },
+            .push_custom => {
+                const nameLen: usize = @intCast(readi32(bc, ip));
+                const name = bc[ip + 4 .. ip + 4 + @as(usize, @intCast(nameLen))];
+
+                const id: usize = @intCast(readi32(bc, ip + 4 + nameLen));
+                const arity: usize = @intCast(readi32(bc, ip + 8 + nameLen));
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d} {d}: push_custom: name={s}, id={d}, size={d}\n", .{ ip - 1, fp, runtime.stack.items.len, name, id, arity });
+                }
+
+                try runtime.push_custom(name, id, arity);
+                ip += 12 + nameLen;
+            },
             .push_f32_literal => {
                 const value = readf32(bc, ip);
 

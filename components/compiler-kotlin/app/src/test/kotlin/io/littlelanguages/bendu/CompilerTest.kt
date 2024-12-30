@@ -1064,6 +1064,64 @@ class CompilerTest {
             "import \"test/test.bendu\" as T; T.valueB := 30"
         )
     }
+
+    @Test
+    fun `ADT constructors`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.JMP.op,
+                0, 0, 0, 50,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.PUSH_CUSTOM.op,
+                0, 0, 0, 4,
+                'S'.code.toByte(), 'o'.code.toByte(), 'm'.code.toByte(), 'e'.code.toByte(),
+                0, 0, 0, 0,
+                0, 0, 0, 1,
+                Instructions.RET.op,
+                Instructions.PUSH_CUSTOM.op,
+                0, 0, 0, 4,
+                'N'.code.toByte(), 'o'.code.toByte(), 'n'.code.toByte(), 'e'.code.toByte(),
+                0, 0, 0, 1,
+                0, 0, 0, 0,
+                Instructions.RET.op,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 10,
+                Instructions.CALL.op,
+                0, 0, 0, 5,
+                0, 0, 0, 1,
+                0, 0, 0, 0,
+            ),
+            "type Option[a] = Some[a] | None ; Some(10)"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.JMP.op,
+                0, 0, 0, 50,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.PUSH_CUSTOM.op,
+                0, 0, 0, 4,
+                'S'.code.toByte(), 'o'.code.toByte(), 'm'.code.toByte(), 'e'.code.toByte(),
+                0, 0, 0, 0,
+                0, 0, 0, 1,
+                Instructions.RET.op,
+                Instructions.PUSH_CUSTOM.op,
+                0, 0, 0, 4,
+                'N'.code.toByte(), 'o'.code.toByte(), 'n'.code.toByte(), 'e'.code.toByte(),
+                0, 0, 0, 1,
+                0, 0, 0, 0,
+                Instructions.RET.op,
+                Instructions.PUSH_CLOSURE.op,
+                0, 0, 0, 5,
+                0, 0, 0, 0,
+            ),
+            "type Option[a] = Some[a] | None ; Some"
+        )
+    }
 }
 
 private fun successfulCompile(input: String): ByteArray {

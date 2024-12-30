@@ -9,8 +9,10 @@ import io.littlelanguages.scanpiler.Location
 
 interface ASTTypeToTypeEnvironment {
     fun parameter(name: String): Type?
-    fun typeDecl(name: String): TypeDecl?
     fun bindParameter(name: String, location: Location): TVar
+
+    fun typeDecl(name: String): TypeDecl?
+    fun bindTypeDecl(name: String, typeDecl: TypeDecl)
 
     fun addError(error: BenduError)
 }
@@ -66,7 +68,7 @@ data class Environment(
         return variable
     }
 
-    fun bindTypeDecl(name: String, typeDecl: TypeDecl) {
+    override fun bindTypeDecl(name: String, typeDecl: TypeDecl) {
         typeDecls[name] = typeDecl
     }
 
