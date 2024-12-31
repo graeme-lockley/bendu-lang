@@ -278,6 +278,11 @@ class InferenceTest {
             "import \"test/test.bendu\" exposing (constant) ; constant",
             "[a, b] (a) -> (b) -> a"
         )
+
+        assertInferExpressionEquals(
+            "import \"../../../docs/example.bendu\" as E exposing (pi) ; E.constant",
+            "[a, b] (a) -> (b) -> a"
+        )
     }
 
     @Test
@@ -293,7 +298,7 @@ class InferenceTest {
     }
 
     @Test
-    fun `infer ADT`() {
+    fun `infer Custom Data Type`() {
         assertInferExpressionEquals("type Maybe[a] = Just[a] | Nothing; Just(1)", "Maybe[Int]")
         assertInferExpressionEquals("type Maybe[a] = Just[a] | Nothing; Nothing()", "[a] Maybe[a]")
 

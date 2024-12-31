@@ -930,6 +930,24 @@ class CompilerTest {
             ),
             "import \"test/test.bendu\" as T; T.funB"
         )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.CALL_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 5, // None
+                0, 0, 0, 0, // 2
+            ),
+            "import \"test/test.bendu\" as T; T.None()"
+        )
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_PACKAGE_CLOSURE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 5, // None
+            ),
+            "import \"test/test.bendu\" as T; T.None"
+        )
     }
 
     @Test
@@ -997,6 +1015,24 @@ class CompilerTest {
                 0, 0, 0, 2, // funB
             ),
             "import \"test/test.bendu\" exposing (funB); funB"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.CALL_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 5, // None
+                0, 0, 0, 0, // 2
+            ),
+            "import \"test/test.bendu\" exposing (Option); None()"
+        )
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_PACKAGE_CLOSURE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 5, // None
+            ),
+            "import \"test/test.bendu\" exposing (Option); None"
         )
     }
 
@@ -1151,6 +1187,9 @@ private fun successfulCompile(input: String): ByteArray {
 
     entry.writeImage(result)
 
+    if (errors.hasErrors()) {
+        errors.printErrors(false)
+    }
     assertTrue(errors.hasNoErrors())
 
     return result.bytecode

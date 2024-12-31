@@ -37,52 +37,16 @@ private class Compiler(val errors: Errors) {
                 imports.add(import.entry!!.byteCodeFileName())
 
                 when (import) {
-                    is ImportAll -> {
-                        import.entry!!.declarations.forEach {
-                            val packageID = -index - 1
-
-                            when (it) {
-                                is CustomTypeExport ->
-                                    it.constructors.forEach { constructor ->
-                                        symbolTable.bindFunctionExport(
-                                            constructor.name,
-                                            packageID,
-                                            constructor.codeOffset,
-                                            null
-                                        )
-                                    }
-
-                                is FunctionExport ->
-                                    symbolTable.bindFunctionExport(it.name, packageID, it.codeOffset, it.frameOffset)
-
-                                is ValueExport ->
-                                    symbolTable.bindIdentifierExport(it.name, packageID, it.frameOffset)
-                            }
-                        }
-                    }
+                    is ImportAll ->
+                        import.entry!!.declarations.forEach { processImportDeclaration(it, it.name, -index - 1) }
 
                     is ImportList -> {
                         import.ids.forEach { id ->
-                            val importEntry = import.entry!![id.id.value]
-                            val aliasName = id.alias?.value ?: importEntry?.name
-                            val packageID = -index - 1
-
-                            when (importEntry) {
-                                is CustomTypeExport -> TODO()
-
-                                is FunctionExport ->
-                                    symbolTable.bindFunctionExport(
-                                        aliasName!!,
-                                        packageID,
-                                        importEntry.codeOffset,
-                                        importEntry.frameOffset
-                                    )
-
-                                is ValueExport ->
-                                    symbolTable.bindIdentifierExport(aliasName!!, packageID, importEntry.frameOffset)
-
-                                null -> TODO("Internal Error: importEntry is null")
-                            }
+                            processImportDeclaration(
+                                import.entry!![id.id.value]!!,
+                                (id.alias?.value ?: import.entry!![id.id.value]?.name)!!,
+                                -index - 1
+                            )
                         }
                     }
                 }
@@ -93,6 +57,26 @@ private class Compiler(val errors: Errors) {
             compileDeclarations(script.decs)
 
             symbolTable.closeScope()
+        }
+    }
+
+    private fun processImportDeclaration(entry: ScriptExport, aliasName: String, packageID: Int) {
+        when (entry) {
+            is CustomTypeExport ->
+                entry.constructors.forEach { constructor ->
+                    symbolTable.bindFunctionExport(
+                        constructor.name,
+                        packageID,
+                        constructor.codeOffset,
+                        null
+                    )
+                }
+
+            is FunctionExport ->
+                symbolTable.bindFunctionExport(aliasName, packageID, entry.codeOffset, entry.frameOffset)
+
+            is ValueExport ->
+                symbolTable.bindIdentifierExport(aliasName, packageID, entry.frameOffset)
         }
     }
 

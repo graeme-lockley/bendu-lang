@@ -1,9 +1,11 @@
 package io.littlelanguages.bendu
 
-import io.littlelanguages.bendu.cache.ScriptDependency
-import io.littlelanguages.bendu.cache.ScriptExport
-import io.littlelanguages.bendu.cache.ScriptExports
+import io.littlelanguages.bendu.cache.*
 import io.littlelanguages.bendu.compiler.ByteBuilder
+import io.littlelanguages.bendu.typeinference.Scheme
+import io.littlelanguages.bendu.typeinference.TArr
+import io.littlelanguages.bendu.typeinference.TCon
+import io.littlelanguages.bendu.typeinference.TVar
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -89,6 +91,31 @@ sealed class CacheEntry(open val srcDir: File, open val dir: File, open val name
         }
 
         return declarations
+    }
+
+    fun expandedExportDeclarations(): List<ScriptExport> =
+        expandedExportDeclarations { true }
+
+    fun expandedExportDeclarations(names: Set<String>): List<ScriptExport> =
+        expandedExportDeclarations { it: String -> names.contains(it) }
+
+    private fun expandedExportDeclarations(predicate: (String) -> Boolean): List<ScriptExport> {
+        val result = mutableListOf<ScriptExport>()
+
+        declarations.filter { predicate(it.name) }.forEach {
+            result.add(it)
+
+            if (it is CustomTypeExport) {
+                val returnType = it.parameters.map { p -> TVar(p) }
+
+                it.constructors.forEach { c ->
+                    val scheme = Scheme(it.parameters.toSet(), TArr(c.parameters, TCon(it.name, returnType)))
+                    result.add(FunctionExport(c.name, false, scheme, c.codeOffset, null))
+                }
+            }
+        }
+
+        return result
     }
 
     fun compile(errors: Errors = Errors()): CompiledScript {

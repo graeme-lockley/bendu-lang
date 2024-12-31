@@ -306,13 +306,18 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     override fun visitFactor2(a: Token): Expression =
         LowerIDExpression(StringLocation(a.lexeme, a.location))
 
-    override fun visitFactor3(a1: Token, a2: Tuple2<Token, Token>?): Expression =
+    override fun visitFactor3(a1: Token, a2: Tuple2<Token, Union2<Token, Token>>?): Expression =
         if (a2 == null)
             UpperIDExpression(StringLocation(a1.lexeme, a1.location))
+        else if (a2.b.isA())
+            ModuleReferenceExpression(
+                StringLocation(a1.lexeme, a1.location),
+                StringLocation(a2.b.a().lexeme, a2.b.a().location)
+            )
         else
             ModuleReferenceExpression(
                 StringLocation(a1.lexeme, a1.location),
-                StringLocation(a2.b.lexeme, a2.b.location)
+                StringLocation(a2.b.b().lexeme, a2.b.b().location)
             )
 
     override fun visitFactor4(a: Token): Expression =
