@@ -1,3 +1,5 @@
+type Option*[a] = None | Some[a]
+
 let pi* = 3.1415926
 
 let identity*(x) = x

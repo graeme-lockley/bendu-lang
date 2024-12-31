@@ -43,7 +43,7 @@ data class CustomTypeExport(
     ScriptExport(name, mutable) {
     override fun toString(): String {
         val env = ToStringHelper()
-        val ps = if (parameters.isEmpty()) "" else " [${parameters.joinToString(", ") { env.variable(it) }}]"
+        val ps = if (parameters.isEmpty()) "" else "[${parameters.joinToString(", ") { env.variable(it) }}]"
 
         return if (constructors.isEmpty())
             "type $name$ps"
@@ -53,7 +53,9 @@ data class CustomTypeExport(
 }
 
 data class ConstructorExport(val name: String, val parameters: List<Type>, val codeOffset: Int) {
-    fun toStringHelper(env: ToStringHelper): String {
-        return "$name(${parameters.joinToString(", ") { it.toStringHelper(env) }}) = $codeOffset"
-    }
+    fun toStringHelper(env: ToStringHelper): String =
+        if (parameters.isEmpty())
+            "$name = $codeOffset"
+        else
+            "$name[${parameters.joinToString(", ") { it.toStringHelper(env) }}] = $codeOffset"
 }

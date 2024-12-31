@@ -48,7 +48,24 @@ private fun inferImport(entry: CacheEntry, index: Int, import: Import, env: Envi
         is ImportAll -> {
             importEntry.declarations.forEach { declaration ->
                 when (declaration) {
-                    is CustomTypeExport -> TODO()
+                    is CustomTypeExport -> {
+                        val typeDecl = TypeDecl(
+                            declaration.name,
+                            declaration.parameters,
+                            declaration.constructors.map { Constructor(it.name, it.parameters) })
+                        env.bindTypeDecl(declaration.name, typeDecl)
+
+                        val returnType = typeDecl.parameters.map { TVar(it) }
+                        typeDecl.constructors.forEach { constructor ->
+                            val scheme =
+                                Scheme(
+                                    declaration.parameters.toSet(),
+                                    TArr(constructor.parameters, TCon(declaration.name, returnType))
+                                )
+
+                            env.bind(constructor.name, import.location, false, scheme)
+                        }
+                    }
 
                     is FunctionExport ->
                         env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
@@ -117,7 +134,6 @@ private fun inferDeclarations(decls: List<Declaration>, env: Environment) =
                 decl.declarations.forEachIndexed { idx, declaration ->
                     val tvs = tvss[idx].first
                     val tvsIds = tvss[idx].second
-
 
                     val typeDecl = TypeDecl(
                         declaration.id.value,

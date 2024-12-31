@@ -1,3 +1,5 @@
+type Option*[a] = None | Some[a]
+
 let valueA* = 10
 
 let funA*(a, b): Int = a + b

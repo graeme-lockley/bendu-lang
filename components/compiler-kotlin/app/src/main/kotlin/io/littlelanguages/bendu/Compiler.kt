@@ -42,7 +42,15 @@ private class Compiler(val errors: Errors) {
                             val packageID = -index - 1
 
                             when (it) {
-                                is CustomTypeExport -> TODO()
+                                is CustomTypeExport ->
+                                    it.constructors.forEach { constructor ->
+                                        symbolTable.bindFunctionExport(
+                                            constructor.name,
+                                            packageID,
+                                            constructor.codeOffset,
+                                            null
+                                        )
+                                    }
 
                                 is FunctionExport ->
                                     symbolTable.bindFunctionExport(it.name, packageID, it.codeOffset, it.frameOffset)
@@ -159,6 +167,28 @@ private class Compiler(val errors: Errors) {
                     }
 
                     byteBuilder.writeIntAtPosition(jumpOffset, byteBuilder.size())
+
+                    declaration.declarations.forEach { td ->
+                        if (td.visibility != TypeVisibility.Private) {
+                            val typeDecl = td.typeDecl!!
+
+                            val constructors =
+                                if (td.visibility == TypeVisibility.Public)
+                                    typeDecl.constructors.map {
+                                        val functionBinding = symbolTable.find(it.name) as FunctionBinding
+
+                                        ConstructorExport(
+                                            it.name,
+                                            it.parameters,
+                                            functionBinding.codeOffset
+                                        )
+                                    }
+                                else
+                                    emptyList()
+
+                            exports.add(CustomTypeExport(typeDecl.name, false, typeDecl.parameters, constructors))
+                        }
+                    }
                 }
             }
         }
@@ -261,10 +291,17 @@ private class Compiler(val errors: Errors) {
             expression.arguments.forEach { e ->
                 compileExpression(e)
             }
-            byteBuilder.appendInstruction(Instructions.CALL)
-            byteBuilder.appendInt((binding as FunctionBinding).codeOffset)
-            byteBuilder.appendInt(expression.arguments.size)
-            byteBuilder.appendInt(depth)
+            if (binding is FunctionBinding) {
+                byteBuilder.appendInstruction(Instructions.CALL)
+                byteBuilder.appendInt(binding.codeOffset)
+                byteBuilder.appendInt(expression.arguments.size)
+                byteBuilder.appendInt(depth)
+            } else if (binding is ImportedFunctionBinding) {
+                byteBuilder.appendInstruction(Instructions.CALL_PACKAGE)
+                byteBuilder.appendInt(binding.packageID)
+                byteBuilder.appendInt(binding.codeOffset)
+                byteBuilder.appendInt(expression.arguments.size)
+            }
 
             if (!keepResult) {
                 byteBuilder.appendInstruction(Instructions.DISCARD)

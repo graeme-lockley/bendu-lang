@@ -806,7 +806,7 @@ class CompilerTest {
                 0, 0, 0, 2, // 2
                 Instructions.CALL_PACKAGE.op,
                 -1, -1, -1, -1, // -1
-                0, 0, 0, 19, // funA
+                0, 0, 0, 69, // funA
                 0, 0, 0, 2, // 2
             ),
             "import \"test/test.bendu\" ; funA(1, 2)"
@@ -831,7 +831,7 @@ class CompilerTest {
             byteArrayOf(
                 Instructions.PUSH_PACKAGE_CLOSURE.op,
                 -1, -1, -1, -1, // -1
-                0, 0, 0, 19, // funA
+                0, 0, 0, 69, // funA
             ),
             "import \"test/test.bendu\" ; funA"
         )
@@ -843,6 +843,24 @@ class CompilerTest {
                 0, 0, 0, 2, // funB
             ),
             "import \"test/test.bendu\"; funB"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.CALL_PACKAGE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 5, // None
+                0, 0, 0, 0, // 2
+            ),
+            "import \"test/test.bendu\"; None()"
+        )
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_PACKAGE_CLOSURE.op,
+                -1, -1, -1, -1, // -1
+                0, 0, 0, 5, // None
+            ),
+            "import \"test/test.bendu\"; None"
         )
     }
 
@@ -874,7 +892,7 @@ class CompilerTest {
                 0, 0, 0, 2, // 2
                 Instructions.CALL_PACKAGE.op,
                 -1, -1, -1, -1, // -1
-                0, 0, 0, 19, // funA
+                0, 0, 0, 69, // funA
                 0, 0, 0, 2, // 2
             ),
             "import \"test/test.bendu\" as T; T.funA(1, 2)"
@@ -899,7 +917,7 @@ class CompilerTest {
             byteArrayOf(
                 Instructions.PUSH_PACKAGE_CLOSURE.op,
                 -1, -1, -1, -1, // -1
-                0, 0, 0, 19, // funA
+                0, 0, 0, 69, // funA
             ),
             "import \"test/test.bendu\" as T; T.funA"
         )
@@ -942,7 +960,7 @@ class CompilerTest {
                 0, 0, 0, 2, // 2
                 Instructions.CALL_PACKAGE.op,
                 -1, -1, -1, -1, // -1
-                0, 0, 0, 19, // funA
+                0, 0, 0, 69, // funA
                 0, 0, 0, 2, // 2
             ),
             "import \"test/test.bendu\" exposing (funA); funA(1, 2)"
@@ -967,7 +985,7 @@ class CompilerTest {
             byteArrayOf(
                 Instructions.PUSH_PACKAGE_CLOSURE.op,
                 -1, -1, -1, -1, // -1
-                0, 0, 0, 19, // funA
+                0, 0, 0, 69, // funA
             ),
             "import \"test/test.bendu\" exposing (funA); funA"
         )
@@ -1010,7 +1028,7 @@ class CompilerTest {
                 0, 0, 0, 2, // 2
                 Instructions.CALL_PACKAGE.op,
                 -1, -1, -1, -1, // -1
-                0, 0, 0, 19, // funA
+                0, 0, 0, 69, // funA
                 0, 0, 0, 2, // 2
             ),
             "import \"test/test.bendu\" exposing (funA as fff); fff(1, 2)"
@@ -1035,7 +1053,7 @@ class CompilerTest {
             byteArrayOf(
                 Instructions.PUSH_PACKAGE_CLOSURE.op,
                 -1, -1, -1, -1, // -1
-                0, 0, 0, 19, // funA
+                0, 0, 0, 69, // funA
             ),
             "import \"test/test.bendu\" exposing (funA as fff); fff"
         )
@@ -1066,7 +1084,7 @@ class CompilerTest {
     }
 
     @Test
-    fun `ADT constructors`() {
+    fun `Custom type constructors`() {
         assertCompiledBC(
             byteArrayOf(
                 Instructions.JMP.op,

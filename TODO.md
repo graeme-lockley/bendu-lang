@@ -27,7 +27,7 @@ The following is the list of big features that need to be implemented.
 - [x] Arrays
 - [x] Packages
 - [x] Garbage collector
-- [ ] ADTs
+- [ ] Custom Data Types
 - [ ] Records
 - [ ] Type aliases
 - [ ] Patterns
@@ -91,22 +91,22 @@ The following is the list of big features that need to be implemented.
 
 # Data Types
 
-## Abstract Data Types
+## Custom Data Types
 
-- [x] Parse ADT
-- [x] Incorporate ADT into type inference
-- [x] Compile ADT
-- [x] Recursive ADTs
-      - [x] Parse recursive ADT
-      - [x] Incorporate recursive ADT into type inference
-      - [x] Compile recursive ADTs
-- [ ] Make an ADT exportable
-      - [x] Enhance cache grammar to incorporate ADTs
-      - [x] Enhance lang grammar to allow ADTs to be exported
-      - [ ] Incorporate ADTs into the sig file
-      - [ ] Include ADTs in import all
-      - [ ] Include ADTs in import as
-      - [ ] Include ADTs in import exposing
+- [x] Parse Custom Data Type
+- [x] Incorporate Custom Data Type into type inference
+- [x] Compile Custom Data Type
+- [x] Recursive Custom Data Types
+      - [x] Parse recursive Custom Data Type
+      - [x] Incorporate recursive Custom Data Type into type inference
+      - [x] Compile recursive Custom Data Types
+- [ ] Make an Custom Data Type exportable
+      - [x] Enhance cache grammar to incorporate Custom Data Types
+      - [x] Enhance lang grammar to allow Custom Data Types to be exported
+      - [x] Incorporate Custom Data Types into the sig file
+      - [x] Include Custom Data Types in import all
+      - [ ] Include Custom Data Types in import as
+      - [ ] Include Custom Data Types in import exposing
 
 ## Arrays
 

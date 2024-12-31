@@ -7,3 +7,5 @@ let v = state(1)
 println(v, ": ", @v)
 
 I.hello()
+
+println(Some(10) == Some(10))

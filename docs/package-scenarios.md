@@ -11,6 +11,8 @@ Each of these scenarios is different in how they are implemented both in the com
 To assist with the explanation, the following package is used:
 
 ```bendu
+type Option*[a] = None | Some[a]
+
 let pi* = 3.1415926
 
 let identity*(x) = x
@@ -19,7 +21,7 @@ let constant*(x) = fn(y) = x
 
 let valueA!* = 1
 
-let funA!*(x) = x + 1
+let funA!*(x) = x + 1 
 
 let state*(n: Int) = (valueA, funA(n))
 
@@ -52,6 +54,18 @@ fn: [a] (a) -> a
 
 > funA(10)
 11: Int
+
+> None
+fn: [a] () -> Option[a]
+
+> None()
+None(): [a] Option[a]
+
+> Some
+fn: [a] (a) -> Option[a]
+
+> Some(10)
+Some(10): Option[Int]
 ```
 
 Even-though `valueA` and `funA` are defined with a `!` qualifier, they are still imported into the script and the consequence of assigning to them is visible across all uses of the package.
@@ -89,7 +103,7 @@ The handling of calling `identity` and `funA` is quite different.  Looking at th
 > funA(10)
 
  0: PUSH_I32_LITERAL 10
- 5: CALL_PACKAGE -1 19 1
+ 5: CALL_PACKAGE -1 69 1
 18: DISCARD
 19: LOAD_PACKAGE -1 2
 28: PUSH_I32_LITERAL 10
