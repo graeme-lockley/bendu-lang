@@ -1,18 +1,21 @@
 package io.littlelanguages.bendu.cache
 
 import io.littlelanguages.bendu.typeinference.Scheme
+import io.littlelanguages.bendu.typeinference.ToStringHelper
+import io.littlelanguages.bendu.typeinference.Type
+import io.littlelanguages.bendu.typeinference.Var
 
 class ScriptExports(val exports: List<ScriptExport>)
 
-sealed class ScriptExport(open val name: String, open val mutable: Boolean, open val scheme: Scheme)
+sealed class ScriptExport(open val name: String, open val mutable: Boolean)
 
 data class ValueExport(
     override val name: String,
     override val mutable: Boolean,
-    override val scheme: Scheme,
+    val scheme: Scheme,
     val frameOffset: Int
 ) :
-    ScriptExport(name, mutable, scheme) {
+    ScriptExport(name, mutable) {
     override fun toString(): String {
         return "let $name${if (mutable) "!" else ""}: $scheme = $frameOffset"
     }
@@ -21,12 +24,36 @@ data class ValueExport(
 data class FunctionExport(
     override val name: String,
     override val mutable: Boolean,
-    override val scheme: Scheme,
+    val scheme: Scheme,
     val codeOffset: Int,
     val frameOffset: Int?
 ) :
-    ScriptExport(name, mutable, scheme) {
+    ScriptExport(name, mutable) {
     override fun toString(): String {
         return "fn $name${if (mutable) "!" else ""}: $scheme = $codeOffset${if (frameOffset != null) " $frameOffset" else ""}"
+    }
+}
+
+data class CustomTypeExport(
+    override val name: String,
+    override val mutable: Boolean,
+    val parameters: List<Var>,
+    val constructors: List<ConstructorExport>
+) :
+    ScriptExport(name, mutable) {
+    override fun toString(): String {
+        val env = ToStringHelper()
+        val ps = if (parameters.isEmpty()) "" else " [${parameters.joinToString(", ") { env.variable(it) }}]"
+
+        return if (constructors.isEmpty())
+            "type $name$ps"
+        else
+            "type $name$ps = ${constructors.joinToString(" | ") { it.toStringHelper(env) }}"
+    }
+}
+
+data class ConstructorExport(val name: String, val parameters: List<Type>, val codeOffset: Int) {
+    fun toStringHelper(env: ToStringHelper): String {
+        return "$name(${parameters.joinToString(", ") { it.toStringHelper(env) }}) = $codeOffset"
     }
 }

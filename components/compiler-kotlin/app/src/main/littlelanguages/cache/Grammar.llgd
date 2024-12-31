@@ -7,6 +7,11 @@ Program
 Declaration
     : "let" LowerID ["!"] ":" Scheme "=" LiteralInt
     | "fn" LowerID ["!"] ":" Scheme "=" LiteralInt [LiteralInt]
+    | "type" UpperID [TypeParameters] ["=" TypeConstructor {"|" TypeConstructor}]
+    ;
+
+TypeConstructor
+    : UpperID ["[" TypeTerm {"," TypeTerm} "]"] "=" LiteralInt
     ;
 
 Scheme

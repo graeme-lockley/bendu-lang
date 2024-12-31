@@ -44,6 +44,7 @@ data class DeclarationType(
 
 data class TypeDeclaration(
     val id: StringLocation,
+    val visibility: TypeVisibility,
     val typeParameters: List<StringLocation>,
     val constructors: List<TypeConstructor>,
     var typeDecl: TypeDecl? = null
@@ -51,6 +52,8 @@ data class TypeDeclaration(
     fun location(): Location =
         constructors.map { it.id.location }.fold(id.location, Location::plus)
 }
+
+enum class TypeVisibility { Public, Opaque, Private }
 
 data class TypeConstructor(val id: StringLocation, val parameters: List<TypeTerm>)
 

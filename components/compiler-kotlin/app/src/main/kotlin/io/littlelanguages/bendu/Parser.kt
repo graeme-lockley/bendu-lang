@@ -24,7 +24,12 @@ private class ParserVisitor(val errors: Errors = Errors()) :
                 if (a4 == null) emptyList() else listOf(a4.c) + a4.d.map { it.b }
             )
 
-    override fun visitImportDeclaration(a1: Token, a2: Tuple2<Token, Token>?): ImportDeclaration =
+    override fun visitImportDeclaration1(a1: Token, a2: Tuple2<Token, Token>?): ImportDeclaration =
+        ImportDeclaration(
+            StringLocation(a1.lexeme, a1.location),
+            a2?.let { StringLocation(it.b.lexeme, it.b.location) })
+
+    override fun visitImportDeclaration2(a1: Token, a2: Tuple2<Token, Token>?): ImportDeclaration =
         ImportDeclaration(
             StringLocation(a1.lexeme, a1.location),
             a2?.let { StringLocation(it.b.lexeme, it.b.location) })
@@ -41,12 +46,17 @@ private class ParserVisitor(val errors: Errors = Errors()) :
 
     override fun visitTypeDeclaration(
         a1: Token,
-        a2: List<StringLocation>?,
-        a3: Token,
-        a4: TypeConstructor,
-        a5: List<Tuple2<Token, TypeConstructor>>
+        a2: Union2<Token, Token>?,
+        a3: List<StringLocation>?,
+        a4: Token,
+        a5: TypeConstructor,
+        a6: List<Tuple2<Token, TypeConstructor>>
     ): TypeDeclaration =
-        TypeDeclaration(StringLocation(a1.lexeme, a1.location), a2 ?: emptyList(), listOf(a4) + a5.map { it.b })
+        TypeDeclaration(
+            StringLocation(a1.lexeme, a1.location),
+            if (a2 == null) TypeVisibility.Private else if (a2.isA()) TypeVisibility.Public else TypeVisibility.Opaque,
+            a3 ?: emptyList(),
+            listOf(a5) + a6.map { it.b })
 
     override fun visitTypeConstructor(
         a1: Token,

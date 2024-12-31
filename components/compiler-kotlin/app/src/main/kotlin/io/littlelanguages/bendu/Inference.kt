@@ -1,5 +1,6 @@
 package io.littlelanguages.bendu
 
+import io.littlelanguages.bendu.cache.CustomTypeExport
 import io.littlelanguages.bendu.cache.FunctionExport
 import io.littlelanguages.bendu.cache.ValueExport
 import io.littlelanguages.bendu.typeinference.*
@@ -47,10 +48,12 @@ private fun inferImport(entry: CacheEntry, index: Int, import: Import, env: Envi
         is ImportAll -> {
             importEntry.declarations.forEach { declaration ->
                 when (declaration) {
-                    is ValueExport ->
-                        env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
+                    is CustomTypeExport -> TODO()
 
                     is FunctionExport ->
+                        env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
+
+                    is ValueExport ->
                         env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
                 }
             }
@@ -71,10 +74,12 @@ private fun inferImport(entry: CacheEntry, index: Int, import: Import, env: Envi
                 if (declaration != null) {
                     val declarationAlias = name.alias?.value ?: name.id.value
                     when (declaration) {
-                        is ValueExport ->
-                            env.bind(declarationAlias, import.location, declaration.mutable, declaration.scheme)
+                        is CustomTypeExport -> TODO()
 
                         is FunctionExport ->
+                            env.bind(declarationAlias, import.location, declaration.mutable, declaration.scheme)
+
+                        is ValueExport ->
                             env.bind(declarationAlias, import.location, declaration.mutable, declaration.scheme)
                     }
                 } else {
@@ -464,15 +469,25 @@ private fun inferExpression(expression: Expression, env: Environment) {
                 env.errors.addError(UnknownIdentifierError(expression.moduleID))
                 expression.type = typeError.withLocation(expression.location())
             } else {
-                val declaration = binding.second[expression.id.value]
+                when (val declaration = binding.second[expression.id.value]) {
+                    null -> {
+                        env.errors.addError(UnknownIdentifierError(expression.id))
+                        expression.type = typeError.withLocation(expression.location())
+                    }
 
-                if (declaration == null) {
-                    env.errors.addError(UnknownIdentifierError(expression.id))
-                    expression.type = typeError.withLocation(expression.location())
-                } else {
-                    expression.importID = binding.first
-                    expression.declaration = declaration
-                    expression.type = env.instantiateScheme(declaration.scheme)
+                    is CustomTypeExport -> TODO()
+
+                    is FunctionExport -> {
+                        expression.importID = binding.first
+                        expression.declaration = declaration
+                        expression.type = env.instantiateScheme(declaration.scheme)
+                    }
+
+                    is ValueExport -> {
+                        expression.importID = binding.first
+                        expression.declaration = declaration
+                        expression.type = env.instantiateScheme(declaration.scheme)
+                    }
                 }
             }
         }

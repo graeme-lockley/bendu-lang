@@ -42,6 +42,8 @@ private class Compiler(val errors: Errors) {
                             val packageID = -index - 1
 
                             when (it) {
+                                is CustomTypeExport -> TODO()
+
                                 is FunctionExport ->
                                     symbolTable.bindFunctionExport(it.name, packageID, it.codeOffset, it.frameOffset)
 
@@ -58,6 +60,8 @@ private class Compiler(val errors: Errors) {
                             val packageID = -index - 1
 
                             when (importEntry) {
+                                is CustomTypeExport -> TODO()
+
                                 is FunctionExport ->
                                     symbolTable.bindFunctionExport(
                                         aliasName!!,
@@ -412,6 +416,7 @@ private class Compiler(val errors: Errors) {
             byteBuilder.appendInstruction(Instructions.STORE_PACKAGE)
             byteBuilder.appendInt(-(expression.lhs.importID ?: 0) - 1)
             when (val declaration = expression.lhs.declaration) {
+                is CustomTypeExport -> TODO()
                 is FunctionExport -> byteBuilder.appendInt(declaration.frameOffset ?: 0)
                 is ValueExport -> byteBuilder.appendInt(declaration.frameOffset)
                 null -> {}
@@ -930,6 +935,8 @@ private class Compiler(val errors: Errors) {
         if (keepResult) {
             when (val declaration = expression.declaration) {
                 null -> {}
+
+                is CustomTypeExport -> TODO()
 
                 is FunctionExport -> {
                     if (declaration.mutable) {

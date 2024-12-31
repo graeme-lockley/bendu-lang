@@ -10,6 +10,7 @@ ImportStatement
 
 ImportDeclaration
     : LowerID ["as" LowerID]
+    | UpperID ["as" UpperID]
     ;
 
 Declaration
@@ -18,7 +19,7 @@ Declaration
     ;
 
 TypeDeclaration
-    : UpperID [TypeParameters] "=" TypeConstructor {"|" TypeConstructor}
+    : UpperID ["*" | "-"] [TypeParameters] "=" TypeConstructor {"|" TypeConstructor}
     ;
 
 TypeConstructor
