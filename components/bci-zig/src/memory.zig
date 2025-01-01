@@ -11,8 +11,29 @@ pub const Colour = enum(u2) {
 pub const Value = struct {
     colour: Colour,
     next: ?*Value,
-
     v: ValueValue,
+
+    /// Create a new Value with the given type
+    pub fn init(allocator: std.mem.Allocator, kind: ValueKind) !*Value {
+        const self = try allocator.create(Value);
+        self.* = .{
+            .colour = .Black,
+            .next = null,
+            .v = switch (kind) {
+                .ArrayKind => .{ .ArrayKind = try ArrayValue.init(allocator, 0) },
+                .ClosureKind => .{ .ClosureKind = undefined },
+                .CustomKind => .{ .CustomKind = undefined },
+                .FrameKind => .{ .FrameKind = try FrameValue.init(allocator, null) },
+                .TupleKind => .{ .TupleKind = try TupleValue.init(allocator, 0) },
+            },
+        };
+        return self;
+    }
+
+    /// Safe accessor for value kind
+    pub fn getKind(self: *const Value) ValueKind {
+        return std.meta.activeTag(self.v);
+    }
 
     pub fn deinit(self: *Value, allocator: std.mem.Allocator) void {
         switch (self.v) {
@@ -105,12 +126,22 @@ pub const ArrayValue = struct {
         return self.values.items;
     }
 
-    pub fn at(self: *const ArrayValue, i: usize) Pointer.Pointer {
-        return self.values.items[i];
+    pub fn at(self: *const ArrayValue, index: usize) Pointer.Pointer {
+        std.debug.assert(index < self.values.items.len);
+
+        return self.values.items[index];
     }
 
-    pub fn set(self: *const ArrayValue, i: usize, v: Pointer.Pointer) void {
-        self.values.items[i] = v;
+    pub fn set(self: *ArrayValue, index: usize, value: Pointer.Pointer) void {
+        std.debug.assert(index < self.values.items.len);
+
+        const old_value = self.values.items[index];
+        decRef(old_value);
+        self.values.items[index] = value;
+    }
+
+    pub fn ensureCapacity(self: *ArrayValue, capacity: usize) !void {
+        try self.values.ensureTotalCapacity(capacity);
     }
 };
 
@@ -192,8 +223,11 @@ pub const FrameValue = struct {
     pub fn set(self: *Value, depth: usize, offset: usize, value: Pointer.Pointer) !void {
         var frame = skip(self, depth).?;
 
-        while (frame.v.FrameKind.values.items.len <= offset) {
-            try frame.v.FrameKind.values.append(Pointer.fromInt(0));
+        if (offset >= frame.v.FrameKind.values.items.len) {
+            try frame.v.FrameKind.values.resize(offset + 1);
+            for (frame.v.FrameKind.values.items[offset..]) |*item| {
+                item.* = Pointer.fromInt(0);
+            }
         }
 
         // The string reference count is not incremented as this is only called from the interpreter
