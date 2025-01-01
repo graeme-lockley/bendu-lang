@@ -82,7 +82,7 @@ private fun assembleScript(expression: String, startLineNumber: Int): List<Strin
                 variableName = line.split(" ")[1]
                 script.add(line)
                 state = 1
-            } else if (line.startsWith("import")) {
+            } else if (line.startsWith("import") || line.startsWith("type")) {
                 script.add(line)
                 state = 1
             } else {
