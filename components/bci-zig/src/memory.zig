@@ -64,9 +64,7 @@ pub const ArrayValue = struct {
 
     pub fn deinit(self: *ArrayValue) void {
         for (self.values.items) |v| {
-            if (Pointer.isString(v)) {
-                Pointer.asString(v).decRef();
-            }
+            decRef(v);
         }
 
         self.values.deinit();
@@ -152,9 +150,7 @@ pub const CustomValue = struct {
     pub fn deinit(self: *CustomValue, allocator: std.mem.Allocator) void {
         self.name.decRef();
         for (self.values) |v| {
-            if (Pointer.isString(v)) {
-                Pointer.asString(v).decRef();
-            }
+            decRef(v);
         }
 
         allocator.free(self.values);

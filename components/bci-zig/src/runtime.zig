@@ -112,7 +112,7 @@ pub const Package = struct {
 
         // std.debug.print("Package.loadImage: src={s}, id={d}\n", .{ self.src.slice(), self.id });
 
-        self.image = PackageImage.init(Pointer.as(*Memory.Value, runtime.pop()), packages, try file.readToEndAlloc(runtime.allocator, fileSize - currentPOS));
+        self.image = PackageImage.init(Pointer.asPointer(*Memory.Value, runtime.pop()), packages, try file.readToEndAlloc(runtime.allocator, fileSize - currentPOS));
     }
 };
 
@@ -155,7 +155,7 @@ pub const Packages = struct {
         _ = try runtime.push_frame(null);
 
         var p = try Package.init(src, self.items.items.len);
-        p.image = PackageImage.init(Pointer.as(*Memory.Value, runtime.pop()), packages, try runtime.allocator.dupe(u8, bc));
+        p.image = PackageImage.init(Pointer.asPointer(*Memory.Value, runtime.pop()), packages, try runtime.allocator.dupe(u8, bc));
 
         try self.items.append(p);
 
@@ -327,7 +327,7 @@ pub const Runtime = struct {
 
     pub inline fn push_array_element(self: *Runtime) !void {
         const index = Pointer.asInt(self.pop());
-        const array = Pointer.as(*Memory.Value, self.pop());
+        const array = Pointer.asPointer(*Memory.Value, self.pop());
 
         if (index < 0 or index >= array.v.ArrayKind.len()) {
             try stdout.print("Error: Index out of bounds: index: {d}, length: {d}\n", .{ index, array.v.ArrayKind.len() });
@@ -335,9 +335,7 @@ pub const Runtime = struct {
         }
 
         const element = array.v.ArrayKind.at(@intCast(index));
-        if (Pointer.isString(element)) {
-            Pointer.asString(element).incRef();
-        }
+        Memory.incRef(element);
 
         try self.stack.append(element);
     }
@@ -345,7 +343,7 @@ pub const Runtime = struct {
     pub inline fn push_array_range(self: *Runtime) !void {
         const end = Pointer.asInt(self.peek());
         const start = Pointer.asInt(self.peekN(1));
-        const array = Pointer.as(*Memory.Value, self.peekN(2));
+        const array = Pointer.asPointer(*Memory.Value, self.peekN(2));
 
         const range = try self.push_array_range_from_to(array, start, end);
 
@@ -355,7 +353,7 @@ pub const Runtime = struct {
 
     pub inline fn push_array_range_from(self: *Runtime) !void {
         const start = Pointer.asInt(self.peek());
-        const array = Pointer.as(*Memory.Value, self.peekN(1));
+        const array = Pointer.asPointer(*Memory.Value, self.peekN(1));
 
         const range = try self.push_array_range_from_to(array, start, @intCast(array.v.ArrayKind.len()));
 
@@ -365,7 +363,7 @@ pub const Runtime = struct {
 
     pub inline fn push_array_range_to(self: *Runtime) !void {
         const end = Pointer.asInt(self.peek());
-        const array = Pointer.as(*Memory.Value, self.peekN(1));
+        const array = Pointer.asPointer(*Memory.Value, self.peekN(1));
 
         const range = try self.push_array_range_from_to(array, 0, end);
 
@@ -383,9 +381,7 @@ pub const Runtime = struct {
 
         for (aStart..aEnd) |i| {
             const v = array.v.ArrayKind.at(i);
-            if (Pointer.isString(v)) {
-                Pointer.asString(v).incRef();
-            }
+            Memory.incRef(v);
             try range.v.ArrayKind.values.append(v);
         }
 
@@ -448,12 +444,10 @@ pub const Runtime = struct {
     }
 
     pub inline fn push_tuple_component(self: *Runtime, index: usize) !void {
-        const tuple = Pointer.as(*Memory.Value, self.peek());
+        const tuple = Pointer.asPointer(*Memory.Value, self.peek());
         const component = tuple.v.TupleKind.values[index];
 
-        if (Pointer.isString(component)) {
-            Pointer.asString(component).incRef();
-        }
+        Memory.incRef(component);
 
         self.discard();
         try self.stack.append(component);
@@ -466,20 +460,16 @@ pub const Runtime = struct {
     pub inline fn push_stack(self: *Runtime, index: i32) !void {
         const value = self.stack.items[@intCast(index)];
 
-        if (Pointer.isString(value)) {
-            Pointer.asString(value).incRef();
-        }
+        Memory.incRef(value);
 
         try self.stack.append(value);
     }
 
     pub inline fn load(self: *Runtime, fp: usize, frame: usize, offset: usize) !void {
-        const f = Pointer.as(*Memory.Value, self.stack.items[fp]);
+        const f = Pointer.asPointer(*Memory.Value, self.stack.items[fp]);
         const v = Memory.FrameValue.get(f, frame, offset);
 
-        if (Pointer.isString(v)) {
-            Pointer.asString(v).incRef();
-        }
+        Memory.incRef(v);
 
         try self.stack.append(v);
     }
@@ -496,7 +486,7 @@ pub const Runtime = struct {
     }
 
     pub inline fn store(self: *Runtime, fp: usize, frame: usize, offset: usize) !void {
-        const f = Pointer.as(*Memory.Value, self.stack.items[fp]);
+        const f = Pointer.asPointer(*Memory.Value, self.stack.items[fp]);
         const v = self.pop();
 
         try Memory.FrameValue.set(f, frame, offset, v);
@@ -512,7 +502,7 @@ pub const Runtime = struct {
     pub inline fn store_array_element(self: *Runtime) !void {
         const v = self.pop();
         const index = Pointer.asInt(self.pop());
-        const array = Pointer.as(*Memory.Value, self.pop());
+        const array = Pointer.asPointer(*Memory.Value, self.pop());
 
         if (index < 0 or index >= array.v.ArrayKind.len()) {
             try stdout.print("Error: Index out of bounds: index: {d}, length: {d}\n", .{ index, array.v.ArrayKind.len() });
@@ -529,9 +519,9 @@ pub const Runtime = struct {
         const range = self.peek();
         const end = Pointer.asInt(self.peekN(1));
         const start = Pointer.asInt(self.peekN(2));
-        const array = Pointer.as(*Memory.Value, self.peekN(3));
+        const array = Pointer.asPointer(*Memory.Value, self.peekN(3));
 
-        try self.store_array_range_from_to(array, start, end, Pointer.as(*Memory.Value, range));
+        try self.store_array_range_from_to(array, start, end, Pointer.asPointer(*Memory.Value, range));
 
         self.popN(4);
         try self.push(range);
@@ -540,9 +530,9 @@ pub const Runtime = struct {
     pub inline fn store_array_range_from(self: *Runtime) !void {
         const range = self.peek();
         const start = Pointer.asInt(self.peekN(1));
-        const array = Pointer.as(*Memory.Value, self.peekN(2));
+        const array = Pointer.asPointer(*Memory.Value, self.peekN(2));
 
-        try self.store_array_range_from_to(array, start, @intCast(array.v.ArrayKind.len()), Pointer.as(*Memory.Value, range));
+        try self.store_array_range_from_to(array, start, @intCast(array.v.ArrayKind.len()), Pointer.asPointer(*Memory.Value, range));
 
         self.popN(3);
         try self.push(range);
@@ -551,9 +541,9 @@ pub const Runtime = struct {
     pub inline fn store_array_range_to(self: *Runtime) !void {
         const range = self.peek();
         const end = Pointer.asInt(self.peekN(1));
-        const array = Pointer.as(*Memory.Value, self.peekN(2));
+        const array = Pointer.asPointer(*Memory.Value, self.peekN(2));
 
-        try self.store_array_range_from_to(array, 0, end, Pointer.as(*Memory.Value, range));
+        try self.store_array_range_from_to(array, 0, end, Pointer.asPointer(*Memory.Value, range));
 
         self.popN(3);
         try self.push(range);
@@ -570,13 +560,13 @@ pub const Runtime = struct {
         }
         try array.v.ArrayKind.values.replaceRange(aStart, aEnd - aStart, range.v.ArrayKind.values.items);
         for (range.v.ArrayKind.values.items) |item| {
-            _ = Memory.incRef(item);
+            Memory.incRef(item);
         }
     }
 
     pub inline fn array_append_element_duplicate(self: *Runtime) !void {
         const value = self.peek();
-        const array = Pointer.as(*Memory.Value, self.peekN(1));
+        const array = Pointer.asPointer(*Memory.Value, self.peekN(1));
 
         const result = try self.pushNewValue(Memory.ValueValue{ .ArrayKind = try Memory.ArrayValue.init(self.allocator, array.v.ArrayKind.len() + 1) });
 
@@ -590,7 +580,7 @@ pub const Runtime = struct {
     }
 
     pub inline fn array_prepend_element_duplicate(self: *Runtime) !void {
-        const array = Pointer.as(*Memory.Value, self.peek());
+        const array = Pointer.asPointer(*Memory.Value, self.peek());
         const value = self.peekN(1);
 
         const result = try self.pushNewValue(Memory.ValueValue{ .ArrayKind = try Memory.ArrayValue.init(self.allocator, array.v.ArrayKind.len() + 1) });
@@ -606,7 +596,7 @@ pub const Runtime = struct {
 
     pub inline fn array_append_element(self: *Runtime) !void {
         const value = self.peek();
-        const array = Pointer.as(*Memory.Value, self.peekN(1));
+        const array = Pointer.asPointer(*Memory.Value, self.peekN(1));
 
         try array.v.ArrayKind.values.append(Memory.incRefR(value));
 
@@ -614,8 +604,8 @@ pub const Runtime = struct {
     }
 
     pub inline fn array_append_array(self: *Runtime) !void {
-        const value = Pointer.as(*Memory.Value, self.peek());
-        const array = Pointer.as(*Memory.Value, self.peekN(1));
+        const value = Pointer.asPointer(*Memory.Value, self.peek());
+        const array = Pointer.asPointer(*Memory.Value, self.peekN(1));
 
         for (value.v.ArrayKind.values.items) |item| {
             try array.v.ArrayKind.values.append(Memory.incRefR(item));
@@ -625,7 +615,7 @@ pub const Runtime = struct {
     }
 
     pub inline fn array_prepend_element(self: *Runtime) !void {
-        const array = Pointer.as(*Memory.Value, self.peek());
+        const array = Pointer.asPointer(*Memory.Value, self.peek());
         const value = self.peekN(1);
 
         try array.v.ArrayKind.values.insert(0, Memory.incRefR(value));
@@ -775,12 +765,8 @@ pub const Runtime = struct {
         const a = self.pop();
         try self.stack.append(Pointer.fromBool(@import("./runtime/eq.zig").eq(a, b)));
 
-        if (Pointer.isString(b)) {
-            Pointer.asString(b).decRef();
-        }
-        if (Pointer.isString(a)) {
-            Pointer.asString(a).decRef();
-        }
+        Memory.decRef(b);
+        Memory.decRef(a);
     }
     pub inline fn eq_bool(self: *Runtime) !void {
         const b = Pointer.asBool(self.pop());
@@ -821,12 +807,8 @@ pub const Runtime = struct {
         const a = self.pop();
         try self.stack.append(Pointer.fromBool(@import("./runtime/neq.zig").neq(a, b)));
 
-        if (Pointer.isString(b)) {
-            Pointer.asString(b).decRef();
-        }
-        if (Pointer.isString(a)) {
-            Pointer.asString(a).decRef();
-        }
+        Memory.decRef(b);
+        Memory.decRef(a);
     }
     pub inline fn neq_bool(self: *Runtime) !void {
         const b = Pointer.asBool(self.pop());
@@ -1023,7 +1005,7 @@ inline fn markPointer(value: Pointer.Pointer, colour: Memory.Colour) void {
         return;
     }
 
-    markValue(Pointer.as(*Memory.Value, value), colour);
+    markValue(Pointer.asPointer(*Memory.Value, value), colour);
 }
 
 fn markValue(v: *Memory.Value, colour: Memory.Colour) void {

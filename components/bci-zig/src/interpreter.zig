@@ -107,7 +107,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                     std.debug.print("{d} {d} {d}: create_closure: offset={d}, frame={d}\n", .{ ip - 1, fp, runtime.stack.items.len, offset, frame });
                 }
 
-                const previousFrame = Memory.FrameValue.skip(Pointer.as(*Memory.Value, runtime.stack.items[fp]), frame);
+                const previousFrame = Memory.FrameValue.skip(Pointer.asPointer(*Memory.Value, runtime.stack.items[fp]), frame);
 
                 try runtime.push_closure(package.id, @intCast(offset), previousFrame.?);
 
@@ -416,13 +416,13 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                     std.debug.print("{d} {d} {d}: call: offset={d}, arity={d}, frame={d}\n", .{ ip - 1, fp, runtime.stack.items.len, offset, arity, frame });
                 }
 
-                const previousFrame = Pointer.as(*Memory.Value, runtime.stack.items[fp]);
+                const previousFrame = Pointer.asPointer(*Memory.Value, runtime.stack.items[fp]);
 
                 _ = try runtime.push_frame(Memory.FrameValue.skip(previousFrame, frame));
 
                 const newFramePointer = runtime.pop();
 
-                const newFrame: *Memory.Value = Pointer.as(*Memory.Value, newFramePointer);
+                const newFrame: *Memory.Value = Pointer.asPointer(*Memory.Value, newFramePointer);
                 for (0..arity) |i| {
                     try Memory.FrameValue.set(newFrame, 0, arity - i - 1, runtime.pop());
                 }
@@ -442,12 +442,12 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                     std.debug.print("{d} {d} {d}: call_closure: arity={d}\n", .{ ip - 1, fp, runtime.stack.items.len, arity });
                 }
 
-                const closure = Pointer.as(*Memory.Value, runtime.peekN(arity));
+                const closure = Pointer.asPointer(*Memory.Value, runtime.peekN(arity));
 
                 _ = try runtime.push_frame(closure.v.ClosureKind.frame);
 
                 const newFramePointer = runtime.pop();
-                const newFrame: *Memory.Value = Pointer.as(*Memory.Value, newFramePointer);
+                const newFrame: *Memory.Value = Pointer.asPointer(*Memory.Value, newFramePointer);
                 for (0..arity) |i| {
                     try Memory.FrameValue.set(newFrame, 0, arity - i - 1, runtime.pop());
                 }
@@ -492,7 +492,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
 
                 const newFramePointer = runtime.pop();
 
-                const newFrame: *Memory.Value = Pointer.as(*Memory.Value, newFramePointer);
+                const newFrame: *Memory.Value = Pointer.asPointer(*Memory.Value, newFramePointer);
                 for (0..arity) |i| {
                     try Memory.FrameValue.set(newFrame, 0, arity - i - 1, runtime.pop());
                 }
@@ -520,7 +520,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 fp = @intCast(Pointer.asInt(runtime.pop()));
                 ip = @intCast(Pointer.asInt(runtime.pop()));
                 const newPackageID: usize = @intCast(Pointer.asInt(runtime.pop()));
-                _ = runtime.discard();
+                runtime.discard();
                 try runtime.push(v);
 
                 if (package.id != newPackageID) {

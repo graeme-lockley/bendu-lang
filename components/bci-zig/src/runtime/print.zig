@@ -15,7 +15,7 @@ pub fn print(value: Pointer.Pointer) !void {
     } else if (Pointer.isFloat(value)) {
         try stdout.print("{d}", .{Pointer.asFloat(value)});
     } else if (Pointer.isPointer(value)) {
-        const v = Pointer.as(*Memory.Value, value);
+        const v = Pointer.asPointer(*Memory.Value, value);
 
         switch (v.v) {
             .ArrayKind => {
