@@ -2,6 +2,7 @@ package io.littlelanguages.bendu
 
 import io.littlelanguages.bendu.cache.CustomTypeExport
 import io.littlelanguages.bendu.cache.FunctionExport
+import io.littlelanguages.bendu.cache.ScriptExport
 import io.littlelanguages.bendu.cache.ValueExport
 import io.littlelanguages.bendu.typeinference.*
 import io.littlelanguages.scanpiler.Location
@@ -45,26 +46,8 @@ private fun inferImport(entry: CacheEntry, index: Int, import: Import, env: Envi
     }
 
     return when (import) {
-        is ImportAll -> {
-            importEntry.expandedExportDeclarations().forEach { declaration ->
-                when (declaration) {
-                    is CustomTypeExport ->
-                        env.bindTypeDecl(
-                            declaration.name,
-                            TypeDecl(
-                                declaration.name,
-                                declaration.parameters,
-                                declaration.constructors.map { Constructor(it.name, it.parameters) })
-                        )
-
-                    is FunctionExport ->
-                        env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
-
-                    is ValueExport ->
-                        env.bind(declaration.name, import.location, declaration.mutable, declaration.scheme)
-                }
-            }
-        }
+        is ImportAll ->
+            inferScriptExports(importEntry.declarations, import.location, env)
 
         is ImportList -> {
             if (import.name != null) {
@@ -80,41 +63,10 @@ private fun inferImport(entry: CacheEntry, index: Int, import: Import, env: Envi
             }
 
             import.ids.forEach { name ->
-                val declaration = importEntry[name.id.value]
+                val scriptExport = importEntry[name.id.value]
 
-                if (declaration != null) {
-                    val declarationAlias = name.alias?.value ?: name.id.value
-                    when (declaration) {
-                        is CustomTypeExport -> {
-                            env.bindTypeDecl(
-                                declaration.name,
-                                TypeDecl(
-                                    declaration.name,
-                                    declaration.parameters,
-                                    declaration.constructors.map { Constructor(it.name, it.parameters) })
-                            )
-
-                            val returnType = declaration.parameters.map { p -> TVar(p) }
-
-                            declaration.constructors.forEach { c ->
-                                env.bind(
-                                    c.name,
-                                    name.id.location,
-                                    false,
-                                    Scheme(
-                                        declaration.parameters.toSet(),
-                                        TArr(c.parameters, TCon(declaration.name, returnType))
-                                    )
-                                )
-                            }
-                        }
-
-                        is FunctionExport ->
-                            env.bind(declarationAlias, import.location, declaration.mutable, declaration.scheme)
-
-                        is ValueExport ->
-                            env.bind(declarationAlias, import.location, declaration.mutable, declaration.scheme)
-                    }
+                if (scriptExport != null) {
+                    inferScriptExport(scriptExport, name.alias?.value ?: name.id.value, import.location, env)
                 } else {
                     env.errors.addError(IdentifierNotExported(name.id, import.path.value))
                     env.bind(name.id.value, import.location, false, Scheme(emptySet(), typeError))
@@ -124,56 +76,79 @@ private fun inferImport(entry: CacheEntry, index: Int, import: Import, env: Envi
     }
 }
 
+private fun inferScriptExports(scriptExports: List<ScriptExport>, location: Location, env: Environment) =
+    scriptExports.forEach { scriptExport -> inferScriptExport(scriptExport, scriptExport.name, location, env) }
+
+private fun inferScriptExport(scriptExport: ScriptExport, alias: String, location: Location, env: Environment) {
+    when (scriptExport) {
+        is CustomTypeExport -> {
+            env.bindTypeDecl(
+                alias,
+                TypeDecl(
+                    scriptExport.name,
+                    scriptExport.parameters,
+                    scriptExport.constructors.map { Constructor(it.name, it.parameters) })
+            )
+
+            inferScriptExports(scriptExport.constructorExports(), location, env)
+        }
+
+        is FunctionExport ->
+            env.bind(alias, location, scriptExport.mutable, scriptExport.scheme)
+
+        is ValueExport ->
+            env.bind(alias, location, scriptExport.mutable, scriptExport.scheme)
+    }
+}
+
 private fun inferDeclarations(decls: List<Declaration>, env: Environment) =
-    decls.forEach { decl ->
-        when (decl) {
-            is DeclarationExpression -> inferStatement(decl.e, env)
+    decls.forEach { decl -> inferDeclaration(decl, env) }
 
-            is DeclarationType -> {
-                val inferEnv = ASTInference(env)
-                val tvss = mutableListOf<Pair<List<TVar>, List<Var>>>()
+private fun inferDeclaration(declaration: Declaration, env: Environment) {
+    when (declaration) {
+        is DeclarationExpression -> inferStatement(declaration.e, env)
 
-                decl.declarations.forEach { declaration ->
-                    inferEnv.clearParameters()
-                    val tvs = declaration.typeParameters.map { parameter ->
-                        inferEnv.bindParameter(
-                            parameter.value,
-                            parameter.location
-                        )
-                    }
-                    val tvsIds = tvs.map { it.name }
-                    tvss.add(Pair(tvs, tvsIds))
+        is DeclarationType -> {
+            val inferEnv = ASTInference(env)
+            val tvss = mutableListOf<Pair<List<TVar>, List<Var>>>()
 
-                    inferEnv.bindTypeDecl(declaration.id.value, TypeDecl(declaration.id.value, tvsIds, emptyList()))
-                }
+            declaration.declarations.forEach { decl ->
+                val tvs = inferEnv.setParameters(decl.typeParameters)
+                val tvsIds = tvs.map { it.name }
+                tvss.add(Pair(tvs, tvsIds))
 
-                decl.declarations.forEachIndexed { idx, declaration ->
-                    val tvs = tvss[idx].first
-                    val tvsIds = tvss[idx].second
+                inferEnv.bindTypeDecl(decl.id.value, TypeDecl(decl.id.value, tvsIds, emptyList()))
+            }
 
-                    val typeDecl = TypeDecl(
-                        declaration.id.value,
-                        tvsIds,
-                        declaration.constructors.map {
-                            Constructor(
-                                it.id.value,
-                                it.parameters.map { tt -> tt.toType(inferEnv) })
-                        })
-                    env.bindTypeDecl(declaration.id.value, typeDecl)
-                    declaration.typeDecl = typeDecl
+            declaration.declarations.forEachIndexed { idx, decl ->
+                val tvs = tvss[idx].first
+                val tvsIds = tvss[idx].second
 
-                    typeDecl.constructors.forEach { constructor ->
-                        env.bind(
-                            constructor.name,
-                            decl.location(),
-                            false,
-                            Scheme(tvsIds.toSet(), TArr(constructor.parameters, TCon(declaration.id.value, tvs)))
-                        )
-                    }
+                inferEnv.resetParameters(decl.typeParameters, tvs)
+
+                val typeDecl = TypeDecl(
+                    decl.id.value,
+                    tvsIds,
+                    decl.constructors.map {
+                        Constructor(
+                            it.id.value,
+                            it.parameters.map { tt -> tt.toType(inferEnv) })
+                    })
+                env.bindTypeDecl(decl.id.value, typeDecl)
+                decl.typeDecl = typeDecl
+
+                typeDecl.constructors.forEach { constructor ->
+                    env.bind(
+                        constructor.name,
+                        declaration.location(),
+                        false,
+                        Scheme(tvsIds.toSet(), TArr(constructor.parameters, TCon(decl.id.value, tvs)))
+                    )
                 }
             }
         }
     }
+}
 
 class ASTInference(private val env: Environment) : ASTTypeToTypeEnvironment {
     private val typeVariables = mutableMapOf<String, Pair<Location, Type>>()
@@ -182,8 +157,23 @@ class ASTInference(private val env: Environment) : ASTTypeToTypeEnvironment {
     override fun parameter(name: String): Type? =
         typeVariables[name]?.second
 
-    fun clearParameters() {
+    fun setParameters(parameters: List<StringLocation>): List<TVar> {
         typeVariables.clear()
+
+        return parameters.map { parameter ->
+            bindParameter(
+                parameter.value,
+                parameter.location
+            )
+        }
+    }
+
+    fun resetParameters(parameters: List<StringLocation>, types: List<Type>) {
+        typeVariables.clear()
+
+        parameters.forEachIndexed { index, parameter ->
+            typeVariables[parameter.value] = Pair(parameter.location, types[index])
+        }
     }
 
     override fun typeDecl(name: String): TypeDecl? =

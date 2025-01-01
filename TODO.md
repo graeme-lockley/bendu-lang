@@ -27,11 +27,12 @@ The following is the list of big features that need to be implemented.
 - [x] Arrays
 - [x] Packages
 - [x] Garbage collector
-- [ ] Custom Data Types
+- [x] Custom Data Types
 - [ ] Records
 - [ ] Type aliases
 - [ ] Patterns
 - [ ] Signals
+- [ ] Builtins
 - [ ] Integrate libuv
 
 # Scaffolding
@@ -91,23 +92,6 @@ The following is the list of big features that need to be implemented.
 
 # Data Types
 
-## Custom Data Types
-
-- [x] Parse Custom Data Type
-- [x] Incorporate Custom Data Type into type inference
-- [x] Compile Custom Data Type
-- [x] Recursive Custom Data Types
-      - [x] Parse recursive Custom Data Type
-      - [x] Incorporate recursive Custom Data Type into type inference
-      - [x] Compile recursive Custom Data Types
-- [ ] Make an Custom Data Type exportable
-      - [x] Enhance cache grammar to incorporate Custom Data Types
-      - [x] Enhance lang grammar to allow Custom Data Types to be exported
-      - [x] Incorporate Custom Data Types into the sig file
-      - [x] Include Custom Data Types in import all
-      - [ ] Include Custom Data Types in import as
-      - [ ] Include Custom Data Types in import exposing
-
 ## Arrays
 
 - [x] Parse literal
@@ -152,6 +136,23 @@ The following is the list of big features that need to be implemented.
 - [x] Implement ==, !=, <, <=, >, >=
 - [x] Handle divide by zero
 - [ ] Add support for \x escape sequence
+
+## Custom Data Types
+
+- [x] Parse Custom Data Type
+- [x] Incorporate Custom Data Type into type inference
+- [x] Compile Custom Data Type
+- [x] Recursive Custom Data Types
+      - [x] Parse recursive Custom Data Type
+      - [x] Incorporate recursive Custom Data Type into type inference
+      - [x] Compile recursive Custom Data Types
+- [x] Make an Custom Data Type exportable
+      - [x] Enhance cache grammar to incorporate Custom Data Types
+      - [x] Enhance lang grammar to allow Custom Data Types to be exported
+      - [x] Incorporate Custom Data Types into the sig file
+      - [x] Include Custom Data Types in import all
+      - [x] Include Custom Data Types in import as
+      - [x] Include Custom Data Types in import exposing
 
 ## Float
 
@@ -221,16 +222,16 @@ The following is the list of big features that need to be implemented.
 - [x] (**): [a: Int | Float | Char] a -> a -> a
 - [x] (/): [a: Int | Float | Char] a -> a -> a
 - [x] (%): Int -> Int -> Int
-- [ ] (==): [a] a -> a -> Bool
-- [ ] (!=): [a] a -> a -> Bool
+- [x] (==): [a] a -> a -> Bool
+- [x] (!=): [a] a -> a -> Bool
 - [x] (<): [a: Bool | Char | Float | Int | String] a -> a -> a
 - [x] (<=): [a: Bool | Char | Float | Int | String] a -> a -> a
 - [x] (>): [a: Bool | Char | Float | Int | String] a -> a -> a
 - [x] (>=): [a: Bool | Char | Float | Int | String] a -> a -> a
-- [ ] (<<): [a] List a -> a -> List a
-- [ ] (<!): [a] List a -> a -> List a
-- [ ] (>>): [a] a -> List a -> List a
-- [ ] (>!): [a] a -> List a -> List a
+- [x] (<<): [a] Array a -> a -> Array a
+- [x] (<!): [a] Array a -> a -> Array a
+- [x] (>>): [a] a -> Array a -> Array a
+- [x] (>!): [a] a -> Array a -> Array a
 - [ ] (?): [a, b: a | Unit] b -> a -> a
 - [x] (!): Bool -> Bool
 - [x] (&&): Bool -> Bool -> Bool

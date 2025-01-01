@@ -1,11 +1,10 @@
 package io.littlelanguages.bendu
 
-import io.littlelanguages.bendu.cache.*
+import io.littlelanguages.bendu.cache.CustomTypeExport
+import io.littlelanguages.bendu.cache.ScriptDependency
+import io.littlelanguages.bendu.cache.ScriptExport
+import io.littlelanguages.bendu.cache.ScriptExports
 import io.littlelanguages.bendu.compiler.ByteBuilder
-import io.littlelanguages.bendu.typeinference.Scheme
-import io.littlelanguages.bendu.typeinference.TArr
-import io.littlelanguages.bendu.typeinference.TCon
-import io.littlelanguages.bendu.typeinference.TVar
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -106,12 +105,7 @@ sealed class CacheEntry(open val srcDir: File, open val dir: File, open val name
             result.add(it)
 
             if (it is CustomTypeExport) {
-                val returnType = it.parameters.map { p -> TVar(p) }
-
-                it.constructors.forEach { c ->
-                    val scheme = Scheme(it.parameters.toSet(), TArr(c.parameters, TCon(it.name, returnType)))
-                    result.add(FunctionExport(c.name, false, scheme, c.codeOffset, null))
-                }
+                result.addAll(it.constructorExports())
             }
         }
 
