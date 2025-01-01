@@ -142,6 +142,18 @@ fn: [a] (a) -> a
 
 > E.funA(10)
 11: Int
+
+> E.None
+fn: [a] () -> Option[a]
+
+> E.None()
+E.None(): [a] Option[a]
+
+> E.Some
+fn: [a] (a) -> Option[a]
+
+> E.Some(10)
+E.Some(10): Option[Int]
 ```
 
 Using the same example as before, the following script shows that the mutation of `valueA` and `funA` is visible across all uses of the package.
@@ -176,7 +188,7 @@ fn: (Int) -> Int
 This form of import is the most restrictive.  Only the specified members are imported into the script.  The following script imports only the `pi` and `identity` members of the example script.
 
 ```bendu-repl
-> import "docs/example.bendu" exposing (pi, identity)
+> import "docs/example.bendu" exposing (pi, identity, Option)
 
 > pi
 3.1415926: Float
@@ -186,6 +198,18 @@ fn: [a] (a) -> a
 
 > identity("hello")
 "hello": String
+
+> None
+fn: [a] () -> Option[a]
+
+> None()
+None(): [a] Option[a]
+
+> Some
+fn: [a] (a) -> Option[a]
+
+> Some(10)
+Some(10): Option[Int]
 ```
 
 It is possible to use an alias for each of the imported members.  This is helpful to avoid name clashes.
@@ -228,6 +252,19 @@ fn: [a] (a) -> a
 
 > E.constant(10)("hello")
 10: Int
+
+> E.None
+fn: [a] () -> Option[a]
+
+> E.None()
+E.None(): [a] Option[a]
+
+> E.Some
+fn: [a] (a) -> Option[a]
+
+> E.Some(10)
+E.Some(10): Option[Int]
+
 ```
 
 To close out this section, note that an attempt to access a value not exported will result in an error.
