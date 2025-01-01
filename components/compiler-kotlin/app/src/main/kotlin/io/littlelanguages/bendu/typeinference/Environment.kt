@@ -37,7 +37,7 @@ data class Environment(
         typeDecls["Unit"] = TypeDecl("Unit", emptyList(), emptyList())
         typeDecls["Error"] = TypeDecl("Error", emptyList(), emptyList())
 
-        typeDecls["Array"] = TypeDecl("Array", listOf(1), listOf(Constructor("Array", listOf(TVar(1)))))
+        typeDecls["Array"] = TypeDecl("Array", listOf(1), emptyList())
     }
 
     fun bind(name: String, location: Location, mutable: Boolean, scheme: Scheme) {

@@ -121,8 +121,7 @@ private fun inferDeclaration(declaration: Declaration, env: Environment) {
             }
 
             declaration.declarations.forEachIndexed { idx, decl ->
-                val tvs = tvss[idx].first
-                val tvsIds = tvss[idx].second
+                val (tvs, tvsIds) = tvss[idx]
 
                 inferEnv.resetParameters(decl.typeParameters, tvs)
 
