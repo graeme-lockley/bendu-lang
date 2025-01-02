@@ -316,19 +316,28 @@ data class LowerIDExpression(val v: StringLocation, override var type: Type? = n
 
 data class MatchExpression(
     val e: Expression,
-    val branches: List<Pair<Pattern, Expression>>,
+    val branches: List<MatchCase>,
     override var type: Type? = null
 ) : Expression(type) {
     override fun apply(s: Subst, errors: Errors) {
         e.apply(s, errors)
-        branches.forEach { (_, e) ->
-            e.apply(s, errors)
+        branches.forEach { c ->
+            c.apply(s, errors)
         }
     }
 
     override fun location(): Location =
-        branches.drop(1)
-            .fold(branches.first().first.location() + branches.first().second.location()) { acc, (e1, e2) -> acc + e1.location() + e2.location() }
+        branches.fold(branches.first().location()) { acc, c -> acc + c.location() }
+}
+
+data class MatchCase(val pattern: Pattern, val guard: Expression?, val expression: Expression) {
+    fun apply(s: Subst, errors: Errors) {
+        guard?.apply(s, errors)
+        expression.apply(s, errors)
+    }
+
+    fun location(): Location =
+        pattern.location() + expression.location()
 }
 
 data class ModuleReferenceExpression(

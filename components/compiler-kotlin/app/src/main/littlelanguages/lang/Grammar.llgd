@@ -152,7 +152,7 @@ TypeFactor
     ;
 
 Case
-    : Pattern "->" Expression
+    : Pattern ["," Expression] "->" Expression
     ;
 
 Pattern

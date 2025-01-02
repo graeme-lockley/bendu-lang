@@ -5,7 +5,7 @@ import io.littlelanguages.data.*
 import java.io.StringReader
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<Script, Import, ImportDeclaration, Declaration, TypeDeclaration, TypeConstructor, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, (Expression) -> Expression, Expression, List<FunctionParameter>, FunctionParameter, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm, Pair<Pattern, Expression>, Pattern, Pattern> {
+    Visitor<Script, Import, ImportDeclaration, Declaration, TypeDeclaration, TypeConstructor, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, (Expression) -> Expression, Expression, List<FunctionParameter>, FunctionParameter, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm, MatchCase, Pattern, Pattern> {
     override fun visitProgram(a1: List<Tuple2<Import, Token?>>, a2: List<Tuple2<Declaration, Token?>>): Script =
         Script(a1.map { it.a }, a2.map { it.a })
 
@@ -385,13 +385,7 @@ private class ParserVisitor(val errors: Errors = Errors()) :
                 a1.location + a3.location
             )
 
-    override fun visitFactor15(
-        a1: Token,
-        a2: Expression,
-        a3: Token?,
-        a4: Pair<Pattern, Expression>,
-        a5: List<Pair<Pattern, Expression>>
-    ): Expression =
+    override fun visitFactor15(a1: Token, a2: Expression, a3: Token?, a4: MatchCase, a5: List<MatchCase>): Expression =
         MatchExpression(a2, listOf(a4) + a5)
 
     override fun visitFunctionParameters(
@@ -477,8 +471,8 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     override fun visitTypeFactor3(a: Token): TypeTerm =
         LowerIDType(StringLocation(a.lexeme, a.location))
 
-    override fun visitCase(a1: Pattern, a2: Token, a3: Expression): Pair<Pattern, Expression> =
-        Pair(a1, a3)
+    override fun visitCase(a1: Pattern, a2: Tuple2<Token, Expression>?, a3: Token, a4: Expression): MatchCase =
+        MatchCase(a1, a2?.b, a4)
 
     override fun visitPattern(a1: Pattern, a2: TypeTerm?, a3: Tuple2<Token, Token>?): Pattern {
         var result = a1
