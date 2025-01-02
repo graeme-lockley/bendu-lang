@@ -120,7 +120,7 @@ Factor
     | "fn" [TypeParameters] FunctionParameters [TypeQualifier] ["="] Expression
     | "{" {Expression [";"]} "}"
     | "[" [["..."] Expression {"," ["..."] Expression}] "]"
-    | "match" Expression ["|"] Case {Case}
+    | "match" Expression "with" ["|"] Case {"|" Case}
     ;
 
 FunctionParameters

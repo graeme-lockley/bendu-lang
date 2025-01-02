@@ -1,9 +1,6 @@
 package io.littlelanguages.bendu
 
-import io.littlelanguages.bendu.cache.CustomTypeExport
-import io.littlelanguages.bendu.cache.FunctionExport
-import io.littlelanguages.bendu.cache.ScriptExport
-import io.littlelanguages.bendu.cache.ValueExport
+import io.littlelanguages.bendu.cache.*
 import io.littlelanguages.bendu.typeinference.*
 import io.littlelanguages.scanpiler.Location
 
@@ -76,8 +73,8 @@ private fun inferImport(entry: CacheEntry, index: Int, import: Import, env: Envi
     }
 }
 
-private fun inferScriptExports(scriptExports: List<ScriptExport>, location: Location, env: Environment) =
-    scriptExports.forEach { scriptExport -> inferScriptExport(scriptExport, scriptExport.name, location, env) }
+private fun inferScriptExports(scriptExports: ScriptExports, location: Location, env: Environment) =
+    scriptExports.exports.forEach { scriptExport -> inferScriptExport(scriptExport, scriptExport.name, location, env) }
 
 private fun inferScriptExport(scriptExport: ScriptExport, alias: String, location: Location, env: Environment) {
     when (scriptExport) {
@@ -485,7 +482,30 @@ private fun inferExpression(expression: Expression, env: Environment) {
             }
         }
 
-        is MatchExpression -> TODO()
+        is MatchExpression -> {
+            inferScopedExpression(expression.e, env)
+
+            val tv = env.nextVar()
+
+            expression.cases.forEach { case ->
+                env.openTypeEnv()
+
+                inferPattern(case.pattern, env)
+                env.addConstraint(case.pattern.type!!, expression.e.type!!)
+
+                if (case.guard != null) {
+                    inferScopedExpression(case.guard, env)
+                    env.addConstraint(case.guard.type!!, typeBool)
+                }
+
+                inferExpression(case.body, env)
+                env.addConstraint(case.body.type!!, tv)
+
+                env.closeTypeEnv()
+            }
+
+            expression.type = tv
+        }
 
         is ModuleReferenceExpression -> {
             val binding = env.getImport(expression.moduleID.value)
@@ -494,7 +514,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
                 env.errors.addError(UnknownIdentifierError(expression.moduleID))
                 expression.type = typeError.withLocation(expression.location())
             } else {
-                when (val declaration = binding.second[expression.id.value]) {
+                when (val declaration = binding.second.find(expression.id.value)) {
                     null -> {
                         env.errors.addError(UnknownIdentifierError(expression.id))
                         expression.type = typeError.withLocation(expression.location())
@@ -653,3 +673,126 @@ private val unaryOperatorSignatures = mapOf(
     Pair(UnaryOp.TypeOf, Scheme(setOf(0), TArr(listOf(TVar(0)), typeString)))
 )
 
+private fun inferPattern(pattern: Pattern, env: Environment) {
+    when (pattern) {
+        is ConstructorPattern -> {
+            if (pattern.moduleID == null) {
+                val decl = env.typeDeclConstructor(pattern.id.value)
+
+                inferConstructorPattern(
+                    pattern,
+                    decl?.let { Pair({ pump: Pump -> it.first.type(pump) }, it.second.parameters) },
+                    env
+                )
+            } else {
+                val importBinding = env.getImport(pattern.moduleID.value)
+
+                if (importBinding == null) {
+                    env.errors.addError(UnknownIdentifierError(pattern.moduleID))
+                    pattern.type = typeError.withLocation(pattern.location())
+                } else {
+                    val module = importBinding.second
+                    val decl = module.findConstructor(pattern.id.value)
+
+                    inferConstructorPattern(
+                        pattern,
+                        decl?.let { Pair({ pump: Pump -> it.first.type(pump) }, it.second.parameters) },
+                        env
+                    )
+                }
+            }
+        }
+
+        is LiteralBoolPattern ->
+            pattern.type = typeBool.withLocation(pattern.location())
+
+        is LiteralCharPattern ->
+            pattern.type = typeChar.withLocation(pattern.location())
+
+        is LiteralFloatPattern ->
+            pattern.type = typeFloat.withLocation(pattern.location())
+
+        is LiteralIntPattern ->
+            pattern.type = typeInt.withLocation(pattern.location())
+
+        is LiteralStringPattern ->
+            pattern.type = typeString.withLocation(pattern.location())
+
+        is LiteralUnitPattern ->
+            pattern.type = typeUnit.withLocation(pattern.location())
+
+        is LowerIDPattern -> {
+            val binding = env.binding(pattern.v.value)
+
+            if (binding == null) {
+                val type = env.nextVar()
+                pattern.type = type
+                env.bind(pattern.v.value, pattern.location(), false, Scheme(emptySet(), type))
+            } else {
+                env.addError(IdentifierRedefinitionError(pattern.v, binding.location))
+            }
+        }
+
+        is NamedPattern -> {
+            inferPattern(pattern.pattern, env)
+
+            val binding = env.binding(pattern.id.value)
+            if (binding == null) {
+                pattern.type = pattern.pattern.type
+                env.bind(pattern.id.value, pattern.location(), false, Scheme(emptySet(), pattern.type!!))
+            } else {
+                env.addError(IdentifierRedefinitionError(pattern.id, binding.location))
+            }
+        }
+
+        is TuplePattern -> {
+            pattern.patterns.forEach { p ->
+                inferPattern(p, env)
+            }
+
+            pattern.type = TTuple(pattern.patterns.map { it.type!! }).withLocation(pattern.location())
+        }
+
+        is TypedPattern -> {
+            inferPattern(pattern.pattern, env)
+            val type = pattern.typeQualifier.toType(env)
+
+            env.addConstraint(pattern.pattern.type!!, type)
+            pattern.type = type
+        }
+
+        is WildcardPattern ->
+            pattern.type = env.nextVar(pattern.location())
+    }
+}
+
+private fun inferConstructorPattern(
+    pattern: ConstructorPattern,
+    decl: Pair<(Pump) -> Type, List<Type>>?,
+    env: Environment
+) {
+    if (decl == null) {
+        env.errors.addError(UnknownIdentifierError(pattern.id))
+        pattern.type = typeError.withLocation(pattern.location())
+    } else {
+        val (cdtType, constructorParameters) = decl
+
+        if (constructorParameters.size == pattern.patterns.size) {
+            constructorParameters.forEachIndexed { index, type ->
+                inferPattern(pattern.patterns[index], env)
+                env.addConstraint(pattern.patterns[index].type!!, type)
+            }
+        } else {
+            env.errors.addError(
+                ConstructorPatternArityError(
+                    pattern.id.value,
+                    constructorParameters.size,
+                    pattern.patterns.size,
+                    pattern.location()
+                )
+            )
+        }
+
+        pattern.type = cdtType(env.pump)
+    }
+}

@@ -385,8 +385,15 @@ private class ParserVisitor(val errors: Errors = Errors()) :
                 a1.location + a3.location
             )
 
-    override fun visitFactor15(a1: Token, a2: Expression, a3: Token?, a4: MatchCase, a5: List<MatchCase>): Expression =
-        MatchExpression(a2, listOf(a4) + a5)
+    override fun visitFactor15(
+        a1: Token,
+        a2: Expression,
+        a3: Token,
+        a4: Token?,
+        a5: MatchCase,
+        a6: List<Tuple2<Token, MatchCase>>
+    ): Expression =
+        MatchExpression(a2, listOf(a5) + a6.map { it.b })
 
     override fun visitFunctionParameters(
         a1: Token,

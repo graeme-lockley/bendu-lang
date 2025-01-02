@@ -1,9 +1,11 @@
 package io.littlelanguages.bendu.typeinference
 
+import io.littlelanguages.scanpiler.Location
+
 data class Pump(private var counter: Int = 0) {
-    fun next(): TVar {
+    fun next(location: Location? = null): TVar {
         counter += 1
-        return TVar(counter)
+        return TVar(counter, location)
     }
 
     fun nextN(size: Int): List<TVar> =

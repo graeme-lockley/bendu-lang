@@ -54,14 +54,15 @@ The following is the list of big features that need to be implemented.
 - [x] Implement mutable local variables
 - [x] Implement mutable parameters variables
 
-## case Expression
-
-- [x] Incorporate the case expression into the parser and AST
-- [ ] Incorporate the case expression into type inference
-
 ## if
 
 - [x] Implement the `if` expression in the BC interpreter
+
+## match Expression
+
+- [x] Incorporate the match expression into the parser and AST
+- [x] Incorporate the match expression into type inference
+- [ ] Compile match expression
 
 ## Packages
 

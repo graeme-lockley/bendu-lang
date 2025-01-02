@@ -69,6 +69,16 @@ data class CacheParsingError(
     }
 }
 
+data class ConstructorPatternArityError(val name: String, val expected: Int, val found: Int, val location: Location) :
+    BenduError() {
+    override fun printError() {
+        printMessage(
+            "Constructor Pattern Arity Error",
+            "$name, expected $expected, found $found at ${locationToString(location)}"
+        )
+    }
+}
+
 data class IdentifierImmutableError(val id: StringLocation, val location: Location) : BenduError() {
     override fun printError() {
         printMessage(

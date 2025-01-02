@@ -38,7 +38,13 @@ private class Compiler(val errors: Errors) {
 
                 when (import) {
                     is ImportAll ->
-                        import.entry!!.declarations.forEach { processImportDeclaration(it, it.name, -index - 1) }
+                        import.entry!!.declarations.exports.forEach {
+                            processImportDeclaration(
+                                it,
+                                it.name,
+                                -index - 1
+                            )
+                        }
 
                     is ImportList -> {
                         import.ids.forEach { id ->

@@ -2,7 +2,20 @@ package io.littlelanguages.bendu.cache
 
 import io.littlelanguages.bendu.typeinference.*
 
-class ScriptExports(val exports: List<ScriptExport>)
+class ScriptExports(val exports: List<ScriptExport>) {
+    private val declarations = lazy { exports.associateBy { it.name } }
+    private val constructors =
+        lazy {
+            exports.filterIsInstance<CustomTypeExport>().flatMap { it.constructors.map { c -> Pair(it, c) } }
+                .associateBy { it.second.name }
+        }
+
+    fun find(name: String): ScriptExport? =
+        declarations.value[name]
+
+    fun findConstructor(name: String): Pair<CustomTypeExport, ConstructorExport>? =
+        constructors.value[name]
+}
 
 sealed class ScriptExport(open val name: String, open val mutable: Boolean)
 
@@ -45,10 +58,10 @@ data class CustomTypeExport(
             "type $name$ps = ${constructors.joinToString(" | ") { it.toStringHelper(env) }}"
     }
 
-    fun constructorExports(): List<FunctionExport> {
+    fun constructorExports(): ScriptExports {
         val returnType = parameters.map { p -> TVar(p) }
 
-        return constructors.map { c ->
+        return ScriptExports(constructors.map { c ->
             FunctionExport(
                 c.name,
                 false,
@@ -56,8 +69,11 @@ data class CustomTypeExport(
                 c.codeOffset,
                 null
             )
-        }
+        })
     }
+
+    fun type(pump: Pump): Type =
+        TCon(name, pump.nextN(parameters.size))
 }
 
 data class ConstructorExport(val name: String, val parameters: List<Type>, val codeOffset: Int) {

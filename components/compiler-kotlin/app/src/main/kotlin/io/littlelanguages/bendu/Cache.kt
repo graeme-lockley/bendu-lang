@@ -60,13 +60,13 @@ private class Cache(private val home: File) {
 }
 
 sealed class CacheEntry(open val srcDir: File, open val dir: File, open val name: String) {
-    val declarations: List<ScriptExport> by lazy { exportDeclarations() }
+    val declarations: ScriptExports by lazy { exportDeclarations() }
 
     abstract fun script(): String
     abstract fun isUptoDate(): Boolean
 
     operator fun get(name: String): ScriptExport? =
-        declarations.find { it.name == name }
+        declarations.find(name)
 
     fun relativeEntry(name: String): CacheEntry {
         val nameFile = File(name)
@@ -80,7 +80,7 @@ sealed class CacheEntry(open val srcDir: File, open val dir: File, open val name
         return FileCacheEntry(srcDir, entryDir, nameFile.nameWithoutExtension)
     }
 
-    private fun exportDeclarations(): List<ScriptExport> {
+    private fun exportDeclarations(): ScriptExports {
         val script = sigFile().readText()
         val errors = Errors()
         val declarations = io.littlelanguages.bendu.cache.parse(script, errors)
@@ -89,23 +89,20 @@ sealed class CacheEntry(open val srcDir: File, open val dir: File, open val name
             errors.printErrors(true)
         }
 
-        return declarations
+        return ScriptExports(declarations)
     }
 
-    fun expandedExportDeclarations(): List<ScriptExport> =
-        expandedExportDeclarations { true }
-
-    fun expandedExportDeclarations(names: Set<String>): List<ScriptExport> =
-        expandedExportDeclarations { it: String -> names.contains(it) }
+    fun expandedExportDeclarations(): ScriptExports =
+        ScriptExports(expandedExportDeclarations { true })
 
     private fun expandedExportDeclarations(predicate: (String) -> Boolean): List<ScriptExport> {
         val result = mutableListOf<ScriptExport>()
 
-        declarations.filter { predicate(it.name) }.forEach {
+        declarations.exports.filter { predicate(it.name) }.forEach {
             result.add(it)
 
             if (it is CustomTypeExport) {
-                result.addAll(it.constructorExports())
+                result.addAll(it.constructorExports().exports)
             }
         }
 

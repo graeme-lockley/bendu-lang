@@ -354,8 +354,45 @@ class InferenceTest {
         assertInferExpressionEquals("type A[a] = ANil | AB[B[a]] and B[a] = BNil | BA[A[a]]; ANil", "[a] () -> A[a]")
         assertInferExpressionEquals("type A[a] = ANil | AB[B[a]] and B[a] = BNil | BA[A[a]]; AB(BNil())", "[a] A[a]")
     }
-}
 
+    @Test
+    fun `infer match`() {
+        assertInferExpressionEquals("match True with n -> n", "Bool")
+        assertInferExpressionEquals("match 'a' with n -> n", "Char")
+        assertInferExpressionEquals("match 1.0 with n -> n", "Float")
+        assertInferExpressionEquals("match 1 with n -> n", "Int")
+        assertInferExpressionEquals("match \"hello\" with n -> n", "String")
+        assertInferExpressionEquals("match () with n -> n", "Unit")
+
+        assertInferExpressionEquals("match (1, True) with n -> n", "Int * Bool")
+        assertInferExpressionEquals("match (1, True) with (_, b) -> b", "Bool")
+        assertInferExpressionEquals("match (1, True) with (a, _) -> a", "Int")
+
+        assertInferExpressionEquals("match (1, True) with (_, _) @ n -> n", "Int * Bool")
+
+        assertInferExpressionEquals("let add(a, b) = match (a, b) with (x: Int, y) -> x + y ; add", "(Int, Int) -> Int")
+
+        assertInferExpressionEquals(
+            "type List[a] = Nil | Cons[a, List[a]]; match Nil() with Nil() -> False | Cons(_, _) -> True",
+            "Bool"
+        )
+        inferErrorExpression("type List[a] = Nil | Cons[a, List[a]]; match Nil() with Nil() -> False | Cons(_) -> True")
+
+        assertInferExpressionEquals(
+            "import \"test/test.bendu\" ; match Some(10) with None() -> 0 | Some(n) -> n",
+            "Int"
+        )
+        assertInferExpressionEquals(
+            "import \"test/test.bendu\" exposing (Option); match Some(10) with None() -> 0 | Some(n) -> n",
+            "Int"
+        )
+
+        assertInferExpressionEquals(
+            "import \"test/test.bendu\" as T; match T.Some(10) with T.None() -> 0 | T.Some(n) -> n",
+            "Int"
+        )
+    }
+}
 
 private fun assertInferExpressionEquals(expr: String, expected: String, typeEnv: TypeEnv = emptyTypeEnv) {
     val errors = Errors()

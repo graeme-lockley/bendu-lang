@@ -316,28 +316,31 @@ data class LowerIDExpression(val v: StringLocation, override var type: Type? = n
 
 data class MatchExpression(
     val e: Expression,
-    val branches: List<MatchCase>,
+    val cases: List<MatchCase>,
     override var type: Type? = null
 ) : Expression(type) {
     override fun apply(s: Subst, errors: Errors) {
+        super.apply(s, errors)
+
         e.apply(s, errors)
-        branches.forEach { c ->
+        cases.forEach { c ->
             c.apply(s, errors)
         }
     }
 
     override fun location(): Location =
-        branches.fold(branches.first().location()) { acc, c -> acc + c.location() }
+        cases.fold(cases.first().location()) { acc, c -> acc + c.location() }
 }
 
-data class MatchCase(val pattern: Pattern, val guard: Expression?, val expression: Expression) {
+data class MatchCase(val pattern: Pattern, val guard: Expression?, val body: Expression) {
     fun apply(s: Subst, errors: Errors) {
+        pattern.apply(s, errors)
         guard?.apply(s, errors)
-        expression.apply(s, errors)
+        body.apply(s, errors)
     }
 
     fun location(): Location =
-        pattern.location() + expression.location()
+        pattern.location() + body.location()
 }
 
 data class ModuleReferenceExpression(
@@ -503,7 +506,11 @@ data class UpperIDType(val v: StringLocation, val parameters: List<TypeTerm>, va
     }
 }
 
-sealed class Pattern {
+sealed class Pattern(open var type: Type? = null) {
+    open fun apply(s: Subst, errors: Errors) {
+        type = type!!.apply(s)
+    }
+
     abstract fun location(): Location
 }
 
@@ -511,63 +518,66 @@ data class ConstructorPattern(
     val moduleID: StringLocation?,
     val id: StringLocation,
     val patterns: List<Pattern>,
-    val location: Location
-) : Pattern() {
+    val location: Location,
+    override var type: Type? = null
+) : Pattern(type) {
     override fun location(): Location =
         location
 }
 
-data class LiteralBoolPattern(val v: BoolLocation) : Pattern() {
+data class LiteralBoolPattern(val v: BoolLocation, override var type: Type? = null) : Pattern(type) {
     override fun location(): Location =
         v.location
 }
 
-data class LiteralCharPattern(val v: CharLocation) : Pattern() {
+data class LiteralCharPattern(val v: CharLocation, override var type: Type? = null) : Pattern(type) {
     override fun location(): Location =
         v.location
 }
 
-data class LiteralFloatPattern(val v: FloatLocation) : Pattern() {
+data class LiteralFloatPattern(val v: FloatLocation, override var type: Type? = null) : Pattern(type) {
     override fun location(): Location =
         v.location
 }
 
-data class LiteralIntPattern(val v: IntLocation) : Pattern() {
+data class LiteralIntPattern(val v: IntLocation, override var type: Type? = null) : Pattern(type) {
     override fun location(): Location =
         v.location
 }
 
-data class LiteralStringPattern(val v: StringLocation) : Pattern() {
+data class LiteralStringPattern(val v: StringLocation, override var type: Type? = null) : Pattern(type) {
     override fun location(): Location =
         v.location
 }
 
-data class LiteralUnitPattern(val location: Location) : Pattern() {
+data class LiteralUnitPattern(val location: Location, override var type: Type? = null) : Pattern(type) {
     override fun location(): Location =
         location
 }
 
-data class LowerIDPattern(val v: StringLocation) : Pattern() {
+data class LowerIDPattern(val v: StringLocation, override var type: Type? = null) : Pattern(type) {
     override fun location(): Location =
         v.location
 }
 
-data class NamedPattern(val pattern: Pattern, val id: StringLocation) : Pattern() {
+data class NamedPattern(val pattern: Pattern, val id: StringLocation, override var type: Type? = null) : Pattern(type) {
     override fun location(): Location =
         pattern.location() + id.location
 }
 
-data class TuplePattern(val patterns: List<Pattern>, val location: Location) : Pattern() {
+data class TuplePattern(val patterns: List<Pattern>, val location: Location, override var type: Type? = null) :
+    Pattern(type) {
     override fun location(): Location =
         location
 }
 
-data class TypedPattern(val pattern: Pattern, val typeQualifier: TypeTerm) : Pattern() {
+data class TypedPattern(val pattern: Pattern, val typeQualifier: TypeTerm, override var type: Type? = null) :
+    Pattern(type) {
     override fun location(): Location =
         pattern.location() + typeQualifier.location()
 }
 
-data class WildcardPattern(val location: Location) : Pattern() {
+data class WildcardPattern(val location: Location, override var type: Type? = null) : Pattern(type) {
     override fun location(): Location =
         location
 }

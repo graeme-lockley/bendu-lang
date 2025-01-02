@@ -4,7 +4,7 @@ import io.littlelanguages.bendu.BenduError
 import io.littlelanguages.bendu.Errors
 import io.littlelanguages.bendu.IdentifierRedefinitionError
 import io.littlelanguages.bendu.StringLocation
-import io.littlelanguages.bendu.cache.ScriptExport
+import io.littlelanguages.bendu.cache.ScriptExports
 import io.littlelanguages.scanpiler.Location
 
 interface ASTTypeToTypeEnvironment {
@@ -19,7 +19,7 @@ interface ASTTypeToTypeEnvironment {
 
 data class Environment(
     private var typeEnv: TypeEnv,
-    private val pump: Pump,
+    val pump: Pump,
     val errors: Errors,
     private val constraints: Constraints
 ) : ASTTypeToTypeEnvironment {
@@ -102,9 +102,21 @@ data class Environment(
     override fun typeDecl(name: String): TypeDecl? =
         typeDecls[name]
 
+    fun typeDeclConstructor(name: String): Pair<TypeDecl, Constructor>? {
+        typeDecls.values.forEach { typeDecl ->
+            val constructor = typeDecl.constructor(name)
+
+            if (constructor != null) {
+                return Pair(typeDecl, constructor)
+            }
+        }
+
+        return null
+    }
+
     fun solveConstraints(): Subst = constraints.solve(errors)
 
-    fun nextVar(): TVar = pump.next()
+    fun nextVar(location: Location? = null): TVar = pump.next(location)
 
     fun nextVars(n: Int): List<TVar> = pump.nextN(n)
 
@@ -124,8 +136,8 @@ data class Environment(
     fun hasImport(value: String): Boolean =
         imports.containsKey(value)
 
-    fun addImport(name: String, packageID: Int, declarations: List<ScriptExport>) {
-        imports[name] = Pair(packageID, declarations.associateBy { it.name })
+    fun addImport(name: String, packageID: Int, declarations: ScriptExports) {
+        imports[name] = Pair(packageID, declarations)
     }
 
     fun getImport(value: String): ImportBinding? =
@@ -136,4 +148,4 @@ data class Environment(
     }
 }
 
-typealias ImportBinding = Pair<Int, Map<String, ScriptExport>>
+typealias ImportBinding = Pair<Int, ScriptExports>
