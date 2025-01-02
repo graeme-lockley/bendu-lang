@@ -416,6 +416,31 @@ data class WhileExpression(val guard: Expression, val body: Expression, override
         guard.location() + body.location()
 }
 
+/*---- The following expressions are used to desugar the match expression */
+data class CaseExpression(val variable: String, val clauses: List<Clause>, val location: Location) : Expression() {
+    override fun location(): Location =
+        location
+}
+
+data class Clause(val constructor: String, val variables: List<String?>, val expression: Expression)
+
+data class ErrorExpression(val location: Location) : Expression() {
+    override fun location(): Location =
+        location
+}
+
+data class FailExpression(val location: Location) : Expression() {
+    override fun location(): Location =
+        location
+}
+
+data class FatBarExpression(val left: Expression, val right: Expression, val location: Location) : Expression() {
+    override fun location(): Location =
+        location
+}
+/*------------------------------------------------------------------------*/
+
+
 data class BoolLocation(val value: Boolean, val location: Location)
 data class CharLocation(val value: Char, val location: Location)
 data class FloatLocation(val value: Float, val location: Location)

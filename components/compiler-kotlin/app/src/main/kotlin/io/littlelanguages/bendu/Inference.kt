@@ -324,6 +324,14 @@ private fun inferExpression(expression: Expression, env: Environment) {
                     expression.es.last().type
         }
 
+        is CaseExpression -> throw IllegalArgumentException("CaseExpression should not be in the AST")
+
+        is ErrorExpression -> throw IllegalArgumentException("ErrorExpression should not be in the AST")
+
+        is FailExpression -> throw IllegalArgumentException("FailExpression should not be in the AST")
+
+        is FatBarExpression -> throw IllegalArgumentException("FatBarExpression should not be in the AST")
+
         is IfExpression -> {
             expression.guards.forEach { guard ->
                 inferScopedExpression(guard.first, env)

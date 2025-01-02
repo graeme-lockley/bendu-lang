@@ -208,6 +208,10 @@ private class Compiler(val errors: Errors) {
             is AssignmentExpression -> compileAssignmentExpression(expression, keepResult)
             is BinaryExpression -> compileBinaryExpression(expression, keepResult)
             is BlockExpression -> compileStatements(expression.es, keepResult)
+            is CaseExpression -> TODO("Compile CaseExpression")
+            is ErrorExpression -> compileErrorExpression(expression, keepResult)
+            is FailExpression -> throw IllegalStateException("Fail expressions should be factored out: ${expression.location()}")
+            is FatBarExpression -> throw IllegalStateException("Fat bar expressions should be factored out: ${expression.location()}")
             is IfExpression -> compileIfExpression(expression, keepResult)
             is LetStatement -> compileLetExpression(expression, keepResult)
             is LiteralArrayExpression -> compileLiteralArrayExpression(expression, keepResult)
@@ -220,7 +224,7 @@ private class Compiler(val errors: Errors) {
             is LiteralTupleExpression -> compileLiteralTupleExpression(expression, keepResult)
             is LiteralUnitExpression -> compileLiteralUnitExpression(expression, keepResult)
             is LowerIDExpression -> compileLowerIDExpression(expression, keepResult)
-            is MatchExpression -> TODO()
+            is MatchExpression -> throw IllegalStateException("Match expressions should be desugared: ${expression.location()}")
             is ModuleReferenceExpression -> compileModuleReferenceExpression(expression, keepResult)
             is PrintStatement -> compilePrintExpression(expression, keepResult)
             is PrintlnStatement -> compilePrintlnExpression(expression, keepResult)
@@ -637,6 +641,21 @@ private class Compiler(val errors: Errors) {
 
         if (!keepResult) {
             byteBuilder.appendInstruction(Instructions.DISCARD)
+        }
+    }
+
+    private fun compileErrorExpression(expression: ErrorExpression, keepResult: Boolean) {
+        val errorMessage = "Error: Unmatched case expression: ${expression.location()}"
+
+        byteBuilder.appendInstruction(Instructions.PUSH_STRING_LITERAL)
+        byteBuilder.appendInt(errorMessage.length)
+        byteBuilder.append(errorMessage.toByteArray())
+        byteBuilder.appendInstruction(Instructions.PRINTLN)
+        byteBuilder.appendInstruction(Instructions.ABORT)
+        byteBuilder.appendInt(1)
+
+        if (keepResult) {
+            byteBuilder.appendInstruction(Instructions.PUSH_UNIT_LITERAL)
         }
     }
 
