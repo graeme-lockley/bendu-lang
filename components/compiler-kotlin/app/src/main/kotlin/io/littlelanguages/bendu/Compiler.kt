@@ -224,7 +224,7 @@ private class Compiler(val errors: Errors) {
             is LiteralTupleExpression -> compileLiteralTupleExpression(expression, keepResult)
             is LiteralUnitExpression -> compileLiteralUnitExpression(expression, keepResult)
             is LowerIDExpression -> compileLowerIDExpression(expression, keepResult)
-            is MatchExpression -> throw IllegalStateException("Match expressions should be desugared: ${expression.location()}")
+            is MatchExpression -> compileMatchExpression(expression, keepResult)
             is ModuleReferenceExpression -> compileModuleReferenceExpression(expression, keepResult)
             is PrintStatement -> compilePrintExpression(expression, keepResult)
             is PrintlnStatement -> compilePrintlnExpression(expression, keepResult)
@@ -976,6 +976,12 @@ private class Compiler(val errors: Errors) {
                 }
             }
         }
+    }
+
+    private fun compileMatchExpression(expression: MatchExpression, keepResult: Boolean) {
+        val newExpression = transformMatchExpression(expression)
+
+        compileExpression(newExpression, keepResult)
     }
 
     private fun compileModuleReferenceExpression(expression: ModuleReferenceExpression, keepResult: Boolean) {
