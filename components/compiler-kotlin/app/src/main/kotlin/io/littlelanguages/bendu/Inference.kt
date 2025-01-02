@@ -485,6 +485,8 @@ private fun inferExpression(expression: Expression, env: Environment) {
             }
         }
 
+        is MatchExpression -> TODO()
+
         is ModuleReferenceExpression -> {
             val binding = env.getImport(expression.moduleID.value)
 

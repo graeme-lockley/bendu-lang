@@ -5,7 +5,7 @@ import io.littlelanguages.data.*
 import java.io.StringReader
 
 private class ParserVisitor(val errors: Errors = Errors()) :
-    Visitor<Script, Import, ImportDeclaration, Declaration, TypeDeclaration, TypeConstructor, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, (Expression) -> Expression, Expression, List<FunctionParameter>, FunctionParameter, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm> {
+    Visitor<Script, Import, ImportDeclaration, Declaration, TypeDeclaration, TypeConstructor, Expression, LetStatementTerm, Expression, Expression, Expression, Expression, OpLocation, Expression, OpLocation, Expression, Expression, Expression, Expression, Expression, Expression, (Expression) -> Expression, Expression, List<FunctionParameter>, FunctionParameter, List<StringLocation>, TypeTerm, TypeTerm, TypeTerm, Pair<Pattern, Expression>, Pattern, Pattern> {
     override fun visitProgram(a1: List<Tuple2<Import, Token?>>, a2: List<Tuple2<Declaration, Token?>>): Script =
         Script(a1.map { it.a }, a2.map { it.a })
 
@@ -385,6 +385,15 @@ private class ParserVisitor(val errors: Errors = Errors()) :
                 a1.location + a3.location
             )
 
+    override fun visitFactor15(
+        a1: Token,
+        a2: Expression,
+        a3: Token?,
+        a4: Pair<Pattern, Expression>,
+        a5: List<Pair<Pattern, Expression>>
+    ): Expression =
+        MatchExpression(a2, listOf(a4) + a5)
+
     override fun visitFunctionParameters(
         a1: Token,
         a2: Tuple2<FunctionParameter, List<Tuple2<Token, FunctionParameter>>>?,
@@ -467,6 +476,76 @@ private class ParserVisitor(val errors: Errors = Errors()) :
 
     override fun visitTypeFactor3(a: Token): TypeTerm =
         LowerIDType(StringLocation(a.lexeme, a.location))
+
+    override fun visitCase(a1: Pattern, a2: Token, a3: Expression): Pair<Pattern, Expression> =
+        Pair(a1, a3)
+
+    override fun visitPattern(a1: Pattern, a2: TypeTerm?, a3: Tuple2<Token, Token>?): Pattern {
+        var result = a1
+
+        if (a2 != null) {
+            result = TypedPattern(result, a2)
+        }
+        if (a3 != null) {
+            result = NamedPattern(result, StringLocation(a3.b.lexeme, a3.b.location))
+        }
+
+        return result
+    }
+
+    override fun visitPatternFactor1(
+        a1: Token,
+        a2: Tuple2<Pattern, List<Tuple2<Token, Pattern>>>?,
+        a3: Token
+    ): Pattern =
+        if (a2 == null) LiteralUnitPattern(a1.location + a3.location)
+        else if (a2.b.isEmpty()) a2.a
+        else TuplePattern(listOf(a2.a) + a2.b.map { it.b }, a1.location + a3.location)
+
+    override fun visitPatternFactor2(a: Token): Pattern =
+        LiteralCharPattern(CharLocation(a.lexeme[1], a.location))
+
+    override fun visitPatternFactor3(a: Token): Pattern =
+        LiteralFloatPattern(FloatLocation(a.lexeme.toFloat(), a.location))
+
+    override fun visitPatternFactor4(a: Token): Pattern =
+        LiteralIntPattern(IntLocation(a.lexeme.toInt(), a.location))
+
+    override fun visitPatternFactor5(a: Token): Pattern =
+        LiteralStringPattern(StringLocation(parseLiteralString(a.lexeme), a.location))
+
+    override fun visitPatternFactor6(a: Token): Pattern =
+        LiteralBoolPattern(BoolLocation(true, a.location))
+
+    override fun visitPatternFactor7(a: Token): Pattern =
+        LiteralBoolPattern(BoolLocation(false, a.location))
+
+    override fun visitPatternFactor8(a: Token): Pattern =
+        LowerIDPattern(StringLocation(a.lexeme, a.location))
+
+    override fun visitPatternFactor9(a: Token): Pattern =
+        WildcardPattern(a.location)
+
+    override fun visitPatternFactor10(
+        a1: Token,
+        a2: Tuple2<Token, Token>?,
+        a3: Token,
+        a4: Tuple2<Pattern, List<Tuple2<Token, Pattern>>>?,
+        a5: Token
+    ): Pattern {
+        val arguments = if (a4 == null) emptyList() else listOf(a4.a) + a4.b.map { it.b }
+        val location = a1.location + a5.location
+
+        return if (a2 == null)
+            ConstructorPattern(null, StringLocation(a1.lexeme, a1.location), arguments, location)
+        else
+            ConstructorPattern(
+                StringLocation(a1.lexeme, a1.location),
+                StringLocation(a2.b.lexeme, a2.b.location),
+                arguments,
+                location
+            )
+    }
 }
 
 fun parseLiteralString(s: String): String {

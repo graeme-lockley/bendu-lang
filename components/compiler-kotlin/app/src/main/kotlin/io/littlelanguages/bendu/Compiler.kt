@@ -214,6 +214,7 @@ private class Compiler(val errors: Errors) {
             is LiteralTupleExpression -> compileLiteralTupleExpression(expression, keepResult)
             is LiteralUnitExpression -> compileLiteralUnitExpression(expression, keepResult)
             is LowerIDExpression -> compileLowerIDExpression(expression, keepResult)
+            is MatchExpression -> TODO()
             is ModuleReferenceExpression -> compileModuleReferenceExpression(expression, keepResult)
             is PrintStatement -> compilePrintExpression(expression, keepResult)
             is PrintlnStatement -> compilePrintlnExpression(expression, keepResult)

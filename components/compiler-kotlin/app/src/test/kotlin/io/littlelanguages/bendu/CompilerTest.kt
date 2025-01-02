@@ -1047,6 +1047,47 @@ class CompilerTest {
             "import \"test/test.bendu\" exposing (valueA as fff); fff"
         )
 
+        /*
+            let fib(n: Int): Int =
+                match n
+                | 0 -> 1
+                | 1 -> 1
+                | _ -> fib(n - 1) + fib(n - 2)
+
+            let eqRat(cr1, cr2) =
+                match (cr1, cr2)
+                | ((_, 0), (_, 0)) -> True
+                | ((_, 0), _) -> False
+                | (_, (_, 0)) -> False
+                | ((n1, 1), (n2, 1)), n1 == n2 -> True
+                | ((n1, d1), (n2, d2)), ((n1 * d2) == (n2 * d1)) -> True
+                | _ -> False
+
+            let length[a](l: List[a]): Int =
+                match l
+                | Nil() -> 0
+                | Cons(_, xs) -> 1 + length(xs)
+
+            let sum(l: List[Int]): Int =
+                foldl(fn(a, b) = a + b, 0, l)
+
+            let map[a, b](l: List[a], f: (a) -> b): List[b] =
+                match l
+                | Nil() -> Nil()
+                | Cons(x, xs) -> Cons(f(x), map(xs, f))
+
+            let foldl[a, b](l: List[a], f: (b, a) -> b, acc: b): b =
+                match l
+                | Nil() -> acc
+                | Cons(x, xs) -> foldl(xs, f, f(acc, x))
+
+            // This can be version 2
+            let length[a](s: Array[a]): Int =
+                match s
+                | [] -> 0
+                | [_, ...xs] -> 1 + length(xs)
+         */
+
         assertCompiledBC(
             byteArrayOf(
                 Instructions.LOAD_PACKAGE.op,

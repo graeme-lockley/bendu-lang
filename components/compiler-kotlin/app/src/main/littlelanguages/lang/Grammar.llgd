@@ -120,6 +120,7 @@ Factor
     | "fn" [TypeParameters] FunctionParameters [TypeQualifier] ["="] Expression
     | "{" {Expression [";"]} "}"
     | "[" [["..."] Expression {"," ["..."] Expression}] "]"
+    | "match" Expression ["|"] Case {Case}
     ;
 
 FunctionParameters
@@ -148,4 +149,25 @@ TypeFactor
     : "(" [TypeTerm {"," TypeTerm}] ")" ["->" TypeTerm]
     | UpperID ["[" TypeTerm {"," TypeTerm} "]"]
     | LowerID
+    ;
+
+Case
+    : Pattern "->" Expression
+    ;
+
+Pattern
+    : PatternFactor [TypeQualifier] ["@" LowerID]
+    ;
+
+PatternFactor
+    : "(" [Pattern {"," Pattern}] ")"
+    | LiteralChar
+    | LiteralFloat
+    | LiteralInt
+    | LiteralString
+    | "True"
+    | "False"
+    | LowerID
+    | "_"
+    | UpperID ["." UpperID] "(" [Pattern {"," Pattern}] ")"
     ;

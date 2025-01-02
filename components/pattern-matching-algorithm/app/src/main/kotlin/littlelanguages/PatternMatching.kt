@@ -1,5 +1,7 @@
 package littlelanguages
 
+import java.util.concurrent.atomic.AtomicInteger
+
 typealias Variable = String
 typealias Constructor = String
 
@@ -11,15 +13,15 @@ data class ConPattern(val constructor: Constructor, val args: List<Pattern>) : P
 data class AbstractDataType(val name: String, val constructors: List<Pair<Constructor, Int>>)
 
 data class Environment(private val types: List<AbstractDataType>) {
+    private val counter = AtomicInteger(0)
+
     fun arity(constructor: Constructor): Int =
         types.flatMap { it.constructors }.first { it.first == constructor }.second
 
     fun constructors(name: String): List<Constructor> =
         types.first { it.constructors.any { c -> c.first == name } }.constructors.map { it.first }
 
-    private var counter = 0
-
-    fun makeVar(): Variable = "_u${counter++}"
+    fun makeVar(): Variable = "_u${counter.getAndIncrement()}"
 }
 
 sealed class Expression

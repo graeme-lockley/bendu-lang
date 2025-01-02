@@ -54,6 +54,11 @@ The following is the list of big features that need to be implemented.
 - [x] Implement mutable local variables
 - [x] Implement mutable parameters variables
 
+## case Expression
+
+- [x] Incorporate the case expression into the parser and AST
+- [ ] Incorporate the case expression into type inference
+
 ## if
 
 - [x] Implement the `if` expression in the BC interpreter
@@ -85,6 +90,11 @@ The following is the list of big features that need to be implemented.
 ## Sequence Blocks
 
 - [x] Implement the sequence block
+
+## Type Qualifiers
+
+- [x] Implement the type qualifier
+- [ ] Implement type qualifier with import as
 
 ## while
 
