@@ -1,8 +1,9 @@
 package io.littlelanguages.bendu.compiler
 
 import io.littlelanguages.bendu.*
+import io.littlelanguages.bendu.typeinference.*
 
-fun transformMatchExpression(e: MatchExpression): Expression {
+fun transformMatchExpression(e: MatchExpression, symbolTable: SymbolTable): Expression {
     fun transform(e: Expression): Expression = when (e) {
 //        is AppExpression -> AppExpression(transform(e.e1), transform(e.e2))
 //        is CaseExpression -> e
@@ -43,7 +44,10 @@ fun transformMatchExpression(e: MatchExpression): Expression {
         is ArrayElementProjectionExpression -> TODO()
         is ArrayRangeProjectionExpression -> TODO()
         is AssignmentExpression -> TODO()
-        is BinaryExpression -> TODO()
+
+        is BinaryExpression ->
+            BinaryExpression(transform(e.e1), e.op, transform(e.e2), e.type)
+
         is BlockExpression -> TODO()
         is CaseExpression -> TODO()
         is ErrorExpression -> TODO()
@@ -52,16 +56,56 @@ fun transformMatchExpression(e: MatchExpression): Expression {
         is IfExpression -> TODO()
         is LetStatement -> TODO()
         is LiteralArrayExpression -> TODO()
-        is LiteralBoolExpression -> TODO()
-        is LiteralCharExpression -> TODO()
-        is LiteralFloatExpression -> TODO()
+
+        is LiteralBoolExpression -> e
+
+        is LiteralCharExpression -> e
+
+        is LiteralFloatExpression -> e
+
         is LiteralFunctionExpression -> TODO()
-        is LiteralIntExpression -> TODO()
-        is LiteralStringExpression -> TODO()
+
+        is LiteralIntExpression -> e
+
+        is LiteralStringExpression -> e
+
         is LiteralTupleExpression -> TODO()
-        is LiteralUnitExpression -> TODO()
-        is LowerIDExpression -> TODO()
-        is MatchExpression -> TODO()
+
+        is LiteralUnitExpression -> e
+
+        is LowerIDExpression ->
+            e
+
+        is MatchExpression -> {
+            val matchExpression = transform(e.e)
+            val variable = if (matchExpression is LowerIDExpression) matchExpression.v.value else "_x"
+
+            val match = fullMatch(
+                listOf(variable),
+                e.cases.map { Equation(listOf(it.pattern), transform(it.body)) },
+                ErrorExpression(e.location()),
+                PatternEnvironment()
+            )
+
+            if (matchExpression is LowerIDExpression)
+                match
+            else {
+                val valueName = StringLocation(variable, e.location())
+                val letValueStatementTerm =
+                    LetValueStatementTerm(
+                        id = valueName,
+                        mutable = false,
+                        exported = false,
+                        typeVariables = emptyList(),
+                        typeQualifier = null,
+                        e = matchExpression,
+                        location = e.location()
+                    )
+
+                BlockExpression(listOf(LetStatement(listOf(letValueStatementTerm)), match), e.location(), e.type)
+            }
+        }
+
         is ModuleReferenceExpression -> TODO()
         is PrintStatement -> TODO()
         is PrintlnStatement -> TODO()
@@ -99,15 +143,44 @@ data class Equation(val patterns: List<Pattern>, val body: Expression, val guard
 
 fun canError(e: Expression): Boolean = when (e) {
 //    is AppExpression -> canError(e.e1) || canError(e.e2)
-    is CaseExpression -> e.clauses.any { canError(it.expression) }
-    is ErrorExpression -> true
-    is FatBarExpression -> canError(e.left) || canError(e.right)
+
+    is BinaryExpression ->
+        canError(e.e1) || canError(e.e2)
+
+    is CaseExpression ->
+        e.clauses.any { canError(it.expression) }
+
+    is ErrorExpression ->
+        true
+
+    is FatBarExpression ->
+        canError(e.left) || canError(e.right)
+
 //    is IfExpression -> canError(e.e1) || canError(e.e2) || canError(e.e3)
 //    is OpExpression -> canError(e.e1) || canError(e.e2)
 //    is LTupleExpression -> e.es.any { canError(it) }
 //    is LetExpression -> if (e.expr == null) false else canError(e.expr)
 //    is LetRecExpression -> if (e.expr == null) false else canError(e.expr)
-    else -> false
+
+    is LiteralBoolExpression ->
+        false
+
+    is LiteralCharExpression ->
+        false
+
+    is LiteralFloatExpression ->
+        false
+
+    is LiteralIntExpression ->
+        false
+
+    is LiteralStringExpression ->
+        false
+
+    is LowerIDExpression ->
+        false
+
+    else -> TODO(e.toString()) //false
 }
 
 fun <T> partition(list: List<T>, predicate: (T) -> Boolean): List<List<T>> {
@@ -132,6 +205,14 @@ fun removeLiterals(equations: List<Equation>): List<Equation> {
     fun removeLiterals(equation: Equation): Equation {
         var guard = equation.guard
 
+        fun appendToGuard(expr: Expression) {
+            guard = if (guard == null) expr else IfExpression(
+                listOf(Pair(guard!!, expr)),
+                LiteralBoolExpression(BoolLocation(false, expr.location()), typeBool),
+                typeBool
+            )
+        }
+
         fun removeLiterals(pattern: Pattern): Pattern = when (pattern) {
 //            is PDataPattern -> PDataPattern(pattern.name, pattern.args.map { removeLiterals(it) })
 //            is PIntPattern -> {
@@ -155,7 +236,6 @@ fun removeLiterals(equations: List<Equation>): List<Equation> {
 //            is PTuplePattern -> PDataPattern(TUPLE_DATA_NAME, pattern.values.map { removeLiterals(it) })
 //            is PUnitPattern -> PVarPattern(nextVarName())
 //            is PVarPattern -> pattern
-//            is PWildcardPattern -> PVarPattern(nextVarName())
 //            is PBoolPattern -> {
 //                val name = nextVarName()
 //                val expr = if (pattern.v) VarExpression(name)
@@ -166,17 +246,98 @@ fun removeLiterals(equations: List<Equation>): List<Equation> {
 //                PVarPattern(name)
 //            }
             is ConstructorPattern -> TODO()
-            is LiteralBoolPattern -> TODO()
-            is LiteralCharPattern -> TODO()
-            is LiteralFloatPattern -> TODO()
-            is LiteralIntPattern -> TODO()
-            is LiteralStringPattern -> TODO()
-            is LiteralUnitPattern -> TODO()
-            is LowerIDPattern -> TODO()
+
+            is LiteralBoolPattern -> {
+                val name = nextVarName()
+
+                val expr = if (pattern.v.value)
+                    LowerIDExpression(StringLocation(name, pattern.location()), typeBool, null)
+                else
+                    UnaryExpression(
+                        UnaryOpLocation(UnaryOp.Not, pattern.location()),
+                        LowerIDExpression(StringLocation(name, pattern.location()), typeBool, null),
+                        typeBool
+                    )
+
+
+                appendToGuard(expr)
+                LowerIDPattern(StringLocation(name, pattern.location()), pattern.type)
+            }
+
+            is LiteralCharPattern -> {
+                val name = nextVarName()
+                val expr = BinaryExpression(
+                    LowerIDExpression(StringLocation(name, pattern.location()), typeChar, null),
+                    OpLocation(Op.EqualEqual, pattern.location()),
+                    LiteralCharExpression(pattern.v, typeChar),
+                    typeBool
+                )
+
+                appendToGuard(expr)
+                LowerIDPattern(StringLocation(name, pattern.location()), pattern.type)
+            }
+
+            is LiteralFloatPattern -> {
+                val name = nextVarName()
+                val expr = BinaryExpression(
+                    LowerIDExpression(StringLocation(name, pattern.location()), typeFloat, null),
+                    OpLocation(Op.EqualEqual, pattern.location()),
+                    LiteralFloatExpression(pattern.v, typeFloat),
+                    typeBool
+                )
+
+                appendToGuard(expr)
+                LowerIDPattern(StringLocation(name, pattern.location()), pattern.type)
+            }
+
+//            is PIntPattern -> {
+//                val name = nextVarName()
+//                val expr = OpExpression(VarExpression(name), LIntExpression(pattern.v), Op.Equals)
+//
+//                guard = if (guard == null) expr else IfExpression(guard!!, expr, LBoolExpression(false))
+//
+//                PVarPattern(name)
+//            }
+
+            is LiteralIntPattern -> {
+                val name = nextVarName()
+                val expr = BinaryExpression(
+                    LowerIDExpression(StringLocation(name, pattern.location()), typeInt, null),
+                    OpLocation(Op.EqualEqual, pattern.location()),
+                    LiteralIntExpression(pattern.v, typeInt),
+                    typeBool
+                )
+
+                appendToGuard(expr)
+                LowerIDPattern(StringLocation(name, pattern.location()), pattern.type)
+            }
+
+            is LiteralStringPattern -> {
+                val name = nextVarName()
+                val expr = BinaryExpression(
+                    LowerIDExpression(StringLocation(name, pattern.location()), typeString, null),
+                    OpLocation(Op.EqualEqual, pattern.location()),
+                    LiteralStringExpression(pattern.v, typeString),
+                    typeBool
+                )
+
+                appendToGuard(expr)
+                LowerIDPattern(StringLocation(name, pattern.location()), pattern.type)
+            }
+
+            is LiteralUnitPattern ->
+                LowerIDPattern(StringLocation(nextVarName(), pattern.location()), pattern.type)
+
+            is LowerIDPattern ->
+                pattern
+
             is NamedPattern -> TODO()
             is TuplePattern -> TODO()
             is TypedPattern -> TODO()
-            is WildcardPattern -> TODO()
+
+            // is PWildcardPattern -> PVarPattern(nextVarName())
+            is WildcardPattern ->
+                LowerIDPattern(StringLocation(nextVarName(), pattern.location()), pattern.type)
         }
 
         return Equation(equation.patterns.map { removeLiterals(it) }, equation.body, guard)
@@ -211,11 +372,16 @@ fun tidyUpFails(e: Expression): Expression {
 //        )
 
         is MatchExpression -> throw IllegalStateException("Match expressions should be desugared")
-        else -> ep
+        else -> TODO() // ep
     }
 
     return when (e) {
 //        is AppExpression -> AppExpression(tidyUpFails(e.e1), tidyUpFails(e.e2))
+
+//        is OpExpression -> OpExpression(tidyUpFails(e.e1), tidyUpFails(e.e2), e.op)
+        is BinaryExpression ->
+            BinaryExpression(tidyUpFails(e.e1), e.op, tidyUpFails(e.e2), e.type)
+
         is CaseExpression -> CaseExpression(
             e.variable,
             e.clauses.map { Clause(it.constructor, it.variables, tidyUpFails(it.expression)) }, e.location
@@ -228,7 +394,12 @@ fun tidyUpFails(e: Expression): Expression {
         }
 
 //        is IfExpression -> IfExpression(tidyUpFails(e.e1), tidyUpFails(e.e2), tidyUpFails(e.e3))
-//        is OpExpression -> OpExpression(tidyUpFails(e.e1), tidyUpFails(e.e2), e.op)
+        is IfExpression -> IfExpression(
+            e.guards.map { Pair(tidyUpFails(it.first), tidyUpFails(it.second)) },
+            e.elseBranch?.let { tidyUpFails(it) },
+            e.type
+        )
+
 //        is LTupleExpression -> LTupleExpression(e.es.map { tidyUpFails(it) })
 //        is LamExpression -> LamExpression(e.n, tidyUpFails(e.e))
 //        is LetExpression -> if (e.expr == null) e else LetExpression(e.decls.map {
@@ -245,8 +416,21 @@ fun tidyUpFails(e: Expression): Expression {
 //            )
 //        }, tidyUpFails(e.expr))
 
-        is MatchExpression -> throw IllegalStateException("Match expressions should be desugared")
-        else -> e
+        is UnaryExpression ->
+            UnaryExpression(e.op, tidyUpFails(e.e), e.type)
+
+        is ErrorExpression -> e
+        is LiteralBoolExpression -> e
+        is LiteralCharExpression -> e
+        is LiteralFloatExpression -> e
+        is LiteralIntExpression -> e
+        is LiteralStringExpression -> e
+        is LowerIDExpression -> e
+
+        is MatchExpression ->
+            throw IllegalStateException("Match expressions should be desugared")
+
+        else -> TODO(e.toString()) //e
     }
 }
 
@@ -278,11 +462,16 @@ fun removeUnusedVariables(e: Expression): Expression {
 //        }.toSet()
 //
         is MatchExpression -> throw IllegalStateException("Match expressions should be desugared")
-        else -> emptySet()
+        else -> TODO(e.toString()) // emptySet()
     }
 
     return when (e) {
 //        is AppExpression -> AppExpression(removeUnusedVariables(e.e1), removeUnusedVariables(e.e2))
+
+//      is OpExpression -> OpExpression(removeUnusedVariables(e.e1), removeUnusedVariables(e.e2), e.op)
+        is BinaryExpression ->
+            BinaryExpression(removeUnusedVariables(e.e1), e.op, removeUnusedVariables(e.e2), e.type)
+
         is CaseExpression -> CaseExpression(e.variable, e.clauses.map {
             val vs = variables(it.expression)
             Clause(
@@ -303,7 +492,13 @@ fun removeUnusedVariables(e: Expression): Expression {
 //            removeUnusedVariables(e.e3)
 //        )
 
-//        is OpExpression -> OpExpression(removeUnusedVariables(e.e1), removeUnusedVariables(e.e2), e.op)
+        is IfExpression ->
+            IfExpression(
+                e.guards.map { Pair(removeUnusedVariables(it.first), removeUnusedVariables(it.second)) },
+                e.elseBranch?.let { removeUnusedVariables(it) },
+                e.type
+            )
+
 //        is LTupleExpression -> LTupleExpression(e.es.map { removeUnusedVariables(it) })
 //        is LamExpression -> LamExpression(e.n, removeUnusedVariables(e.e))
 //        is LetExpression -> LetExpression(
@@ -316,9 +511,20 @@ fun removeUnusedVariables(e: Expression): Expression {
 //            if (e.expr == null) null else removeUnusedVariables(e.expr)
 //        )
 
+        is UnaryExpression ->
+            UnaryExpression(e.op, removeUnusedVariables(e.e), e.type)
+
+        is ErrorExpression -> e
+        is LiteralBoolExpression -> e
+        is LiteralCharExpression -> e
+        is LiteralFloatExpression -> e
+        is LiteralIntExpression -> e
+        is LiteralStringExpression -> e
+        is LowerIDExpression -> e
+
         is MatchExpression -> throw IllegalStateException("Match expressions should be desugared")
 
-        else -> e
+        else -> TODO(e.toString()) // e
     }
 }
 
@@ -326,6 +532,10 @@ fun removeUnusedVariables(e: Expression): Expression {
 fun match(variables: List<String>, equations: List<Equation>, e: Expression, env: PatternEnvironment): Expression {
     fun subst(e: Expression, old: String, new: String): Expression = when (e) {
 //        is AppExpression -> AppExpression(subst(e.e1, old, new), subst(e.e2, old, new))
+
+        is BinaryExpression ->
+            BinaryExpression(subst(e.e1, old, new), e.op, subst(e.e2, old, new), e.type)
+
         is CaseExpression -> CaseExpression(if (e.variable == old) new else e.variable, e.clauses.map {
             Clause(
                 it.constructor,
@@ -335,9 +545,8 @@ fun match(variables: List<String>, equations: List<Equation>, e: Expression, env
         }, e.location)
 
         is FatBarExpression -> FatBarExpression(subst(e.left, old, new), subst(e.right, old, new), e.location)
+
 //        is IfExpression -> IfExpression(subst(e.e1, old, new), subst(e.e2, old, new), subst(e.e3, old, new))
-//        is OpExpression -> OpExpression(subst(e.e1, old, new), subst(e.e2, old, new), e.op)
-//        is VarExpression -> if (e.name == old) VarExpression(new) else e
 //        is LTupleExpression -> LTupleExpression(e.es.map { subst(it, old, new) })
 //        is LamExpression -> if (e.n == old) e else LamExpression(e.n, subst(e.e, old, new))
 //        is LetExpression -> LetExpression(
@@ -350,8 +559,22 @@ fun match(variables: List<String>, equations: List<Equation>, e: Expression, env
 //            if (e.expr == null) null else subst(e.expr, old, new)
 //        )
 
-        is MatchExpression -> throw IllegalStateException("Match expressions should be desugared")
-        else -> e
+        is LowerIDExpression ->
+            if (e.v.value == old) LowerIDExpression(StringLocation(new, e.v.location), e.type, e.binding) else e
+
+        is MatchExpression ->
+            throw IllegalStateException("Match expressions should be desugared")
+
+        is UnaryExpression ->
+            UnaryExpression(e.op, subst(e.e, old, new), e.type)
+
+        is LiteralBoolExpression -> e
+        is LiteralCharExpression -> e
+        is LiteralFloatExpression -> e
+        is LiteralIntExpression -> e
+        is LiteralStringExpression -> e
+
+        else -> TODO(e.toString()) // e
     }
 
     fun matchVar(variables: List<String>, equations: List<Equation>, e: Expression): Expression {
@@ -416,7 +639,11 @@ fun match(variables: List<String>, equations: List<Equation>, e: Expression, env
         fun combine(equation: Equation, expr: Expression): Expression {
             val guard = equation.guard
 
-            return if (guard != null) TODO() /*IfExpression(guard, equation.body, expr)*/
+            return if (guard != null) IfExpression(
+                listOf(Pair(guard, equation.body)),
+                expr,
+                typeBool.withLocation(e.location())
+            ) /*IfExpression(guard, equation.body, expr)*/
             else if (canError(equation.body)) FatBarExpression(equation.body, expr, e.location())
             else equation.body
         }

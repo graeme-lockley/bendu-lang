@@ -1161,7 +1161,7 @@ class CompilerTest {
     }
 
     @Test
-    fun `Custom type constructors`() {
+    fun `custom type constructors`() {
         assertCompiledBC(
             byteArrayOf(
                 Instructions.JMP.op,
@@ -1215,6 +1215,277 @@ class CompilerTest {
                 0, 0, 0, 0,
             ),
             "type Option[a] = Some[a] | None ; Some"
+        )
+    }
+
+    @Test
+    fun `match expression`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1,
+                Instructions.STORE.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1,
+                Instructions.ADD_I32.op,
+            ),
+            "match 1 with n -> n + 1"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1,
+                Instructions.STORE.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 0,
+                Instructions.EQ_I32.op,
+                Instructions.JMP_FALSE.op,
+                0, 0, 0, 44,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1,
+                Instructions.JMP.op,
+                0, 0, 0, 93,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 1,
+                Instructions.EQ_I32.op,
+                Instructions.JMP_FALSE.op,
+                0, 0, 0, 74,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 2,
+                Instructions.JMP.op,
+                0, 0, 0, 93,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.MUL_I32.op
+            ),
+            "match 1 with 0 -> 1 | 1 -> 2 | n -> n * n"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_BOOL_TRUE.op,
+                Instructions.STORE.op,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                Instructions.LOAD.op,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                Instructions.JMP_FALSE.op,
+                0,
+                0,
+                0,
+                34,
+                Instructions.PUSH_I32_LITERAL.op,
+                0,
+                0,
+                0,
+                1,
+                Instructions.JMP.op,
+                0,
+                0,
+                0,
+                121,
+                Instructions.LOAD.op,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                Instructions.NOT_BOOL.op,
+                Instructions.JMP_FALSE.op,
+                0,
+                0,
+                0,
+                59,
+                Instructions.PUSH_I32_LITERAL.op,
+                0,
+                0,
+                0,
+                0,
+                Instructions.JMP.op,
+                0,
+                0,
+                0,
+                121,
+                Instructions.PUSH_STRING_LITERAL.op,
+                0,
+                0,
+                0,
+                49,
+                69,
+                114,
+                114,
+                111,
+                114,
+                58,
+                32,
+                85,
+                110,
+                109,
+                97,
+                116,
+                99,
+                104,
+                101,
+                100,
+                32,
+                99,
+                97,
+                115,
+                101,
+                32,
+                101,
+                120,
+                112,
+                114,
+                101,
+                115,
+                115,
+                105,
+                111,
+                110,
+                58,
+                32,
+                49,
+                54,
+                58,
+                49,
+                58,
+                49,
+                55,
+                45,
+                51,
+                55,
+                58,
+                49,
+                58,
+                51,
+                56,
+                Instructions.PRINT_STRING.op,
+                Instructions.PRINTLN.op,
+                Instructions.ABORT.op,
+                0,
+                0,
+                0,
+                1,
+                Instructions.PUSH_UNIT_LITERAL.op
+            ),
+            "match True with True -> 1 | False -> 0"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_U8_LITERAL.op,
+                97,
+                Instructions.STORE.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.PUSH_U8_LITERAL.op,
+                97,
+                Instructions.EQ_U8.op,
+                Instructions.JMP_FALSE.op,
+                0, 0, 0, 34,
+                Instructions.PUSH_BOOL_TRUE.op,
+                Instructions.JMP.op,
+                0, 0, 0, 35,
+                Instructions.PUSH_BOOL_FALSE.op
+            ),
+            "match 'a' with 'a' -> True | _ -> False"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_F32_LITERAL.op,
+                63, -90, 102, 102,
+                Instructions.STORE.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.PUSH_F32_LITERAL.op,
+                63, -39, -103, -102,
+                Instructions.EQ_F32.op,
+                Instructions.JMP_FALSE.op,
+                0, 0, 0, 40,
+                Instructions.PUSH_BOOL_TRUE.op,
+                Instructions.JMP.op,
+                0, 0, 0, 41,
+                Instructions.PUSH_BOOL_FALSE.op
+            ),
+            "match 1.3 with 1.7 -> True | _ -> False"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_STRING_LITERAL.op,
+                0, 0, 0, 1,
+                'h'.code.toByte(),
+                Instructions.STORE.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.PUSH_STRING_LITERAL.op,
+                0, 0, 0, 1,
+                'w'.code.toByte(),
+                Instructions.EQ_STRING.op,
+                Instructions.JMP_FALSE.op,
+                0, 0, 0, 42,
+                Instructions.PUSH_BOOL_TRUE.op,
+                Instructions.JMP.op,
+                0, 0, 0, 43,
+                Instructions.PUSH_BOOL_FALSE.op
+            ),
+            "match \"h\" with \"w\" -> True | _ -> False"
+        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_UNIT_LITERAL.op,
+                Instructions.STORE.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.PUSH_BOOL_TRUE.op
+            ),
+            "match () with () -> True | _ -> False"
         )
     }
 }

@@ -650,6 +650,7 @@ private class Compiler(val errors: Errors) {
         byteBuilder.appendInstruction(Instructions.PUSH_STRING_LITERAL)
         byteBuilder.appendInt(errorMessage.length)
         byteBuilder.append(errorMessage.toByteArray())
+        byteBuilder.appendInstruction(Instructions.PRINT_STRING)
         byteBuilder.appendInstruction(Instructions.PRINTLN)
         byteBuilder.appendInstruction(Instructions.ABORT)
         byteBuilder.appendInt(1)
@@ -979,7 +980,7 @@ private class Compiler(val errors: Errors) {
     }
 
     private fun compileMatchExpression(expression: MatchExpression, keepResult: Boolean) {
-        val newExpression = transformMatchExpression(expression)
+        val newExpression = transformMatchExpression(expression, symbolTable)
 
         compileExpression(newExpression, keepResult)
     }
