@@ -5,7 +5,6 @@ import io.littlelanguages.bendu.typeinference.*
 
 fun transformMatchExpression(e: MatchExpression, symbolTable: SymbolTable): Expression {
     fun transform(e: Expression): Expression = when (e) {
-//        is AppExpression -> AppExpression(transform(e.e1), transform(e.e2))
 //        is CaseExpression -> e
 //        ErrorExpression -> e
 //        FailExpression -> e
@@ -40,7 +39,11 @@ fun transformMatchExpression(e: MatchExpression, symbolTable: SymbolTable): Expr
 //        is OpExpression -> OpExpression(transform(e.e1), transform(e.e2), e.op)
 //        is VarExpression -> e
         is AbortStatement -> TODO()
-        is ApplyExpression -> TODO()
+
+        // is AppExpression -> AppExpression(transform(e.e1), transform(e.e2))
+        is ApplyExpression ->
+            ApplyExpression(transform(e.f), e.arguments.map { transform(it) }, e.type)
+
         is ArrayElementProjectionExpression -> TODO()
         is ArrayRangeProjectionExpression -> TODO()
         is AssignmentExpression -> TODO()
@@ -111,7 +114,7 @@ fun transformMatchExpression(e: MatchExpression, symbolTable: SymbolTable): Expr
         is PrintlnStatement -> TODO()
         is TypedExpression -> TODO()
         is UnaryExpression -> TODO()
-        is UpperIDExpression -> TODO()
+        is UpperIDExpression -> e
         is WhileExpression -> TODO()
     }
 
@@ -124,8 +127,8 @@ data class PatternEnvironment(private var counter: Int = 0) {
 
 //        typeEnv.findConstructor(constructor)?.first?.arity ?: throw Exception("Unknown constructor: $constructor")
 
-    fun constructors(name: String): List<String> =
-        TODO()
+    fun constructors(constructor: Constructor): List<Constructor> =
+        constructor.constructors()
 
 //    if (name == TUPLE_DATA_NAME) listOf(TUPLE_DATA_NAME)
 //    else typeEnv.findConstructor(name)?.second?.constructors?.map { it.name } ?: throw Exception("Unknown ADT: $name")
@@ -138,7 +141,7 @@ data class Equation(val patterns: List<Pattern>, val body: Expression, val guard
 
     fun isCon(): Boolean = patterns.isNotEmpty() && patterns[0] is ConstructorPattern
 
-    fun getCon(): String = (patterns[0] as ConstructorPattern).id.value
+    fun getCon(): Constructor = (patterns[0] as ConstructorPattern).constructor!!
 }
 
 fun canError(e: Expression): Boolean = when (e) {
@@ -214,38 +217,17 @@ fun removeLiterals(equations: List<Equation>): List<Equation> {
         }
 
         fun removeLiterals(pattern: Pattern): Pattern = when (pattern) {
-//            is PDataPattern -> PDataPattern(pattern.name, pattern.args.map { removeLiterals(it) })
-//            is PIntPattern -> {
-//                val name = nextVarName()
-//                val expr = OpExpression(VarExpression(name), LIntExpression(pattern.v), Op.Equals)
-//
-//                guard = if (guard == null) expr else IfExpression(guard!!, expr, LBoolExpression(false))
-//
-//                PVarPattern(name)
-//            }
-//
-//            is PStringPattern -> {
-//                val name = nextVarName()
-//                val expr = AppExpression(AppExpression(VarExpression("string_equal"), VarExpression(name)), LStringExpression(pattern.v))
-//
-//                guard = if (guard == null) expr else IfExpression(guard!!, expr, LBoolExpression(false))
-//
-//                PVarPattern(name)
-//            }
-//
 //            is PTuplePattern -> PDataPattern(TUPLE_DATA_NAME, pattern.values.map { removeLiterals(it) })
-//            is PUnitPattern -> PVarPattern(nextVarName())
-//            is PVarPattern -> pattern
-//            is PBoolPattern -> {
-//                val name = nextVarName()
-//                val expr = if (pattern.v) VarExpression(name)
-//                else IfExpression(VarExpression(name), LBoolExpression(false), LBoolExpression(true))
-//
-//                guard = if (guard == null) expr else IfExpression(guard!!, expr, LBoolExpression(false))
-//
-//                PVarPattern(name)
-//            }
-            is ConstructorPattern -> TODO()
+
+            // is PDataPattern -> PDataPattern(pattern.name, pattern.args.map { removeLiterals(it) })
+            is ConstructorPattern -> ConstructorPattern(
+                pattern.moduleID,
+                pattern.id,
+                pattern.patterns.map { removeLiterals(it) },
+                pattern.location,
+                pattern.type,
+                pattern.constructor
+            )
 
             is LiteralBoolPattern -> {
                 val name = nextVarName()
@@ -371,8 +353,16 @@ fun tidyUpFails(e: Expression): Expression {
 //            ep.decls.map { Declaration(it.n, replaceFailWithError(it.e)) }, replaceFailWithError(ep.expr)
 //        )
 
+        is LiteralBoolExpression -> ep
+        is LiteralCharExpression -> ep
+        is LiteralFloatExpression -> ep
+        is LiteralIntExpression -> ep
+        is LiteralStringExpression -> ep
+        is LiteralUnitExpression -> ep
+        is LowerIDExpression -> ep
+
         is MatchExpression -> throw IllegalStateException("Match expressions should be desugared")
-        else -> TODO() // ep
+        else -> TODO(ep.toString()) // ep
     }
 
     return when (e) {
@@ -461,6 +451,15 @@ fun removeUnusedVariables(e: Expression): Expression {
 //            )
 //        }.toSet()
 //
+        is LiteralBoolExpression -> emptySet()
+        is LiteralCharExpression -> emptySet()
+        is LiteralFloatExpression -> emptySet()
+        is LiteralIntExpression -> emptySet()
+        is LiteralStringExpression -> emptySet()
+        is LiteralUnitExpression -> emptySet()
+        // is VarExpression -> setOf(e.name)
+        is LowerIDExpression -> setOf(e.v.value)
+
         is MatchExpression -> throw IllegalStateException("Match expressions should be desugared")
         else -> TODO(e.toString()) // emptySet()
     }
@@ -592,10 +591,15 @@ fun match(variables: List<String>, equations: List<Equation>, e: Expression, env
         }, e, env)
     }
 
-    fun matchClause(constructor: String, variables: List<String>, equations: List<Equation>, e: Expression): Clause {
+    fun matchClause(
+        constructor: Constructor,
+        variables: List<String>,
+        equations: List<Equation>,
+        e: Expression
+    ): Clause {
         val us = variables.drop(1)
 
-        val kp = env.arity(constructor)
+        val kp = constructor.arity()
         val usp = List(kp) { env.makeVar() }
 
         return Clause(
@@ -610,7 +614,7 @@ fun match(variables: List<String>, equations: List<Equation>, e: Expression, env
     fun matchCon(variables: List<String>, equations: List<Equation>, e: Expression): Expression {
         val u = variables.first()
 
-        fun choose(constructor: String, equations: List<Equation>): List<Equation> =
+        fun choose(constructor: Constructor, equations: List<Equation>): List<Equation> =
             equations.filter { it.isCon() && it.getCon() == constructor }
 
         return FatBarExpression(

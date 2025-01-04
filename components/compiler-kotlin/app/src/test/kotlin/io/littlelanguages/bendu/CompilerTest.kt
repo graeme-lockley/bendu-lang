@@ -1219,7 +1219,7 @@ class CompilerTest {
     }
 
     @Test
-    fun `match expression`() {
+    fun `match constants expression`() {
         assertCompiledBC(
             byteArrayOf(
                 Instructions.PUSH_I32_LITERAL.op,
@@ -1444,6 +1444,109 @@ class CompilerTest {
                 Instructions.PUSH_BOOL_TRUE.op
             ),
             "match () with () -> True | _ -> False"
+        )
+    }
+
+    @Test
+    fun `match custom type expressions`() {
+//        assertCompiledBC(
+//            byteArrayOf(
+//                Instructions.JMP.op,
+//                0, 0, 0, 58,
+//                Instructions.PUSH_CUSTOM.op,
+//                0, 0, 0, 3,
+//                'N'.code.toByte(), 'i'.code.toByte(), 'l'.code.toByte(),
+//                0, 0, 0, 0,
+//                0, 0, 0, 0,
+//                Instructions.RET.op,
+//                Instructions.LOAD.op,
+//                0, 0, 0, 0,
+//                0, 0, 0, 0,
+//                Instructions.LOAD.op,
+//                0, 0, 0, 0,
+//                0, 0, 0, 1,
+//                Instructions.PUSH_CUSTOM.op,
+//                0, 0, 0, 4,
+//                'C'.code.toByte(), 'o'.code.toByte(), 'n'.code.toByte(), 's'.code.toByte(),
+//                0, 0, 0, 1,
+//                0, 0, 0, 2,
+//                Instructions.RET.op,
+//                Instructions.CALL.op,
+//                0, 0, 0, 5,
+//                0, 0, 0, 0,
+//                0, 0, 0, 0,
+//                Instructions.STORE.op,
+//                0, 0, 0, 0,
+//                0, 0, 0, 0,
+//                Instructions.LOAD.op,
+//                0, 0, 0, 0,
+//                0, 0, 0, 0,
+//                Instructions.JMP_DUP_CONSTRUCTOR.op,
+//                0, 0, 0, 2,
+//                0, 0, 0, 102,
+//                0, 0, 0, 109,
+//                Instructions.DISCARD.op,
+//                Instructions.PUSH_BOOL_FALSE.op,
+//                Instructions.JMP.op,
+//                0, 0, 0, 111,
+//                Instructions.DISCARD.op,
+//                Instructions.PUSH_BOOL_TRUE.op
+//            ),
+//            "type List[a] = Nil | Cons[a, List[a]]; match Nil() with Nil() -> False | Cons(_, _) -> True"
+//        )
+
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.JMP.op,
+                0, 0, 0, 58,
+                Instructions.PUSH_CUSTOM.op,
+                0, 0, 0, 3,
+                'N'.code.toByte(), 'i'.code.toByte(), 'l'.code.toByte(),
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.RET.op,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 1,
+                Instructions.PUSH_CUSTOM.op,
+                0, 0, 0, 4,
+                'C'.code.toByte(), 'o'.code.toByte(), 'n'.code.toByte(), 's'.code.toByte(),
+                0, 0, 0, 1,
+                0, 0, 0, 2,
+                Instructions.RET.op,
+                Instructions.CALL.op,
+                0, 0, 0, 5,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.STORE.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.JMP_DUP_CONSTRUCTOR.op,
+                0, 0, 0, 2,
+                0, 0, 0, 102,
+                0, 0, 0, 109,
+                Instructions.DISCARD.op,
+                Instructions.PUSH_BOOL_FALSE.op,
+                Instructions.JMP.op,
+                0, 0, 0, -122,
+                Instructions.DUP.op,
+                Instructions.PUSH_CONSTRUCTOR_COMPONENT.op,
+                0, 0, 0, 1,
+                Instructions.STORE.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.DISCARD.op,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0
+            ),
+            "type List[a] = Nil | Cons[a, List[a]]; match Nil() with Nil() -> False | Cons(a, _) -> a"
         )
     }
 }

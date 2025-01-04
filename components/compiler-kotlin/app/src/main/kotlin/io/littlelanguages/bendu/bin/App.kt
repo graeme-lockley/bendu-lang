@@ -254,6 +254,17 @@ private fun disassembleExpression(bc: ByteArray) {
                     offset += 4
                 }
 
+                Args.U32A -> {
+                    val value = readU32(bc, offset)
+                    print(value)
+                    offset += 4
+
+                    repeat(value) {
+                        print(" ${readU32(bc, offset)}")
+                        offset += 4
+                    }
+                }
+
                 Args.U8 -> {
                     val value = readU8(bc, offset)
                     print(value)

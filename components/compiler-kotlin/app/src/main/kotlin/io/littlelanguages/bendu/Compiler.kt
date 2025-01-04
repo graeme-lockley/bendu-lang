@@ -208,7 +208,7 @@ private class Compiler(val errors: Errors) {
             is AssignmentExpression -> compileAssignmentExpression(expression, keepResult)
             is BinaryExpression -> compileBinaryExpression(expression, keepResult)
             is BlockExpression -> compileStatements(expression.es, keepResult)
-            is CaseExpression -> TODO("Compile CaseExpression")
+            is CaseExpression -> compileCaseExpression(expression, keepResult)
             is ErrorExpression -> compileErrorExpression(expression, keepResult)
             is FailExpression -> throw IllegalStateException("Fail expressions should be factored out: ${expression.location()}")
             is FatBarExpression -> throw IllegalStateException("Fat bar expressions should be factored out: ${expression.location()}")
@@ -641,6 +641,50 @@ private class Compiler(val errors: Errors) {
 
         if (!keepResult) {
             byteBuilder.appendInstruction(Instructions.DISCARD)
+        }
+    }
+
+    private fun compileCaseExpression(expression: CaseExpression, keepResult: Boolean) {
+        compileExpression(LowerIDExpression(StringLocation(expression.variable, expression.location())), keepResult)
+
+        byteBuilder.appendInstruction(Instructions.JMP_DUP_CONSTRUCTOR)
+        byteBuilder.appendInt(expression.clauses.size)
+        val jumpTableOffset = byteBuilder.size()
+        repeat(expression.clauses.size) { byteBuilder.appendInt(0) }
+        val endJumpOffsets = mutableListOf<Int>()
+
+        expression.clauses.forEachIndexed { index, clause ->
+            byteBuilder.writeIntAtPosition(jumpTableOffset + index * 4, byteBuilder.size())
+
+            symbolTable.openScope()
+
+            clause.variables.forEachIndexed { i, v ->
+                if (v != null) {
+                    val binding = symbolTable.bindIdentifier(v)
+
+                    byteBuilder.appendInstruction(Instructions.DUP)
+                    byteBuilder.appendInstruction(Instructions.PUSH_CONSTRUCTOR_COMPONENT)
+                    byteBuilder.appendInt(i + 1)
+                    byteBuilder.appendInstruction(Instructions.STORE)
+                    byteBuilder.appendInt(0)
+                    byteBuilder.appendInt(binding.frameOffset)
+                }
+            }
+            byteBuilder.appendInstruction(Instructions.DISCARD)
+
+            compileExpression(clause.expression, keepResult)
+
+            symbolTable.closeScope()
+
+            if (index < expression.clauses.size - 1) {
+                byteBuilder.appendInstruction(Instructions.JMP)
+                endJumpOffsets.add(byteBuilder.size())
+                byteBuilder.appendInt(0)
+            }
+        }
+
+        endJumpOffsets.forEach { offset ->
+            byteBuilder.writeIntAtPosition(offset, byteBuilder.size())
         }
     }
 

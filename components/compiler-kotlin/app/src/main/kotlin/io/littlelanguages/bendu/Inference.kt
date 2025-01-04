@@ -84,7 +84,7 @@ private fun inferScriptExport(scriptExport: ScriptExport, alias: String, locatio
                 TypeDecl(
                     scriptExport.name,
                     scriptExport.parameters,
-                    scriptExport.constructors.map { Constructor(it.name, it.parameters) })
+                    scriptExport.constructors.map { Pair(it.name, it.parameters) })
             )
 
             inferScriptExports(scriptExport.constructorExports(), location, env)
@@ -125,11 +125,7 @@ private fun inferDeclaration(declaration: Declaration, env: Environment) {
                 val typeDecl = TypeDecl(
                     decl.id.value,
                     tvsIds,
-                    decl.constructors.map {
-                        Constructor(
-                            it.id.value,
-                            it.parameters.map { tt -> tt.toType(inferEnv) })
-                    })
+                    decl.constructors.map { Pair(it.id.value, it.parameters.map { tt -> tt.toType(inferEnv) }) })
                 env.bindTypeDecl(decl.id.value, typeDecl)
                 decl.typeDecl = typeDecl
 
@@ -685,13 +681,7 @@ private fun inferPattern(pattern: Pattern, env: Environment) {
     when (pattern) {
         is ConstructorPattern -> {
             if (pattern.moduleID == null) {
-                val decl = env.typeDeclConstructor(pattern.id.value)
-
-                inferConstructorPattern(
-                    pattern,
-                    decl?.let { Pair({ pump: Pump -> it.first.type(pump) }, it.second.parameters) },
-                    env
-                )
+                inferConstructorPattern(pattern, env.typeDeclConstructor(pattern.id.value), env)
             } else {
                 val importBinding = env.getImport(pattern.moduleID.value)
 
@@ -700,13 +690,8 @@ private fun inferPattern(pattern: Pattern, env: Environment) {
                     pattern.type = typeError.withLocation(pattern.location())
                 } else {
                     val module = importBinding.second
-                    val decl = module.findConstructor(pattern.id.value)
 
-                    inferConstructorPattern(
-                        pattern,
-                        decl?.let { Pair({ pump: Pump -> it.first.type(pump) }, it.second.parameters) },
-                        env
-                    )
+                    inferConstructorPattern(pattern, module.findConstructor(pattern.id.value), env)
                 }
             }
         }
@@ -776,17 +761,17 @@ private fun inferPattern(pattern: Pattern, env: Environment) {
 
 private fun inferConstructorPattern(
     pattern: ConstructorPattern,
-    decl: Pair<(Pump) -> Type, List<Type>>?,
+    decl: Pair<CustomDataType, Constructor>?,
     env: Environment
 ) {
     if (decl == null) {
         env.errors.addError(UnknownIdentifierError(pattern.id))
         pattern.type = typeError.withLocation(pattern.location())
     } else {
-        val (cdtType, constructorParameters) = decl
+        val (cdt, constructor) = decl
 
-        if (constructorParameters.size == pattern.patterns.size) {
-            constructorParameters.forEachIndexed { index, type ->
+        if (constructor.arity() == pattern.patterns.size) {
+            constructor.parameters().forEachIndexed { index, type ->
                 inferPattern(pattern.patterns[index], env)
                 env.addConstraint(pattern.patterns[index].type!!, type)
             }
@@ -794,13 +779,14 @@ private fun inferConstructorPattern(
             env.errors.addError(
                 ConstructorPatternArityError(
                     pattern.id.value,
-                    constructorParameters.size,
+                    constructor.arity(),
                     pattern.patterns.size,
                     pattern.location()
                 )
             )
         }
 
-        pattern.type = cdtType(env.pump)
+        pattern.type = cdt.type(env.pump)
+        pattern.constructor = constructor
     }
 }

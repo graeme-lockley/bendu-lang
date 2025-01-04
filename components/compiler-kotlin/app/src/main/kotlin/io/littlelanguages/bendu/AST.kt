@@ -422,7 +422,7 @@ data class CaseExpression(val variable: String, val clauses: List<Clause>, val l
         location
 }
 
-data class Clause(val constructor: String, val variables: List<String?>, val expression: Expression)
+data class Clause(val constructor: Constructor, val variables: List<String?>, val expression: Expression)
 
 data class ErrorExpression(val location: Location) : Expression() {
     override fun location(): Location =
@@ -544,7 +544,8 @@ data class ConstructorPattern(
     val id: StringLocation,
     val patterns: List<Pattern>,
     val location: Location,
-    override var type: Type? = null
+    override var type: Type? = null,
+    var constructor: Constructor? = null
 ) : Pattern(type) {
     override fun location(): Location =
         location

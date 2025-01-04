@@ -102,7 +102,7 @@ data class Environment(
     override fun typeDecl(name: String): TypeDecl? =
         typeDecls[name]
 
-    fun typeDeclConstructor(name: String): Pair<TypeDecl, Constructor>? {
+    fun typeDeclConstructor(name: String): Pair<TypeDecl, TypeDeclConstructor>? {
         typeDecls.values.forEach { typeDecl ->
             val constructor = typeDecl.constructor(name)
 

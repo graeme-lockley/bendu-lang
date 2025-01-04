@@ -47,7 +47,7 @@ data class CustomTypeExport(
     override val mutable: Boolean,
     val parameters: List<Var>,
     val constructors: List<ConstructorExport>
-) : ScriptExport(name, mutable) {
+) : ScriptExport(name, mutable), CustomDataType {
     override fun toString(): String {
         val env = ToStringHelper()
         val ps = if (parameters.isEmpty()) "" else "[${parameters.joinToString(", ") { env.variable(it) }}]"
@@ -72,14 +72,24 @@ data class CustomTypeExport(
         })
     }
 
-    fun type(pump: Pump): Type =
+    override fun type(pump: Pump): Type =
         TCon(name, pump.nextN(parameters.size))
 }
 
-data class ConstructorExport(val name: String, val parameters: List<Type>, val codeOffset: Int) {
+data class ConstructorExport(val name: String, val parameters: List<Type>, val codeOffset: Int) : Constructor {
     fun toStringHelper(env: ToStringHelper): String =
         if (parameters.isEmpty())
             "$name = $codeOffset"
         else
             "$name[${parameters.joinToString(", ") { it.toStringHelper(env) }}] = $codeOffset"
+
+    override fun constructors(): List<Constructor> {
+        TODO("Not yet implemented")
+    }
+
+    override fun parameters(): List<Type> =
+        parameters
+
+    override fun arity(): Int =
+        parameters.size
 }
