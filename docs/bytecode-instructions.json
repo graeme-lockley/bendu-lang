@@ -65,6 +65,16 @@
       "description": "Create a closure for a function with the frame.  The frame, starting at 0 indicates how many frames to traverse to get to the correct frame."
     },
     {
+      "name": "PUSH_CONSTRUCTOR_COMPONENT",
+      "args": [
+        {
+          "name": "index",
+          "type": "u32"
+        }
+      ],
+      "description": "Pushes the component at the specified index of the constructor onto the stack.  Note that position 0 is a string with the name of the constructor."
+    },
+    {
       "name": "PUSH_CUSTOM",
       "args": [
         {
@@ -321,6 +331,16 @@
         }
       ],
       "description": "Jumps to a given instruction offset if the top value of the stack is 'true', without modifying the stack."
+    },
+    {
+      "name": "JMP_DUP_CONSTRUCTOR",
+      "args": [
+        {
+          "name": "offsets",
+          "type": "[]u32"
+        }
+      ],
+      "description": "Jumps to a given instruction offset if the top value of the stack is the constructor name, without modifying the stack."
     },
     {
       "name": "CALL",

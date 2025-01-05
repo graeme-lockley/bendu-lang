@@ -656,7 +656,7 @@ private class Compiler(val errors: Errors) {
         expression.clauses.forEachIndexed { index, clause ->
             byteBuilder.writeIntAtPosition(jumpTableOffset + index * 4, byteBuilder.size())
 
-            symbolTable.openScope()
+            val checkPoint = symbolTable.checkpoint()
 
             clause.variables.forEachIndexed { i, v ->
                 if (v != null) {
@@ -664,7 +664,7 @@ private class Compiler(val errors: Errors) {
 
                     byteBuilder.appendInstruction(Instructions.DUP)
                     byteBuilder.appendInstruction(Instructions.PUSH_CONSTRUCTOR_COMPONENT)
-                    byteBuilder.appendInt(i + 1)
+                    byteBuilder.appendInt(i)
                     byteBuilder.appendInstruction(Instructions.STORE)
                     byteBuilder.appendInt(0)
                     byteBuilder.appendInt(binding.frameOffset)
@@ -674,7 +674,7 @@ private class Compiler(val errors: Errors) {
 
             compileExpression(clause.expression, keepResult)
 
-            symbolTable.closeScope()
+            symbolTable.rollback(checkPoint)
 
             if (index < expression.clauses.size - 1) {
                 byteBuilder.appendInstruction(Instructions.JMP)
@@ -1024,7 +1024,7 @@ private class Compiler(val errors: Errors) {
     }
 
     private fun compileMatchExpression(expression: MatchExpression, keepResult: Boolean) {
-        val newExpression = transformMatchExpression(expression, symbolTable)
+        val newExpression = transformMatchExpression(expression)
 
         compileExpression(newExpression, keepResult)
     }

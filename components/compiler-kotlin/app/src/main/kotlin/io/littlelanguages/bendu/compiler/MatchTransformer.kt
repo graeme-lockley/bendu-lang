@@ -3,7 +3,7 @@ package io.littlelanguages.bendu.compiler
 import io.littlelanguages.bendu.*
 import io.littlelanguages.bendu.typeinference.*
 
-fun transformMatchExpression(e: MatchExpression, symbolTable: SymbolTable): Expression {
+fun transformMatchExpression(e: MatchExpression): Expression {
     fun transform(e: Expression): Expression = when (e) {
 //        is CaseExpression -> e
 //        ErrorExpression -> e
@@ -122,16 +122,8 @@ fun transformMatchExpression(e: MatchExpression, symbolTable: SymbolTable): Expr
 }
 
 data class PatternEnvironment(private var counter: Int = 0) {
-    fun arity(constructor: String): Int =
-        TODO()
-
-//        typeEnv.findConstructor(constructor)?.first?.arity ?: throw Exception("Unknown constructor: $constructor")
-
     fun constructors(constructor: Constructor): List<Constructor> =
         constructor.constructors()
-
-//    if (name == TUPLE_DATA_NAME) listOf(TUPLE_DATA_NAME)
-//    else typeEnv.findConstructor(name)?.second?.constructors?.map { it.name } ?: throw Exception("Unknown ADT: $name")
 
     fun makeVar(): String = "_u${counter++}"
 }
@@ -145,7 +137,9 @@ data class Equation(val patterns: List<Pattern>, val body: Expression, val guard
 }
 
 fun canError(e: Expression): Boolean = when (e) {
-//    is AppExpression -> canError(e.e1) || canError(e.e2)
+    // is AppExpression -> canError(e.e1) || canError(e.e2)
+    is ApplyExpression ->
+        canError(e.f) || e.arguments.any { canError(it) }
 
     is BinaryExpression ->
         canError(e.e1) || canError(e.e2)
@@ -330,7 +324,13 @@ fun removeLiterals(equations: List<Equation>): List<Equation> {
 
 fun tidyUpFails(e: Expression): Expression {
     fun replaceFailWithError(ep: Expression): Expression = when (ep) {
-//        is AppExpression -> AppExpression(replaceFailWithError(ep.e1), replaceFailWithError(ep.e2))
+        // is AppExpression -> AppExpression(replaceFailWithError(ep.e1), replaceFailWithError(ep.e2))
+        is ApplyExpression ->
+            ApplyExpression(replaceFailWithError(ep.f), ep.arguments.map { replaceFailWithError(it) }, ep.type)
+
+        // is OpExpression -> OpExpression(replaceFailWithError(ep.e1), replaceFailWithError(ep.e2), ep.op)
+        is BinaryExpression ->
+            BinaryExpression(replaceFailWithError(ep.e1), ep.op, replaceFailWithError(ep.e2), ep.type)
 
         is CaseExpression -> CaseExpression(
             ep.variable,
@@ -342,7 +342,6 @@ fun tidyUpFails(e: Expression): Expression {
 
         is FatBarExpression -> FatBarExpression(ep.left, replaceFailWithError(ep.right), ep.location)
 //        is IfExpression -> IfExpression(replaceFailWithError(ep.e1), replaceFailWithError(ep.e2), replaceFailWithError(ep.e3))
-//        is OpExpression -> OpExpression(replaceFailWithError(ep.e1), replaceFailWithError(ep.e2), ep.op)
 //        is LTupleExpression -> LTupleExpression(ep.es.map { replaceFailWithError(it) })
 //        is LamExpression -> LamExpression(ep.n, replaceFailWithError(ep.e))
 //        is LetExpression -> if (ep.expr == null) ep else LetExpression(
@@ -366,9 +365,11 @@ fun tidyUpFails(e: Expression): Expression {
     }
 
     return when (e) {
-//        is AppExpression -> AppExpression(tidyUpFails(e.e1), tidyUpFails(e.e2))
+        // is AppExpression -> AppExpression(tidyUpFails(e.e1), tidyUpFails(e.e2))
+        is ApplyExpression ->
+            ApplyExpression(tidyUpFails(e.f), e.arguments.map { tidyUpFails(it) }, e.type)
 
-//        is OpExpression -> OpExpression(tidyUpFails(e.e1), tidyUpFails(e.e2), e.op)
+        // is OpExpression -> OpExpression(tidyUpFails(e.e1), tidyUpFails(e.e2), e.op)
         is BinaryExpression ->
             BinaryExpression(tidyUpFails(e.e1), e.op, tidyUpFails(e.e2), e.type)
 
@@ -383,7 +384,7 @@ fun tidyUpFails(e: Expression): Expression {
             else -> FatBarExpression(tidyUpFails(e.left), tidyUpFails(e.right), e.location)
         }
 
-//        is IfExpression -> IfExpression(tidyUpFails(e.e1), tidyUpFails(e.e2), tidyUpFails(e.e3))
+        // is IfExpression -> IfExpression(tidyUpFails(e.e1), tidyUpFails(e.e2), tidyUpFails(e.e3))
         is IfExpression -> IfExpression(
             e.guards.map { Pair(tidyUpFails(it.first), tidyUpFails(it.second)) },
             e.elseBranch?.let { tidyUpFails(it) },
@@ -426,17 +427,21 @@ fun tidyUpFails(e: Expression): Expression {
 
 fun removeUnusedVariables(e: Expression): Expression {
     fun variables(e: Expression): Set<String> = when (e) {
-//        is AppExpression -> variables(e.e1) + variables(e.e2)
+        // is AppExpression -> variables(e.e1) + variables(e.e2)
+        is ApplyExpression ->
+            variables(e.f) + e.arguments.flatMap { variables(it) }.toSet()
+
+        // is OpExpression -> variables(e.e1) + variables(e.e2)
+        is BinaryExpression ->
+            variables(e.e1) + variables(e.e2)
+
         is CaseExpression -> {
-            setOf(e.variable) + e.clauses.flatMap {
-                variables(it.expression) - it.variables.filterNotNull().toSet()
-            }.toSet()
+            setOf(e.variable) +
+                    e.clauses.flatMap { variables(it.expression) - it.variables.filterNotNull().toSet() }.toSet()
         }
 
         is FatBarExpression -> variables(e.left) + variables(e.right)
 //        is IfExpression -> variables(e.e1) + variables(e.e2) + variables(e.e3)
-//        is OpExpression -> variables(e.e1) + variables(e.e2)
-//        is VarExpression -> setOf(e.name)
 //        is LTupleExpression -> e.es.flatMap { variables(it) }.toSet()
 //        is LamExpression -> variables(e.e) - setOf(e.n)
 //        is LetExpression -> if (e.expr == null) emptySet() else variables(e.expr) + e.decls.flatMap {
@@ -457,6 +462,7 @@ fun removeUnusedVariables(e: Expression): Expression {
         is LiteralIntExpression -> emptySet()
         is LiteralStringExpression -> emptySet()
         is LiteralUnitExpression -> emptySet()
+
         // is VarExpression -> setOf(e.name)
         is LowerIDExpression -> setOf(e.v.value)
 
@@ -465,9 +471,11 @@ fun removeUnusedVariables(e: Expression): Expression {
     }
 
     return when (e) {
-//        is AppExpression -> AppExpression(removeUnusedVariables(e.e1), removeUnusedVariables(e.e2))
+        // is AppExpression -> AppExpression(removeUnusedVariables(e.e1), removeUnusedVariables(e.e2))
+        is ApplyExpression ->
+            ApplyExpression(removeUnusedVariables(e.f), e.arguments.map { removeUnusedVariables(it) }, e.type)
 
-//      is OpExpression -> OpExpression(removeUnusedVariables(e.e1), removeUnusedVariables(e.e2), e.op)
+        // is OpExpression -> OpExpression(removeUnusedVariables(e.e1), removeUnusedVariables(e.e2), e.op)
         is BinaryExpression ->
             BinaryExpression(removeUnusedVariables(e.e1), e.op, removeUnusedVariables(e.e2), e.type)
 
@@ -485,12 +493,11 @@ fun removeUnusedVariables(e: Expression): Expression {
             removeUnusedVariables(e.right),
             e.location
         )
-//        is IfExpression -> IfExpression(
-//            removeUnusedVariables(e.e1),
-//            removeUnusedVariables(e.e2),
-//            removeUnusedVariables(e.e3)
-//        )
 
+        // is IfExpression -> IfExpression(
+        //   removeUnusedVariables(e.e1),
+        //   removeUnusedVariables(e.e2),
+        //   removeUnusedVariables(e.e3))
         is IfExpression ->
             IfExpression(
                 e.guards.map { Pair(removeUnusedVariables(it.first), removeUnusedVariables(it.second)) },
@@ -531,6 +538,12 @@ fun removeUnusedVariables(e: Expression): Expression {
 fun match(variables: List<String>, equations: List<Equation>, e: Expression, env: PatternEnvironment): Expression {
     fun subst(e: Expression, old: String, new: String): Expression = when (e) {
 //        is AppExpression -> AppExpression(subst(e.e1, old, new), subst(e.e2, old, new))
+
+        is ApplyExpression -> ApplyExpression(
+            subst(e.f, old, new),
+            e.arguments.map { subst(it, old, new) },
+            e.type
+        )
 
         is BinaryExpression ->
             BinaryExpression(subst(e.e1, old, new), e.op, subst(e.e2, old, new), e.type)

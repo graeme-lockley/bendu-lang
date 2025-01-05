@@ -718,11 +718,12 @@ private fun inferPattern(pattern: Pattern, env: Environment) {
             val binding = env.binding(pattern.v.value)
 
             if (binding == null) {
-                val type = env.nextVar()
+                val type = env.nextVar(pattern.location())
                 pattern.type = type
                 env.bind(pattern.v.value, pattern.location(), false, Scheme(emptySet(), type))
             } else {
                 env.addError(IdentifierRedefinitionError(pattern.v, binding.location))
+                pattern.type = env.nextVar(pattern.location())
             }
         }
 
@@ -735,6 +736,7 @@ private fun inferPattern(pattern: Pattern, env: Environment) {
                 env.bind(pattern.id.value, pattern.location(), false, Scheme(emptySet(), pattern.type!!))
             } else {
                 env.addError(IdentifierRedefinitionError(pattern.id, binding.location))
+                pattern.type = env.nextVar(pattern.location())
             }
         }
 

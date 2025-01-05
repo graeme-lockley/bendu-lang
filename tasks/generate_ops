@@ -31,11 +31,16 @@ if !fexists(fullKotlinFileName) || rebo.os.fstat(fullKotlinFileName).mtime < reb
     let kotlinOut = [
         "package io.littlelanguages.bendu.compiler",
         "",
-        "enum class Args {U32, I32, F32, STRING, U8}",
+        "enum class Args {U32, U32A, I32, F32, STRING, U8}",
         "",
         "enum class Instructions(val op: Byte, val args: List<Args>) {"
     ]
-    each(instructions.instructions, fn (instruction, idx) kotlinOut <! "    " + Str.upper(instruction.name) + "(" + str(idx) + ", listOf(" + join(map(instruction.args, fn(a) "Args." + Str.upper(a.type)), ", ") + ")),")
+
+    let mapArgument(a) =
+        if a == "[]u32" -> "U32A"
+         | Str.upper(a)
+
+    each(instructions.instructions, fn (instruction, idx) kotlinOut <! "    " + Str.upper(instruction.name) + "(" + str(idx) + ", listOf(" + join(map(instruction.args, fn(a) "Args." + mapArgument(a.type)), ", ") + ")),")
     kotlinOut <! "}"
 
     println("Writing to "+ kotlinFileName)

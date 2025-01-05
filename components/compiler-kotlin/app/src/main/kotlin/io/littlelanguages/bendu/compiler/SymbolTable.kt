@@ -41,6 +41,15 @@ class SymbolTable(private val byteBuilder: ByteBuilder) {
         }
     }
 
+    fun checkpoint(): SymbolTableCheckpoint {
+        return SymbolTableCheckpoint(scope, depth)
+    }
+
+    fun rollback(checkpoint: SymbolTableCheckpoint) {
+        scope = checkpoint.scope
+        depth = checkpoint.depth
+    }
+
     fun find(name: String): NatureOfBinding? {
         var currentScope: SymbolScope? = scope
 
@@ -101,7 +110,9 @@ class SymbolTable(private val byteBuilder: ByteBuilder) {
     }
 }
 
-private class SymbolScope(val parent: SymbolScope? = null) {
+class SymbolScope(val parent: SymbolScope? = null) {
     val bindings = mutableMapOf<String, NatureOfBinding>()
     var offset = 0
 }
+
+data class SymbolTableCheckpoint(internal val scope: SymbolScope, internal val depth: Int)

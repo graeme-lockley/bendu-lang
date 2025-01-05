@@ -79,7 +79,7 @@ private fun assembleScript(expression: String, startLineNumber: Int): List<Strin
         if (it.startsWith(">")) {
             val line = it.substring(1).trim()
             if (line.startsWith("let")) {
-                variableName = line.split(" ")[1]
+                variableName = line.split(" ", "*", "(", "=")[1]
                 script.add(line)
                 state = 1
             } else if (line.startsWith("import") || line.startsWith("type")) {
@@ -167,12 +167,6 @@ private fun executeTest(bc: String, entry: CacheEntry) {
     }
 }
 
-//private fun compileScript(entry: CacheEntry) =
-//    compileExpression(entry)
-//
-//private fun compileExpression(entry: CacheEntry) =
-//    compileEntry(entry)
-
 private fun processDis(args: Array<String>) {
     val parser = ArgParser("bendu-compiler dis")
     val expression by parser.option(ArgType.String, description = "Test expression to be compiled and disassembled")
@@ -228,6 +222,7 @@ private fun disassembleFile(bc:  ByteArray) {
 
     disassembleExpression(bc.slice(codeOffset until bc.size).toByteArray())
 }
+
 private fun disassembleExpression(bc: ByteArray) {
     var offset = 0
 

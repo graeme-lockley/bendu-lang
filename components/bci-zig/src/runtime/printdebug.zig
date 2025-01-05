@@ -27,6 +27,18 @@ pub fn print(value: Pointer.Pointer) void {
                 std.debug.print("]", .{});
             },
             .ClosureKind => std.debug.print("fn", .{}),
+            .CustomKind => {
+                std.debug.print("{s}", .{v.v.CustomKind.name.slice()});
+                std.debug.print("(", .{});
+                for (v.v.CustomKind.values, 0..) |item, i| {
+                    if (i > 0) {
+                        std.debug.print(", ", .{});
+                    }
+                    print(item);
+                }
+                std.debug.print(")", .{});
+            },
+
             .FrameKind => {
                 std.debug.print("<", .{});
                 if (v.v.FrameKind.enclosing == null) {

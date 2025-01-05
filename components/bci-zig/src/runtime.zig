@@ -400,6 +400,16 @@ pub const Runtime = struct {
         _ = try self.pushNewValue(Memory.ValueValue{ .ClosureKind = Memory.ClosureValue.init(packageID, function, frame) });
     }
 
+    pub inline fn push_constructor_component(self: *Runtime, index: usize) !void {
+        const value = self.pop();
+        const constructor = Pointer.asPointer(*Memory.Value, value);
+        const component = constructor.v.CustomKind.values[index];
+
+        Memory.incRef(component);
+
+        try self.stack.append(component);
+    }
+
     pub inline fn push_custom(self: *Runtime, name: []const u8, id: usize, arity: usize) !void {
         const custom = try self.pushNewValue(Memory.ValueValue{ .CustomKind = try Memory.CustomValue.init(self.allocator, try self.sp.intern(name), id, arity) });
 

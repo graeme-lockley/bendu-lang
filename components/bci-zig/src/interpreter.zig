@@ -113,6 +113,17 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
 
                 ip += 8;
             },
+            .push_constructor_component => {
+                const index = readi32(bc, ip);
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d} {d}: push_constructor_component: index={d}\n", .{ ip - 1, fp, runtime.stack.items.len, index });
+                }
+
+                try runtime.push_constructor_component(@intCast(index));
+
+                ip += 4;
+            },
             .push_custom => {
                 const nameLen: usize = @intCast(readi32(bc, ip));
                 const name = bc[ip + 4 .. ip + 4 + @as(usize, @intCast(nameLen))];
@@ -405,6 +416,25 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 } else {
                     ip += 4;
                 }
+            },
+            .jmp_dup_constructor => {
+                if (DEBUG) {
+                    const arity = readi32(bc, ip);
+                    std.debug.print("{d} {d} {d}: jmp_dup_constructor: arity={d}\n", .{ ip - 1, fp, runtime.stack.items.len, arity });
+                }
+
+                const value = Pointer.asPointer(*Memory.Value, runtime.peek());
+                const valueConstructor = value.v.CustomKind.id;
+
+                if (DEBUG) {
+                    const arity = readi32(bc, ip);
+                    if (valueConstructor >= arity) {
+                        try std.io.getStdOut().writer().print("Error: Constructor index out of bounds\n", .{});
+                        std.posix.exit(1);
+                    }
+                }
+
+                ip = @intCast(readi32(bc, ip + 4 + @as(usize, @intCast(valueConstructor * 4))));
             },
 
             .call => {

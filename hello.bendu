@@ -1,15 +1,26 @@
-import "inter.bendu" as I
-import "docs/example.bendu"
+type List*[a] = Nil | Cons[a, List[a]]
 
-println("Hello World!")
+let value = Cons(1, Nil())
 
-let v = state(1)
-println(v, ": ", @v)
+let range*(n) = {
+  let helper(i) =
+    if i > n -> Nil() 
+     | Cons(i, helper(i + 1))
 
-I.hello()
+  helper(0)
+}
 
-println(Some(10) == Some(10))
+let fold*(xs, f, z) =
+  match xs with
+  | Nil() -> z
+  | Cons(c, cs) -> fold(cs, f, f(z, c))
 
-let fib1(n) = if n < 2 -> 1 | fib1(n - 1) + fib1(n - 2)
+let foldr*(xs, f, z) =
+  match xs with
+  | Nil() -> z
+  | Cons(c, cs) -> f(c, foldr(cs, f, z))
 
-println(fib1(10))
+let sum*(xs) =
+  foldr(xs, fn(a, b) = a + b, 0)
+
+println(sum(range(10)))

@@ -409,6 +409,9 @@ private fun assertInferFunctionEquals(expr: String, expected: String, typeEnv: T
     val errors = Errors()
     val ast = infer(CacheManager.useExpression(File("test.bc"), expr), errors = errors, typeEnv = typeEnv)
 
+    if (errors.hasErrors()) {
+        errors.printErrors(false)
+    }
     assertTrue(errors.hasNoErrors())
     assertEquals(expected, (ast.es().last() as LetStatement).terms[0].type!!.toString())
 }

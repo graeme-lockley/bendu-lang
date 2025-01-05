@@ -76,7 +76,7 @@ pub inline fn asFloat(value: Pointer) f32 {
     return @as(f32, @bitCast(@as(u32, @intCast(value >> 32))));
 }
 
-pub inline fn asInt(value: Pointer) i32 {
+pub fn asInt(value: Pointer) i32 {
     std.debug.assert((value & mask) == TypeTag.Int.getMask());
     return @intCast(@as(i32, @bitCast(@as(u32, @intCast(value >> 32)))));
 }
