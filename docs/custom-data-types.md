@@ -76,3 +76,131 @@ Using this pattern matching, we can now start to create some wonderful recursive
 > sum(range(10))
 55: Int
 ```
+
+We can now rewrite `sum` using a `fold` function.
+
+```bendu-repl
+> type List[a] = Nil | Cons[a, List[a]]
+
+> let fold(xs, f, z) =
+.   match xs with
+.   | Nil() -> z
+.   | Cons(c, cs) -> fold(cs, f, f(z, c))
+
+> let range(n) = {
+.   let helper(i) =
+.     if i > n -> Nil() 
+.      | Cons(i, helper(i + 1))
+.
+.   helper(0)
+. }
+
+> let sum(xs) =
+.   fold(xs, fn(a, b) = a + b, 0)
+
+
+> sum(range(10))
+55: Int
+```
+
+## Custom Data Type Scenarios
+
+The following is a systematic list of the scenarios that can be used to test custom data types.
+
+### Literal Values
+
+```bendu-repl
+> let f(n) = 
+.   match n with
+.   | True -> "True"
+.   | False -> "False"
+fn: (Bool) -> String
+
+> f(True)
+"True": String
+
+> f(False)
+"False": String
+```
+
+```bendu-repl
+> let f(n) = 
+.   match n with
+.   | 'a' -> "A"
+.   | 'b' -> "B"
+.   | _ -> "Other"
+fn: (Char) -> String
+
+> f('a')
+"A": String
+
+> f('b')
+"B": String
+
+> f('c')
+"Other": String
+```
+
+```bendu-repl
+> let f(n) = 
+.   match n with
+.   | 1.0 -> "One"
+.   | 2.0 -> "Two"
+.   | _ -> "Big"
+fn: (Float) -> String
+
+> f(1.0)
+"One": String
+
+> f(2.0)
+"Two": String
+
+> f(3.0)
+"Big": String
+```
+
+```bendu-repl
+> let f(n) = 
+.   match n with
+.   | 1 -> "One"
+.   | 2 -> "Two"
+.   | _ -> "Big"
+fn: (Int) -> String
+
+> f(1)
+"One": String
+
+> f(2)
+"Two": String
+
+> f(3)
+"Big": String
+```
+
+```bendu-repl
+> let f(n) = 
+.   match n with
+.   | "One" -> 1
+.   | "Two" -> 2
+.   | _ -> 180
+fn: (String) -> Int
+
+> f("One")
+1: Int
+
+> f("Two")
+2: Int
+
+> f("Hello")
+180: Int
+```
+
+```bendu-repl
+> let f(n) = 
+.   match n with
+.   | () -> "Unit"
+fn: (Unit) -> String
+
+> f(())
+"Unit": String
+```
