@@ -323,9 +323,7 @@ data class MatchExpression(
         super.apply(s, errors)
 
         e.apply(s, errors)
-        cases.forEach { c ->
-            c.apply(s, errors)
-        }
+        cases.forEach { c -> c.apply(s, errors) }
     }
 
     override fun location(): Location =
