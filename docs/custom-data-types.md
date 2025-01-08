@@ -204,3 +204,26 @@ fn: (Unit) -> String
 > f(())
 "Unit": String
 ```
+
+### Transform Case Expressions
+
+The matching algorithm needs to transform all case expressions.  The following scenarios consider each expression type as a case expression and ensure that the transformation is correct by executing the compiled code.
+
+```bendu-repl
+> type List[a] = Nil | Cons[a, List[a]]
+
+> let f(n) =
+.   match n with
+.   | Nil() -> "Nil"
+.   | Cons(x, _) -> { if x == 1 -> "One" | "Other" }
+fn: (List[Int]) -> String
+
+> f(Nil())
+"Nil": String
+
+> f(Cons(1, Nil()))
+"One": String
+
+> f(Cons(2, Nil()))
+"Other": String
+```

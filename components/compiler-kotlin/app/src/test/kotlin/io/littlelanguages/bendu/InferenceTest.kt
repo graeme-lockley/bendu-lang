@@ -391,6 +391,11 @@ class InferenceTest {
             "import \"test/test.bendu\" as T; match T.Some(10) with T.None() -> 0 | T.Some(n) -> n",
             "Int"
         )
+
+        assertInferFunctionEquals(
+            "type List[a] = Nil | Cons[a, List[a]]; let f(n) = match n with Cons(x, _) -> x + 1",
+            "(List[Int]) -> Int"
+        )
     }
 }
 

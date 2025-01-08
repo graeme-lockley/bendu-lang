@@ -354,7 +354,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
                 expression.terms[i].type = tv[i]
 
                 if (term is LetValueStatementTerm && term.typeQualifier != null) {
-                    env.addConstraint(tv[i], term.typeQualifier!!.toType(env))
+                    env.addConstraint(tv[i], term.typeQualifier.toType(env))
                 }
             }
 
@@ -773,10 +773,16 @@ private fun inferConstructorPattern(
         val (cdt, constructor) = decl
 
         if (constructor.arity() == pattern.patterns.size) {
-            constructor.parameters().forEachIndexed { index, type ->
+            val vars = env.nextVars(cdt.parameters().size)
+            val s = Subst(cdt.parameters().zip(vars).toMap())
+            val constructorArgsType = constructor.parameters().map { it.apply(s) }
+
+            constructorArgsType.forEachIndexed { index, type ->
                 inferPattern(pattern.patterns[index], env)
                 env.addConstraint(pattern.patterns[index].type!!, type)
             }
+
+            pattern.type = TCon(cdt.name, vars).withLocation(pattern.location())
         } else {
             env.errors.addError(
                 ConstructorPatternArityError(
@@ -786,9 +792,10 @@ private fun inferConstructorPattern(
                     pattern.location()
                 )
             )
+
+            pattern.type = env.nextVar(pattern.location())
         }
 
-        pattern.type = cdt.type(env.pump)
         pattern.constructor = constructor
     }
 }

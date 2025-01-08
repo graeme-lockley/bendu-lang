@@ -1,6 +1,9 @@
 package io.littlelanguages.bendu.typeinference
 
 interface CustomDataType {
+    val name: String
+
+    fun parameters(): List<Var>
     fun type(pump: Pump): Type
 }
 
@@ -10,7 +13,7 @@ interface Constructor {
     fun arity(): Int
 }
 
-class TypeDecl(val name: String, val parameters: List<Var>, constructorItems: List<Pair<String, List<Type>>>) :
+class TypeDecl(override val name: String, val parameters: List<Var>, constructorItems: List<Pair<String, List<Type>>>) :
     CustomDataType {
     val constructors = constructorItems.map { (name, parameters) ->
         TypeDeclConstructor(this, name, parameters)
@@ -18,6 +21,9 @@ class TypeDecl(val name: String, val parameters: List<Var>, constructorItems: Li
 
     fun constructor(name: String): TypeDeclConstructor? =
         constructors.find { it.name == name }
+
+    override fun parameters(): List<Var> =
+        parameters
 
     override fun type(pump: Pump): Type =
         TCon(name, pump.nextN(parameters.size))

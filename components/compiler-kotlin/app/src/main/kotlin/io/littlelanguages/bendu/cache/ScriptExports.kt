@@ -72,6 +72,9 @@ data class CustomTypeExport(
         })
     }
 
+    override fun parameters(): List<Var> =
+        parameters
+
     override fun type(pump: Pump): Type =
         TCon(name, pump.nextN(parameters.size))
 }

@@ -12,6 +12,8 @@ data class ToStringHelper(
         bindings.entries.map { it.value }.sorted()
 
     fun variable(name: Var): String {
+//        return "t$name"
+
         val v = bindings[name]
 
         if (v == null) {
