@@ -207,7 +207,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
         is AbortStatement -> {
             inferPrintArguments(expression.es, env)
 
-            expression.type = typeUnit.withLocation(expression.location())
+            expression.type = env.nextVar(expression.location())
         }
 
         is ApplyExpression -> {
@@ -354,7 +354,7 @@ private fun inferExpression(expression: Expression, env: Environment) {
                 expression.terms[i].type = tv[i]
 
                 if (term is LetValueStatementTerm && term.typeQualifier != null) {
-                    env.addConstraint(tv[i], term.typeQualifier.toType(env))
+                    env.addConstraint(tv[i], term.typeQualifier!!.toType(env))
                 }
             }
 

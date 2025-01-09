@@ -209,13 +209,43 @@ fn: (Unit) -> String
 
 The matching algorithm needs to transform all case expressions.  The following scenarios consider each expression type as a case expression and ensure that the transformation is correct by executing the compiled code.
 
+#### Abort Expression
+
 ```bendu-repl
 > type List[a] = Nil | Cons[a, List[a]]
 
 > let f(n) =
 .   match n with
 .   | Nil() -> "Nil"
-.   | Cons(x, _) -> { if x == 1 -> "One" | "Other" }
+.   | Cons(x, _) -> abort("Abort: ", x)
+fn: [a] (List[a]) -> String
+
+> f(Nil())
+"Nil": String
+```
+
+```bendu-err
+> type List[a] = Nil | Cons[a, List[a]]
+
+> let f(n) =
+.   match n with
+.   | Nil() -> "Nil"
+.   | Cons(x, _) -> abort("Abort: ", x)
+fn: [a] (List[a]) -> String
+
+> f(Cons(1, Nil()))
+Abort: 1
+```
+
+#### If Expression
+
+```bendu-repl
+> type List[a] = Nil | Cons[a, List[a]]
+
+> let f(n) =
+.   match n with
+.   | Nil() -> "Nil"
+.   | Cons(x, _) -> if x == 1 -> "One" | "Other"
 fn: (List[Int]) -> String
 
 > f(Nil())

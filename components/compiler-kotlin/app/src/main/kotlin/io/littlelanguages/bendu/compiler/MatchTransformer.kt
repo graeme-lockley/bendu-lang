@@ -38,7 +38,8 @@ fun transformMatchExpression(e: MatchExpression): Expression {
 //
 //        is OpExpression -> OpExpression(transform(e.e1), transform(e.e2), e.op)
 //        is VarExpression -> e
-        is AbortStatement -> TODO()
+        is AbortStatement ->
+            AbortStatement(e.es.map { transform(it) }, e.location(), e.type)
 
         // is AppExpression -> AppExpression(transform(e.e1), transform(e.e2))
         is ApplyExpression ->
@@ -146,6 +147,9 @@ data class Equation(val patterns: List<Pattern>, val body: Expression, val guard
 }
 
 fun canError(e: Expression): Boolean = when (e) {
+    is AbortStatement ->
+        e.es.any { canError(it) }
+
     // is AppExpression -> canError(e.e1) || canError(e.e2)
     is ApplyExpression ->
         canError(e.f) || e.arguments.any { canError(it) }
@@ -339,6 +343,9 @@ fun removeLiterals(equations: List<Equation>): List<Equation> {
 
 fun tidyUpFails(e: Expression): Expression {
     fun replaceFailWithError(ep: Expression): Expression = when (ep) {
+        is AbortStatement ->
+            AbortStatement(ep.es.map { replaceFailWithError(it) }, ep.location(), ep.type)
+
         // is AppExpression -> AppExpression(replaceFailWithError(ep.e1), replaceFailWithError(ep.e2))
         is ApplyExpression ->
             ApplyExpression(replaceFailWithError(ep.f), ep.arguments.map { replaceFailWithError(it) }, ep.type)
@@ -391,6 +398,9 @@ fun tidyUpFails(e: Expression): Expression {
     }
 
     return when (e) {
+        is AbortStatement ->
+            AbortStatement(e.es.map { tidyUpFails(it) }, e.location(), e.type)
+
         // is AppExpression -> AppExpression(tidyUpFails(e.e1), tidyUpFails(e.e2))
         is ApplyExpression ->
             ApplyExpression(tidyUpFails(e.f), e.arguments.map { tidyUpFails(it) }, e.type)
@@ -456,6 +466,9 @@ fun tidyUpFails(e: Expression): Expression {
 
 fun removeUnusedVariables(e: Expression): Expression {
     fun variables(e: Expression): Set<String> = when (e) {
+        is AbortStatement ->
+            e.es.flatMap { variables(it) }.toSet()
+
         // is AppExpression -> variables(e.e1) + variables(e.e2)
         is ApplyExpression ->
             variables(e.f) + e.arguments.flatMap { variables(it) }.toSet()
@@ -508,6 +521,9 @@ fun removeUnusedVariables(e: Expression): Expression {
     }
 
     return when (e) {
+        is AbortStatement ->
+            AbortStatement(e.es.map { removeUnusedVariables(it) }, e.location(), e.type)
+
         // is AppExpression -> AppExpression(removeUnusedVariables(e.e1), removeUnusedVariables(e.e2))
         is ApplyExpression ->
             ApplyExpression(removeUnusedVariables(e.f), e.arguments.map { removeUnusedVariables(it) }, e.type)
@@ -577,8 +593,10 @@ fun removeUnusedVariables(e: Expression): Expression {
 
 fun match(variables: List<String>, equations: List<Equation>, e: Expression, env: PatternEnvironment): Expression {
     fun subst(e: Expression, old: String, new: String): Expression = when (e) {
-//        is AppExpression -> AppExpression(subst(e.e1, old, new), subst(e.e2, old, new))
+        is AbortStatement ->
+            AbortStatement(e.es.map { subst(it, old, new) }, e.location(), e.type)
 
+        // is AppExpression -> AppExpression(subst(e.e1, old, new), subst(e.e2, old, new))
         is ApplyExpression -> ApplyExpression(
             subst(e.f, old, new),
             e.arguments.map { subst(it, old, new) },
@@ -621,9 +639,7 @@ fun match(variables: List<String>, equations: List<Equation>, e: Expression, env
 //            if (e.expr == null) null else subst(e.expr, old, new)
 //        )
 
-        is LowerIDExpression
-
-            ->
+        is LowerIDExpression ->
             if (e.v.value == old) LowerIDExpression(StringLocation(new, e.v.location), e.type, e.binding) else e
 
         is MatchExpression ->
