@@ -109,6 +109,7 @@ The following is a systematic list of the scenarios that can be used to test cus
 
 ### Literal Values
 
+#### Boolean
 ```bendu-repl
 > let f(n) = 
 .   match n with
@@ -122,6 +123,8 @@ fn: (Bool) -> String
 > f(False)
 "False": String
 ```
+
+#### Character
 
 ```bendu-repl
 > let f(n) = 
@@ -141,6 +144,8 @@ fn: (Char) -> String
 "Other": String
 ```
 
+#### Float
+
 ```bendu-repl
 > let f(n) = 
 .   match n with
@@ -158,6 +163,8 @@ fn: (Float) -> String
 > f(3.0)
 "Big": String
 ```
+
+#### Integer
 
 ```bendu-repl
 > let f(n) = 
@@ -177,6 +184,8 @@ fn: (Int) -> String
 "Big": String
 ```
 
+#### String
+
 ```bendu-repl
 > let f(n) = 
 .   match n with
@@ -195,6 +204,28 @@ fn: (String) -> Int
 180: Int
 ```
 
+#### Tuple
+
+```Bendu-repl
+> let f(n) = 
+.   match n with
+.   | (1, 2) -> "One"
+.   | (3, 4) -> "Two"
+.   | _ -> "Other"
+fn: (Int * Int) -> String
+
+> f((1, 2))
+"One": String
+
+> f((3, 4))
+"Two": String
+
+> f((5, 6))
+"Other": String
+```
+
+#### Unit
+
 ```bendu-repl
 > let f(n) = 
 .   match n with
@@ -205,9 +236,9 @@ fn: (Unit) -> String
 "Unit": String
 ```
 
-### Transform Case Expressions
+### Transform Custom Data Type Case Expressions
 
-The matching algorithm needs to transform all case expressions.  The following scenarios consider each expression type as a case expression and ensure that the transformation is correct by executing the compiled code.
+The matching algorithm needs to transform all custom data type case expressions.  The following scenarios consider each expression type as a case expression and ensures that the transformation is correct by executing the compiled code.
 
 #### Abort Expression
 
@@ -237,6 +268,74 @@ fn: [a] (List[a]) -> String
 Abort: 1
 ```
 
+#### Apply Expression
+
+```bendu-repl
+> type List[a] = Nil | Cons[a, List[a]]
+
+> let inc(n) = n + 1
+
+> let f(n) =
+.   match n with
+.   | Nil() -> 0
+.   | Cons(x, _) -> inc(x)
+fn: (List[Int]) -> Int
+
+> f(Nil())
+0: Int
+
+> f(Cons(1, Nil()))
+2: Int
+
+> f(Cons(2, Nil()))
+3: Int
+```
+
+#### Array Element Projection Expression
+
+```bendu-repl
+> type Optional[a] = None | Some[a]
+
+> let f(n) =
+.   match n with
+.   | None() -> 0
+.   | Some(x) -> x!3
+fn: (Optional[Array[Int]]) -> Int
+
+> f(None())
+0: Int
+
+> f(Some([1, 2, 3, 4, 5]))
+4: Int
+```
+
+#### Array Range Projection Expression
+
+```Bendu-repl
+> type Optional[a] = None | Some[a]
+> type Option = Left | Right | Both
+
+> let f(n, op) =
+.   match (n, op) with
+.   | (None(), _) -> []
+.   | (Some(x), Left()) -> x!:1
+.   | (Some(x), Right()) -> x!3:
+.   | (Some(x), Both()) -> x!1:3
+fn: (Optional[Array[Int]], Option) -> Array[Int]
+
+> f(None(), Left())
+[]: Array[Int]
+
+> f(Some([1, 2, 3, 4, 5]), Left())
+[1]: Array[Int]
+
+> f(Some([1, 2, 3, 4, 5]), Right())
+[4, 5]: Array[Int]
+
+> f(Some([1, 2, 3, 4, 5]), Both())
+[1, 2, 3, 4]: Array[Int]
+```
+
 #### If Expression
 
 ```bendu-repl
@@ -256,4 +355,22 @@ fn: (List[Int]) -> String
 
 > f(Cons(2, Nil()))
 "Other": String
+```
+
+#### Literal Type Expression
+
+```Bendu-repl
+> type Optional[a] = None | Some[a]
+
+> let f(n) =
+.   match n with
+.   | None() -> 0
+.   | Some((a, b)) -> a + b
+fn: (Optional[(Int * Int)]) -> Int
+
+> f(None())
+0: Int
+
+> f(Some((1, 2)))
+3: Int
 ```

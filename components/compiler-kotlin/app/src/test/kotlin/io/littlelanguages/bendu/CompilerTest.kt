@@ -1549,6 +1549,12 @@ class CompilerTest {
             "type List[a] = Nil | Cons[a, List[a]]; match Nil() with Nil() -> False | Cons(a, _) -> a"
         )
     }
+
+    @Test
+    fun `something new`() {
+//        successfulCompile("match (3, 4) with (1, 2) -> \"One\" | (3, 4) -> \"Two\" | _ -> \"Other\"")
+//        successfulCompile("type Optional[a] = None | Some[a] match None() with Some(Some(n)) -> \"One\" | _ -> \"Other\"")
+    }
 }
 
 private fun successfulCompile(input: String): ByteArray {
