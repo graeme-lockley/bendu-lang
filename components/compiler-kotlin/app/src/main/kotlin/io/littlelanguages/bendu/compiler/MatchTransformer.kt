@@ -25,7 +25,8 @@ fun transform(e: Expression): Expression =
                 e.type
             )
 
-        is AssignmentExpression -> TODO()
+        is AssignmentExpression ->
+            AssignmentExpression(transform(e.lhs), transform(e.rhs), e.type)
 
         is BinaryExpression ->
             BinaryExpression(transform(e.e1), e.op, transform(e.e2), e.type)
@@ -182,6 +183,9 @@ private fun canError(e: Expression): Boolean =
 
         is ArrayRangeProjectionExpression ->
             canError(e.array) || e.start?.let { canError(it) } == true || e.end?.let { canError(it) } == true
+
+        is AssignmentExpression ->
+            canError(e.lhs) || canError(e.rhs)
 
         is BinaryExpression ->
             canError(e.e1) || canError(e.e2)
@@ -382,6 +386,9 @@ private fun tidyUpFails(e: Expression): Expression {
                     ep.type
                 )
 
+            is AssignmentExpression ->
+                AssignmentExpression(replaceFailWithE(ep.lhs, expr), replaceFailWithE(ep.rhs, expr), ep.type)
+
             is BinaryExpression ->
                 BinaryExpression(replaceFailWithE(ep.e1, expr), ep.op, replaceFailWithE(ep.e2, expr), ep.type)
 
@@ -440,6 +447,9 @@ private fun tidyUpFails(e: Expression): Expression {
                 e.end?.let { tidyUpFails(it) },
                 e.type
             )
+
+        is AssignmentExpression ->
+            AssignmentExpression(tidyUpFails(e.lhs), tidyUpFails(e.rhs), e.type)
 
         is BinaryExpression ->
             BinaryExpression(tidyUpFails(e.e1), e.op, tidyUpFails(e.e2), e.type)
@@ -505,6 +515,9 @@ private fun removeUnusedVariables(e: Expression): Expression {
             variables(e.array) + (e.start?.let { variables(it) } ?: emptySet()) + (e.end?.let { variables(it) }
                 ?: emptySet())
 
+        is AssignmentExpression ->
+            variables(e.lhs) + variables(e.rhs)
+
         is BinaryExpression ->
             variables(e.e1) + variables(e.e2)
 
@@ -557,6 +570,9 @@ private fun removeUnusedVariables(e: Expression): Expression {
                 e.end?.let { removeUnusedVariables(it) },
                 e.type
             )
+
+        is AssignmentExpression ->
+            AssignmentExpression(removeUnusedVariables(e.lhs), removeUnusedVariables(e.rhs), e.type)
 
         is BinaryExpression ->
             BinaryExpression(removeUnusedVariables(e.e1), e.op, removeUnusedVariables(e.e2), e.type)
@@ -625,6 +641,9 @@ private fun subst(e: Expression, old: String, new: String): Expression =
                 e.end?.let { subst(it, old, new) },
                 e.type
             )
+
+        is AssignmentExpression ->
+            AssignmentExpression(subst(e.lhs, old, new), subst(e.rhs, old, new), e.type)
 
         is BinaryExpression ->
             BinaryExpression(subst(e.e1, old, new), e.op, subst(e.e2, old, new), e.type)

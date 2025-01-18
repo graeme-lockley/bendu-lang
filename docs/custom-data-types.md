@@ -336,6 +336,36 @@ fn: [a] (Optional[Array[a]], Option) -> Array[a]
 [2, 3]: Array[Int]
 ```
 
+#### Assignment Expression
+
+```bendu-repl
+> let x! = 0
+
+> let f(n) =
+.   match n with
+.   | 0 -> x := 100
+.   | 1 -> x := x + 1
+.   | _ -> x := n
+
+> f(0)
+100: Int
+
+> x
+100: Int
+
+> f(1)
+101: Int
+
+> x
+101: Int
+
+> f(10)
+10: Int
+
+> x
+10: Int
+```
+
 #### If Expression
 
 ```bendu-repl
