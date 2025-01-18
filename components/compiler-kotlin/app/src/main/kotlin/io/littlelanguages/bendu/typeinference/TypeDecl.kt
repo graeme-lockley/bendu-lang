@@ -8,6 +8,7 @@ interface CustomDataType {
 }
 
 interface Constructor {
+    val name: String
     fun constructors(): List<Constructor>
     fun parameters(): List<Type>
     fun arity(): Int
@@ -29,7 +30,8 @@ class TypeDecl(override val name: String, val parameters: List<Var>, constructor
         TCon(name, pump.nextN(parameters.size))
 }
 
-data class TypeDeclConstructor(val typeDecl: TypeDecl, val name: String, val parameters: List<Type>) : Constructor {
+data class TypeDeclConstructor(val typeDecl: TypeDecl, override val name: String, val parameters: List<Type>) :
+    Constructor {
     override fun constructors(): List<Constructor> =
         typeDecl.constructors
 

@@ -1554,6 +1554,8 @@ class CompilerTest {
     fun `something new`() {
 //        successfulCompile("match (3, 4) with (1, 2) -> \"One\" | (3, 4) -> \"Two\" | _ -> \"Other\"")
 //        successfulCompile("type Optional[a] = None | Some[a] match None() with Some(Some(n)) -> \"One\" | _ -> \"Other\"")
+
+//        successfulCompile("type Tuple[a, b] = Tuple[a, b] match Tuple(3, 4) with Tuple(1, 2) -> \"One\" | Tuple(3, 4) -> \"Two\" | _ -> \"Other\"")
     }
 }
 

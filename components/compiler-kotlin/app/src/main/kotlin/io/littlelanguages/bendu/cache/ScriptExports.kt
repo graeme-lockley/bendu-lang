@@ -79,7 +79,7 @@ data class CustomTypeExport(
         TCon(name, pump.nextN(parameters.size))
 }
 
-data class ConstructorExport(val name: String, val parameters: List<Type>, val codeOffset: Int) : Constructor {
+data class ConstructorExport(override val name: String, val parameters: List<Type>, val codeOffset: Int) : Constructor {
     fun toStringHelper(env: ToStringHelper): String =
         if (parameters.isEmpty())
             "$name = $codeOffset"
