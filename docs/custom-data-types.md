@@ -311,7 +311,7 @@ fn: (Optional[Array[Int]]) -> Int
 
 #### Array Range Projection Expression
 
-```Bendu-repl
+```bendu-repl
 > type Optional[a] = None | Some[a]
 > type Option = Left | Right | Both
 
@@ -321,10 +321,10 @@ fn: (Optional[Array[Int]]) -> Int
 .   | (Some(x), Left()) -> x!:1
 .   | (Some(x), Right()) -> x!3:
 .   | (Some(x), Both()) -> x!1:3
-fn: (Optional[Array[Int]], Option) -> Array[Int]
+fn: [a] (Optional[Array[a]], Option) -> Array[a]
 
 > f(None(), Left())
-[]: Array[Int]
+[]: [a] Array[a]
 
 > f(Some([1, 2, 3, 4, 5]), Left())
 [1]: Array[Int]
@@ -333,7 +333,7 @@ fn: (Optional[Array[Int]], Option) -> Array[Int]
 [4, 5]: Array[Int]
 
 > f(Some([1, 2, 3, 4, 5]), Both())
-[1, 2, 3, 4]: Array[Int]
+[2, 3]: Array[Int]
 ```
 
 #### If Expression
@@ -359,7 +359,7 @@ fn: (List[Int]) -> String
 
 #### Literal Type Expression
 
-```Bendu-repl
+```bendu-repl
 > type Optional[a] = None | Some[a]
 
 > let f(n) =
