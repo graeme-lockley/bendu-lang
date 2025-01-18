@@ -24,3 +24,21 @@ let sum*(xs) =
   foldr(xs, fn(a, b) = a + b, 0)
 
 println(sum(range(10)))
+
+type Optional[a] = None | Some[a]
+type Option = Left | Right | Both
+
+let f(n, op) =
+  match (n, op) with
+  | (None(), _) -> []
+  | (Some(x), Left()) -> x!:1
+  | (Some(x), Right()) -> x!3:
+  | (Some(x), Both()) -> x!1:3
+
+println(f(None(), Left()))
+
+println(f(Some([1, 2, 3, 4, 5]), Left()))
+
+println(f(Some([1, 2, 3, 4, 5]), Right()))
+
+println(f(Some([1, 2, 3, 4, 5]), Both()))

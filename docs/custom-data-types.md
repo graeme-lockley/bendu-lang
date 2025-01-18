@@ -206,7 +206,7 @@ fn: (String) -> Int
 
 #### Tuple
 
-```Bendu-repl
+```bendu-repl
 > let f(n) = 
 .   match n with
 .   | (1, 2) -> "One"
@@ -366,7 +366,7 @@ fn: (List[Int]) -> String
 .   match n with
 .   | None() -> 0
 .   | Some((a, b)) -> a + b
-fn: (Optional[(Int * Int)]) -> Int
+fn: (Optional[Int * Int]) -> Int
 
 > f(None())
 0: Int

@@ -45,6 +45,7 @@ sealed class Type(open val location: Location?) {
     open fun isFunction(): Boolean = false
     open fun isInt(): Boolean = false
     open fun isString(): Boolean = false
+    open fun isTuple(): Boolean = false
     open fun isUnit(): Boolean = false
 
     override fun toString(): String {
@@ -147,6 +148,9 @@ data class TTuple(val types: List<Type>, override val location: Location? = null
 
     override fun toStringHelper(env: ToStringHelper): String =
         types.joinToString(" * ") { if (it is TTuple) "(${it.toStringHelper(env)})" else it.toStringHelper(env) }
+
+    override fun isTuple(): Boolean =
+        true
 }
 
 data class TVar(val name: Var, override val location: Location? = null) : Type(location) {

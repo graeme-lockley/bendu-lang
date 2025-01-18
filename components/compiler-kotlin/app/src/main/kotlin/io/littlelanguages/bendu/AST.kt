@@ -415,12 +415,31 @@ data class WhileExpression(val guard: Expression, val body: Expression, override
 }
 
 /*---- The following expressions are used to desugar the match expression */
-data class CaseExpression(val variable: String, val clauses: List<Clause>, val location: Location) : Expression() {
+data class CaseExpression(
+    val variable: String,
+    val clauses: List<Clause>,
+    val location: Location,
+    override var type: Type?
+) : Expression(type) {
+    init {
+        if (type == null) throw IllegalArgumentException("type == null")
+    }
+
+    override fun apply(s: Subst, errors: Errors) {
+        super.apply(s, errors)
+
+        clauses.forEach { it.apply(s, errors) }
+    }
+
     override fun location(): Location =
         location
 }
 
-data class Clause(val constructor: Constructor, val variables: List<String?>, val expression: Expression)
+data class Clause(val constructor: Constructor, val variables: List<String?>, val expression: Expression) {
+    fun apply(s: Subst, errors: Errors) {
+        expression.apply(s, errors)
+    }
+}
 
 data class ErrorExpression(val location: Location) : Expression() {
     override fun location(): Location =

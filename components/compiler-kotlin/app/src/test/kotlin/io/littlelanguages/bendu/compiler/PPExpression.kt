@@ -50,6 +50,13 @@ fun pp(e: Expression): Doc = when (e) {
 
     is LetStatement -> vcat(e.terms.mapIndexed { i, term -> pp(term, if (i == 0) "let " else "and ") })
 
+    is LiteralArrayExpression -> hcat(
+        listOf(
+            "[",
+            hsep(e.es.map { if (it.second) hcat(listOf(text("..."), pp(it.first))) else pp(it.first) }, ", "),
+            "]"
+        )
+    )
     is LiteralBoolExpression -> text(e.v.value.toString())
     is LiteralIntExpression -> text(e.v.value.toString())
     is LiteralStringExpression -> text("\"${e.v.value}\"")

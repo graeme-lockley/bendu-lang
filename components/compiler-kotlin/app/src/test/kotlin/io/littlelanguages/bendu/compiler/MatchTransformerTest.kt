@@ -8,6 +8,19 @@ import kotlin.test.assertTrue
 
 class MatchTransformerTest {
     @Test
+    fun `literal array`() {
+        assertTransformation(
+            listOf(
+                "{",
+                "  let _x: Int = 1",
+                "  [1, 2, 3]",
+                "}"
+            ), "match 1 with _ -> [1, 2, 3]"
+        )
+
+    }
+
+    @Test
     fun `sample mappairs`() {
         assertTransformation(
             listOf(
@@ -142,7 +155,8 @@ fun assertTransformation(expected: List<String>, input: String) {
     }
 
     assertTrue(errors.hasNoErrors())
-    println(result.joinToString("\n"))
+
+//    println(result.joinToString("\n"))
 
     assertContentEquals(expected, result)
 }

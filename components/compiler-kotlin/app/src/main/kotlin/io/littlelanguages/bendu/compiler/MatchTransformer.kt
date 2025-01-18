@@ -201,6 +201,9 @@ private fun canError(e: Expression): Boolean =
         is IfExpression ->
             e.guards.any { canError(it.first) || canError(it.second) } || e.elseBranch?.let { canError(it) } == true
 
+        is LiteralArrayExpression ->
+            e.es.any { canError(it.first) }
+
         is LiteralBoolExpression ->
             false
 
@@ -388,7 +391,8 @@ private fun tidyUpFails(e: Expression): Expression {
             is CaseExpression -> CaseExpression(
                 ep.variable,
                 ep.clauses.map { Clause(it.constructor, it.variables, replaceFailWithE(it.expression, expr)) },
-                ep.location
+                ep.location,
+                ep.type
             )
 
             is FailExpression -> expr
@@ -402,6 +406,11 @@ private fun tidyUpFails(e: Expression): Expression {
                     ep.type
                 )
 
+            is LiteralArrayExpression -> LiteralArrayExpression(
+                ep.es.map { Pair(replaceFailWithE(it.first, expr), it.second) },
+                ep.location,
+                ep.type
+            )
             is LiteralBoolExpression -> ep
             is LiteralCharExpression -> ep
             is LiteralFloatExpression -> ep
@@ -441,7 +450,8 @@ private fun tidyUpFails(e: Expression): Expression {
         is CaseExpression -> CaseExpression(
             e.variable,
             e.clauses.map { Clause(it.constructor, it.variables, tidyUpFails(it.expression)) },
-            e.location
+            e.location,
+            e.type
         )
 
         is FatBarExpression -> when (e.right) {
@@ -462,6 +472,10 @@ private fun tidyUpFails(e: Expression): Expression {
 
         is ErrorExpression -> e
         is FailExpression -> e
+
+        is LiteralArrayExpression ->
+            LiteralArrayExpression(e.es.map { Pair(tidyUpFails(it.first), it.second) }, e.location, e.type)
+
         is LiteralBoolExpression -> e
         is LiteralCharExpression -> e
         is LiteralFloatExpression -> e
@@ -511,6 +525,8 @@ private fun removeUnusedVariables(e: Expression): Expression {
             e.guards.flatMap { variables(it.first) + variables(it.second) }.toSet() +
                     (e.elseBranch?.let { variables(it) } ?: emptySet())
 
+        is LiteralArrayExpression -> e.es.flatMap { variables(it.first) }.toSet()
+
         is LiteralBoolExpression -> emptySet()
         is LiteralCharExpression -> emptySet()
         is LiteralFloatExpression -> emptySet()
@@ -555,7 +571,7 @@ private fun removeUnusedVariables(e: Expression): Expression {
                 it.variables.map { v -> if (vs.contains(v)) v else null },
                 removeUnusedVariables(it.expression)
             )
-        }, e.location)
+        }, e.location, e.type)
 
         is FatBarExpression -> FatBarExpression(
             removeUnusedVariables(e.left),
@@ -575,6 +591,10 @@ private fun removeUnusedVariables(e: Expression): Expression {
 
         is ErrorExpression -> e
         is FailExpression -> e
+
+        is LiteralArrayExpression ->
+            LiteralArrayExpression(e.es.map { Pair(removeUnusedVariables(it.first), it.second) }, e.location, e.type)
+
         is LiteralBoolExpression -> e
         is LiteralCharExpression -> e
         is LiteralFloatExpression -> e
@@ -618,7 +638,7 @@ private fun subst(e: Expression, old: String, new: String): Expression =
                 it.variables,
                 if (it.variables.contains(old)) it.expression else subst(it.expression, old, new)
             )
-        }, e.location)
+        }, e.location, e.type)
 
         is FatBarExpression -> FatBarExpression(subst(e.left, old, new), subst(e.right, old, new), e.location)
 
@@ -638,6 +658,9 @@ private fun subst(e: Expression, old: String, new: String): Expression =
         is UnaryExpression ->
             UnaryExpression(e.op, subst(e.e, old, new), e.type)
 
+        is LiteralArrayExpression ->
+            LiteralArrayExpression(e.es.map { Pair(subst(it.first, old, new), it.second) }, e.location, e.type)
+
         is LiteralBoolExpression -> e
         is LiteralCharExpression -> e
         is LiteralFloatExpression -> e
@@ -647,8 +670,15 @@ private fun subst(e: Expression, old: String, new: String): Expression =
         else -> TODO(e.toString()) // e
     }
 
-fun match(variables: List<String>, equations: List<Equation>, e: Expression, env: PatternEnvironment): Expression {
+private fun patternType(equations: List<Equation>): Type? =
+    if (equations.isEmpty())
+        null
+    else if (equations.first().patterns.isEmpty())
+        patternType(equations.drop(1))
+    else
+        equations.first().patterns[0].type
 
+fun match(variables: List<String>, equations: List<Equation>, e: Expression, env: PatternEnvironment): Expression {
     fun matchVar(variables: List<String>, equations: List<Equation>, e: Expression): Expression {
         val u = variables.first()
         val us = variables.drop(1)
@@ -708,7 +738,8 @@ fun match(variables: List<String>, equations: List<Equation>, e: Expression, env
                         FailExpression(e.location())
                     )
                 },
-            e.location()
+            e.location(),
+            patternType(equations)
         )
 
         return FatBarExpression(left, e, e.location())

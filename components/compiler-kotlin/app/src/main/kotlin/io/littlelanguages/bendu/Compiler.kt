@@ -647,14 +647,8 @@ private class Compiler(val errors: Errors) {
     private fun compileCaseExpression(expression: CaseExpression, keepResult: Boolean) {
         compileExpression(LowerIDExpression(StringLocation(expression.variable, expression.location())), keepResult)
 
-        byteBuilder.appendInstruction(Instructions.JMP_DUP_CONSTRUCTOR)
-        byteBuilder.appendInt(expression.clauses.size)
-        val jumpTableOffset = byteBuilder.size()
-        repeat(expression.clauses.size) { byteBuilder.appendInt(0) }
-        val endJumpOffsets = mutableListOf<Int>()
-
-        expression.clauses.forEachIndexed { index, clause ->
-            byteBuilder.writeIntAtPosition(jumpTableOffset + index * 4, byteBuilder.size())
+        if (expression.clauses.size == 1) {
+            val clause = expression.clauses[0]
 
             val checkPoint = symbolTable.checkpoint()
 
@@ -663,7 +657,11 @@ private class Compiler(val errors: Errors) {
                     val binding = symbolTable.bindIdentifier(v)
 
                     byteBuilder.appendInstruction(Instructions.DUP)
-                    byteBuilder.appendInstruction(Instructions.PUSH_CONSTRUCTOR_COMPONENT)
+                    if (expression.type!!.isTuple()) {
+                        byteBuilder.appendInstruction(Instructions.PUSH_TUPLE_COMPONENT)
+                    } else {
+                        byteBuilder.appendInstruction(Instructions.PUSH_CONSTRUCTOR_COMPONENT)
+                    }
                     byteBuilder.appendInt(i)
                     byteBuilder.appendInstruction(Instructions.STORE)
                     byteBuilder.appendInt(0)
@@ -676,15 +674,46 @@ private class Compiler(val errors: Errors) {
 
             symbolTable.rollback(checkPoint)
 
-            if (index < expression.clauses.size - 1) {
-                byteBuilder.appendInstruction(Instructions.JMP)
-                endJumpOffsets.add(byteBuilder.size())
-                byteBuilder.appendInt(0)
-            }
-        }
+        } else {
+            byteBuilder.appendInstruction(Instructions.JMP_DUP_CONSTRUCTOR)
+            byteBuilder.appendInt(expression.clauses.size)
+            val jumpTableOffset = byteBuilder.size()
+            repeat(expression.clauses.size) { byteBuilder.appendInt(0) }
+            val endJumpOffsets = mutableListOf<Int>()
 
-        endJumpOffsets.forEach { offset ->
-            byteBuilder.writeIntAtPosition(offset, byteBuilder.size())
+            expression.clauses.forEachIndexed { index, clause ->
+                byteBuilder.writeIntAtPosition(jumpTableOffset + index * 4, byteBuilder.size())
+
+                val checkPoint = symbolTable.checkpoint()
+
+                clause.variables.forEachIndexed { i, v ->
+                    if (v != null) {
+                        val binding = symbolTable.bindIdentifier(v)
+
+                        byteBuilder.appendInstruction(Instructions.DUP)
+                        byteBuilder.appendInstruction(Instructions.PUSH_CONSTRUCTOR_COMPONENT)
+                        byteBuilder.appendInt(i)
+                        byteBuilder.appendInstruction(Instructions.STORE)
+                        byteBuilder.appendInt(0)
+                        byteBuilder.appendInt(binding.frameOffset)
+                    }
+                }
+                byteBuilder.appendInstruction(Instructions.DISCARD)
+
+                compileExpression(clause.expression, keepResult)
+
+                symbolTable.rollback(checkPoint)
+
+                if (index < expression.clauses.size - 1) {
+                    byteBuilder.appendInstruction(Instructions.JMP)
+                    endJumpOffsets.add(byteBuilder.size())
+                    byteBuilder.appendInt(0)
+                }
+            }
+
+            endJumpOffsets.forEach { offset ->
+                byteBuilder.writeIntAtPosition(offset, byteBuilder.size())
+            }
         }
     }
 
