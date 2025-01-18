@@ -382,6 +382,22 @@ fn: (Int, Int) -> Int
 14: Int
 ```
 
+#### Block Expression
+
+```bendu-repl
+> let f(n) =
+.   match n with
+.   | 0 -> { 1 }
+.   | v -> { v * v }
+fn: (Int) -> Int
+
+> f(0)
+1: Int
+
+> f(10)
+100: Int
+```
+
 #### If Expression
 
 ```bendu-repl
