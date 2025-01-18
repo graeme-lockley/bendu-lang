@@ -366,6 +366,22 @@ fn: [a] (Optional[Array[a]], Option) -> Array[a]
 10: Int
 ```
 
+#### Binary Op Expression
+
+```bendu-repl
+> let f(a, b) =
+.   match a with
+.   | 0 -> b * b
+.   | _ -> a * b
+fn: (Int, Int) -> Int
+
+> f(0, 5)
+25: Int
+
+> f(2, 7)
+14: Int
+```
+
 #### If Expression
 
 ```bendu-repl
