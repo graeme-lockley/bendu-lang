@@ -419,6 +419,36 @@ fn: (List[Int]) -> String
 "Other": String
 ```
 
+#### Let Expression
+
+```bendu-repl
+> let f(n) =
+.   match n with
+.   | 0 -> { 1 }
+.   | v -> { let r = v * v ; r }
+fn: (Int) -> Int
+
+> f(0)
+1: Int
+
+> f(10)
+100: Int
+```
+
+```bendu-repl
+> let f(n) =
+.   match n with
+.   | 0 -> { 1 }
+.   | v -> { let double(a: Int) = a * a ; double(v) }
+fn: (Int) -> Int
+
+> f(0)
+1: Int
+
+> f(10)
+100: Int
+```
+
 #### Literal Type Expression
 
 ```bendu-repl

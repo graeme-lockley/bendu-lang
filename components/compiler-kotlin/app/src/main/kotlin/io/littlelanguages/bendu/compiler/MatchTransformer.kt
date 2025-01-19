@@ -34,10 +34,16 @@ fun transform(e: Expression): Expression =
         is BlockExpression ->
             BlockExpression(e.es.map { transform(it) }, e.location(), e.type)
 
-        is CaseExpression -> TODO()
-        is ErrorExpression -> TODO()
-        is FailExpression -> TODO()
-        is FatBarExpression -> TODO()
+        is CaseExpression ->
+            CaseExpression(
+                e.variable,
+                e.clauses.map { Clause(it.constructor, it.variables, transform(it.expression)) },
+                e.location,
+                e.type
+            )
+
+        is FatBarExpression ->
+            FatBarExpression(transform(e.left), transform(e.right), e.location)
 
         is IfExpression ->
             IfExpression(
@@ -79,25 +85,11 @@ fun transform(e: Expression): Expression =
         is LiteralArrayExpression ->
             LiteralArrayExpression(e.es.map { Pair(transform(it.first), it.second) }, e.location, e.type)
 
-        is LiteralBoolExpression -> e
-
-        is LiteralCharExpression -> e
-
-        is LiteralFloatExpression -> e
-
-        is LiteralFunctionExpression -> TODO()
-
-        is LiteralIntExpression -> e
-
-        is LiteralStringExpression -> e
-
         is LiteralTupleExpression ->
             LiteralTupleExpression(e.es.map { transform(it) }, e.type)
 
-        is LiteralUnitExpression -> e
-
-        is LowerIDExpression ->
-            e
+        is LiteralFunctionExpression ->
+            LiteralFunctionExpression(e.typeParameters, e.parameters, e.returnTypeQualifier, transform(e.body), e.type)
 
         is MatchExpression -> {
             val matchExpression = transform(e.e)
@@ -130,13 +122,22 @@ fun transform(e: Expression): Expression =
             }
         }
 
-        is ModuleReferenceExpression -> TODO()
-        is PrintStatement -> TODO()
-        is PrintlnStatement -> TODO()
-        is TypedExpression -> TODO()
-        is UnaryExpression -> TODO()
-        is UpperIDExpression -> e
-        is WhileExpression -> TODO()
+        is PrintStatement ->
+            PrintStatement(e.es.map { transform(it) }, e.location(), e.type)
+
+        is PrintlnStatement ->
+            PrintlnStatement(e.es.map { transform(it) }, e.location(), e.type)
+
+        is TypedExpression ->
+            TypedExpression(transform(e.e), e.typeQualifier, e.type)
+
+        is UnaryExpression ->
+            UnaryExpression(e.op, transform(e.e), e.type)
+
+        is WhileExpression ->
+            WhileExpression(transform(e.guard), transform(e.body), e.type)
+
+        else -> e
     }
 
 data class PatternEnvironment(private var counter: Int = 0) {
@@ -205,28 +206,43 @@ private fun canError(e: Expression): Boolean =
         is IfExpression ->
             e.guards.any { canError(it.first) || canError(it.second) } || e.elseBranch?.let { canError(it) } == true
 
+        is LetStatement ->
+            e.terms.any {
+                when (it) {
+                    is LetValueStatementTerm -> canError(it.e)
+                    is LetFunctionStatementTerm -> canError(it.body)
+                }
+            }
+
         is LiteralArrayExpression ->
             e.es.any { canError(it.first) }
 
-        is LiteralBoolExpression ->
-            false
+        is LiteralFunctionExpression ->
+            canError(e.body)
 
-        is LiteralCharExpression ->
-            false
+        is LiteralTupleExpression ->
+            e.es.any { canError(it) }
 
-        is LiteralFloatExpression ->
-            false
+        is MatchExpression ->
+            canError(e.e) || e.cases.any { canError(it.body) }
 
-        is LiteralIntExpression ->
-            false
+        is PrintStatement ->
+            e.es.any { canError(it) }
 
-        is LiteralStringExpression ->
-            false
+        is PrintlnStatement ->
+            e.es.any { canError(it) }
 
-        is LowerIDExpression ->
-            false
+        is TypedExpression ->
+            canError(e.e)
 
-        else -> TODO(e.toString()) //false
+        is UnaryExpression ->
+            canError(e.e)
+
+        is WhileExpression ->
+            canError(e.guard) || canError(e.body)
+
+        else ->
+            false
     }
 
 fun <T> partition(list: List<T>, predicate: (T) -> Boolean): List<List<T>> {
@@ -345,12 +361,14 @@ private fun removeLiterals(equations: List<Equation>): List<Equation> {
             is LowerIDPattern ->
                 pattern
 
-            is NamedPattern -> TODO()
+            is NamedPattern ->
+                NamedPattern(removeLiterals(pattern.pattern), pattern.id, pattern.type)
 
             is TuplePattern ->
                 TuplePattern(pattern.patterns.map { removeLiterals(it) }, pattern.location(), pattern.type)
 
-            is TypedPattern -> TODO()
+            is TypedPattern ->
+                TypedPattern(removeLiterals(pattern.pattern), pattern.typeQualifier, pattern.type)
 
             is WildcardPattern ->
                 LowerIDPattern(StringLocation(nextVarName(), pattern.location()), pattern.type)
@@ -395,16 +413,19 @@ private fun tidyUpFails(e: Expression): Expression {
             is BlockExpression ->
                 BlockExpression(ep.es.map { replaceFailWithE(it, expr) }, ep.location(), ep.type)
 
-            is CaseExpression -> CaseExpression(
-                ep.variable,
-                ep.clauses.map { Clause(it.constructor, it.variables, replaceFailWithE(it.expression, expr)) },
-                ep.location,
-                ep.type
-            )
+            is CaseExpression ->
+                CaseExpression(
+                    ep.variable,
+                    ep.clauses.map { Clause(it.constructor, it.variables, replaceFailWithE(it.expression, expr)) },
+                    ep.location,
+                    ep.type
+                )
 
-            is FailExpression -> expr
+            is FailExpression ->
+                expr
 
-            is FatBarExpression -> FatBarExpression(ep.left, replaceFailWithE(ep.right, expr), ep.location)
+            is FatBarExpression ->
+                FatBarExpression(ep.left, replaceFailWithE(ep.right, expr), ep.location)
 
             is IfExpression ->
                 IfExpression(
@@ -413,21 +434,74 @@ private fun tidyUpFails(e: Expression): Expression {
                     ep.type
                 )
 
-            is LiteralArrayExpression -> LiteralArrayExpression(
-                ep.es.map { Pair(replaceFailWithE(it.first, expr), it.second) },
-                ep.location,
-                ep.type
-            )
-            is LiteralBoolExpression -> ep
-            is LiteralCharExpression -> ep
-            is LiteralFloatExpression -> ep
-            is LiteralIntExpression -> ep
-            is LiteralStringExpression -> ep
-            is LiteralUnitExpression -> ep
-            is LowerIDExpression -> ep
+            is LiteralArrayExpression ->
+                LiteralArrayExpression(
+                    ep.es.map { Pair(replaceFailWithE(it.first, expr), it.second) },
+                    ep.location,
+                    ep.type
+                )
 
-            is MatchExpression -> throw IllegalStateException("Match expressions should be desugared")
-            else -> TODO(ep.toString()) // ep
+            is MatchExpression ->
+                throw IllegalStateException("Match expressions should be desugared")
+
+            is LetStatement ->
+                LetStatement(ep.terms.map {
+                    when (it) {
+                        is LetValueStatementTerm ->
+                            LetValueStatementTerm(
+                                it.id,
+                                it.mutable,
+                                it.exported,
+                                it.typeVariables,
+                                it.typeQualifier,
+                                replaceFailWithE(it.e, expr),
+                                it.location,
+                                it.type
+                            )
+
+                        is LetFunctionStatementTerm ->
+                            LetFunctionStatementTerm(
+                                it.id,
+                                it.mutable,
+                                it.exported,
+                                it.typeVariables,
+                                it.parameters,
+                                it.typeQualifier,
+                                replaceFailWithE(it.body, expr),
+                                it.location,
+                                it.type
+                            )
+                    }
+                })
+
+            is LiteralFunctionExpression ->
+                LiteralFunctionExpression(
+                    ep.typeParameters,
+                    ep.parameters,
+                    ep.returnTypeQualifier,
+                    replaceFailWithE(ep.body, expr),
+                    ep.type
+                )
+
+            is LiteralTupleExpression ->
+                LiteralTupleExpression(ep.es.map { replaceFailWithE(it, expr) }, ep.type)
+
+            is PrintStatement ->
+                PrintStatement(ep.es.map { replaceFailWithE(it, expr) }, ep.location(), ep.type)
+
+            is PrintlnStatement ->
+                PrintlnStatement(ep.es.map { replaceFailWithE(it, expr) }, ep.location(), ep.type)
+
+            is TypedExpression ->
+                TypedExpression(replaceFailWithE(ep.e, expr), ep.typeQualifier, ep.type)
+
+            is UnaryExpression ->
+                UnaryExpression(ep.op, replaceFailWithE(ep.e, expr), ep.type)
+
+            is WhileExpression ->
+                WhileExpression(replaceFailWithE(ep.guard, expr), replaceFailWithE(ep.body, expr), ep.type)
+
+            else -> ep
         }
 
     return when (e) {
@@ -467,8 +541,10 @@ private fun tidyUpFails(e: Expression): Expression {
         is FatBarExpression -> when (e.right) {
             is ErrorExpression -> tidyUpFails(replaceFailWithE(e.left, ErrorExpression(e.right.location)))
             is FailExpression -> tidyUpFails(e.left)
-            else -> replaceFailWithE(e.left, tidyUpFails(e.right))
-//                FatBarExpression(tidyUpFails(e.left), tidyUpFails(e.right), e.location)
+            else -> replaceFailWithE(
+                e.left,
+                tidyUpFails(e.right)
+            ) // FatBarExpression(tidyUpFails(e.left), tidyUpFails(e.right), e.location)
         }
 
         is IfExpression -> IfExpression(
@@ -477,31 +553,90 @@ private fun tidyUpFails(e: Expression): Expression {
             e.type
         )
 
-        is UnaryExpression ->
-            UnaryExpression(e.op, tidyUpFails(e.e), e.type)
+        is LetStatement ->
+            LetStatement(e.terms.map {
+                when (it) {
+                    is LetValueStatementTerm ->
+                        LetValueStatementTerm(
+                            it.id,
+                            it.mutable,
+                            it.exported,
+                            it.typeVariables,
+                            it.typeQualifier,
+                            tidyUpFails(it.e),
+                            it.location,
+                            it.type
+                        )
 
-        is ErrorExpression -> e
-        is FailExpression -> e
+                    is LetFunctionStatementTerm ->
+                        LetFunctionStatementTerm(
+                            it.id,
+                            it.mutable,
+                            it.exported,
+                            it.typeVariables,
+                            it.parameters,
+                            it.typeQualifier,
+                            tidyUpFails(it.body),
+                            it.location,
+                            it.type
+                        )
+                }
+            })
 
         is LiteralArrayExpression ->
             LiteralArrayExpression(e.es.map { Pair(tidyUpFails(it.first), it.second) }, e.location, e.type)
 
-        is LiteralBoolExpression -> e
-        is LiteralCharExpression -> e
-        is LiteralFloatExpression -> e
-        is LiteralIntExpression -> e
-        is LiteralStringExpression -> e
-        is LowerIDExpression -> e
-
         is MatchExpression ->
             throw IllegalStateException("Match expressions should be desugared")
 
-        else -> TODO(e.toString()) //e
+        is LiteralFunctionExpression ->
+            LiteralFunctionExpression(
+                e.typeParameters,
+                e.parameters,
+                e.returnTypeQualifier,
+                tidyUpFails(e.body),
+                e.type
+            )
+
+        is LiteralTupleExpression ->
+            LiteralTupleExpression(e.es.map { tidyUpFails(it) }, e.type)
+
+        is PrintStatement ->
+            PrintStatement(e.es.map { tidyUpFails(it) }, e.location(), e.type)
+
+        is PrintlnStatement ->
+            PrintlnStatement(e.es.map { tidyUpFails(it) }, e.location(), e.type)
+
+        is TypedExpression ->
+            TypedExpression(tidyUpFails(e.e), e.typeQualifier, e.type)
+
+        is UnaryExpression ->
+            UnaryExpression(e.op, tidyUpFails(e.e), e.type)
+
+        is WhileExpression ->
+            WhileExpression(tidyUpFails(e.guard), tidyUpFails(e.body), e.type)
+
+        else -> e
     }
 }
 
-private fun removeUnusedVariables(e: Expression): Expression {
-    fun variables(e: Expression): Set<String> = when (e) {
+private fun variables(parameter: FunctionParameter): Set<String> =
+    when (parameter) {
+        is LowerIDFunctionParameter ->
+            setOf(parameter.value)
+
+        is TupleFunctionParameter ->
+            parameter.parameters.flatMap { variables(it) }.toSet()
+
+        is WildcardFunctionParameter ->
+            emptySet()
+    }
+
+private fun variables(parameters: List<FunctionParameter>): Set<String> =
+    parameters.flatMap { variables(it) }.toSet()
+
+private fun variables(e: Expression): Set<String> =
+    when (e) {
         is AbortStatement ->
             e.es.flatMap { variables(it) }.toSet()
 
@@ -524,36 +659,66 @@ private fun removeUnusedVariables(e: Expression): Expression {
         is BlockExpression ->
             e.es.flatMap { variables(it) }.toSet()
 
-        is CaseExpression -> {
+        is CaseExpression ->
             setOf(e.variable) +
                     e.clauses.flatMap { variables(it.expression) - it.variables.filterNotNull().toSet() }.toSet()
-        }
 
-        is ErrorExpression -> emptySet()
-        is FailExpression -> emptySet()
-
-        is FatBarExpression -> variables(e.left) + variables(e.right)
+        is FatBarExpression ->
+            variables(e.left) + variables(e.right)
 
         is IfExpression ->
             e.guards.flatMap { variables(it.first) + variables(it.second) }.toSet() +
                     (e.elseBranch?.let { variables(it) } ?: emptySet())
 
-        is LiteralArrayExpression -> e.es.flatMap { variables(it.first) }.toSet()
+        is LiteralArrayExpression ->
+            e.es.flatMap { variables(it.first) }.toSet()
 
-        is LiteralBoolExpression -> emptySet()
-        is LiteralCharExpression -> emptySet()
-        is LiteralFloatExpression -> emptySet()
-        is LiteralIntExpression -> emptySet()
-        is LiteralStringExpression -> emptySet()
-        is LiteralUnitExpression -> emptySet()
+        is LowerIDExpression ->
+            setOf(e.v.value)
 
-        is LowerIDExpression -> setOf(e.v.value)
+        is MatchExpression ->
+            throw IllegalStateException("Match expressions should be desugared")
 
-        is MatchExpression -> throw IllegalStateException("Match expressions should be desugared")
-        else -> TODO(e.toString()) // emptySet()
+        is LetStatement ->
+            e.terms.flatMap {
+                when (it) {
+                    is LetValueStatementTerm ->
+                        variables(it.e) - it.id.value
+
+                    is LetFunctionStatementTerm ->
+                        variables(it.body) - it.id.value - variables(it.parameters)
+                }
+            }.toSet()
+
+        is LiteralFunctionExpression ->
+            variables(e.body) - e.parameters.flatMap { parameter -> variables(parameter) }.toSet()
+
+        is LiteralTupleExpression ->
+            e.es.flatMap { variables(it) }.toSet()
+
+        is PrintStatement ->
+            e.es.flatMap { variables(it) }.toSet()
+
+        is PrintlnStatement ->
+            e.es.flatMap { variables(it) }.toSet()
+
+        is TypedExpression ->
+            variables(e.e)
+
+        is UnaryExpression ->
+            variables(e.e)
+
+        is UpperIDExpression ->
+            emptySet()
+
+        is WhileExpression ->
+            variables(e.guard) + variables(e.body)
+
+        else -> emptySet()
     }
 
-    return when (e) {
+private fun removeUnusedVariables(e: Expression): Expression =
+    when (e) {
         is AbortStatement ->
             AbortStatement(e.es.map { removeUnusedVariables(it) }, e.location(), e.type)
 
@@ -605,24 +770,67 @@ private fun removeUnusedVariables(e: Expression): Expression {
         is UnaryExpression ->
             UnaryExpression(e.op, removeUnusedVariables(e.e), e.type)
 
-        is ErrorExpression -> e
-        is FailExpression -> e
+        is LetStatement ->
+            LetStatement(e.terms.map {
+                when (it) {
+                    is LetValueStatementTerm ->
+                        LetValueStatementTerm(
+                            it.id,
+                            it.mutable,
+                            it.exported,
+                            it.typeVariables,
+                            it.typeQualifier,
+                            removeUnusedVariables(it.e),
+                            it.location,
+                            it.type
+                        )
+
+                    is LetFunctionStatementTerm ->
+                        LetFunctionStatementTerm(
+                            it.id,
+                            it.mutable,
+                            it.exported,
+                            it.typeVariables,
+                            it.parameters,
+                            it.typeQualifier,
+                            removeUnusedVariables(it.body),
+                            it.location,
+                            it.type
+                        )
+                }
+            })
 
         is LiteralArrayExpression ->
             LiteralArrayExpression(e.es.map { Pair(removeUnusedVariables(it.first), it.second) }, e.location, e.type)
 
-        is LiteralBoolExpression -> e
-        is LiteralCharExpression -> e
-        is LiteralFloatExpression -> e
-        is LiteralIntExpression -> e
-        is LiteralStringExpression -> e
-        is LowerIDExpression -> e
-
         is MatchExpression -> throw IllegalStateException("Match expressions should be desugared")
 
-        else -> TODO(e.toString()) // e
+        is LiteralFunctionExpression ->
+            LiteralFunctionExpression(
+                e.typeParameters,
+                e.parameters,
+                e.returnTypeQualifier,
+                removeUnusedVariables(e.body),
+                e.type
+            )
+
+        is LiteralTupleExpression ->
+            LiteralTupleExpression(e.es.map { removeUnusedVariables(it) }, e.type)
+
+        is PrintStatement ->
+            PrintStatement(e.es.map { removeUnusedVariables(it) }, e.location(), e.type)
+
+        is PrintlnStatement ->
+            PrintlnStatement(e.es.map { removeUnusedVariables(it) }, e.location(), e.type)
+
+        is TypedExpression ->
+            TypedExpression(removeUnusedVariables(e.e), e.typeQualifier, e.type)
+
+        is WhileExpression ->
+            WhileExpression(removeUnusedVariables(e.guard), removeUnusedVariables(e.body), e.type)
+
+        else -> e
     }
-}
 
 private fun subst(e: Expression, old: String, new: String): Expression =
     when (e) {
@@ -651,15 +859,21 @@ private fun subst(e: Expression, old: String, new: String): Expression =
         is BlockExpression ->
             BlockExpression(e.es.map { subst(it, old, new) }, e.location(), e.type)
 
-        is CaseExpression -> CaseExpression(if (e.variable == old) new else e.variable, e.clauses.map {
-            Clause(
-                it.constructor,
-                it.variables,
-                if (it.variables.contains(old)) it.expression else subst(it.expression, old, new)
-            )
-        }, e.location, e.type)
+        is CaseExpression -> CaseExpression(
+            if (e.variable == old) new else e.variable,
+            e.clauses.map {
+                Clause(
+                    it.constructor,
+                    it.variables,
+                    if (it.variables.contains(old)) it.expression else subst(it.expression, old, new)
+                )
+            },
+            e.location,
+            e.type
+        )
 
-        is FatBarExpression -> FatBarExpression(subst(e.left, old, new), subst(e.right, old, new), e.location)
+        is FatBarExpression ->
+            FatBarExpression(subst(e.left, old, new), subst(e.right, old, new), e.location)
 
         is IfExpression ->
             IfExpression(
@@ -667,6 +881,45 @@ private fun subst(e: Expression, old: String, new: String): Expression =
                 e.elseBranch?.let { subst(it, old, new) },
                 e.type
             )
+
+        is LetStatement -> {
+            val terms = e.terms.map {
+                when (it) {
+                    is LetValueStatementTerm ->
+                        if (it.id.value == old)
+                            it
+                        else
+                            LetValueStatementTerm(
+                                it.id,
+                                it.mutable,
+                                it.exported,
+                                it.typeVariables,
+                                it.typeQualifier,
+                                subst(it.e, old, new),
+                                it.location,
+                                it.type
+                            )
+
+                    is LetFunctionStatementTerm ->
+                        if (it.id.value == old || variables(it.parameters).contains(old))
+                            it
+                        else
+                            LetFunctionStatementTerm(
+                                it.id,
+                                it.mutable,
+                                it.exported,
+                                it.typeVariables,
+                                it.parameters,
+                                it.typeQualifier,
+                                subst(it.body, old, new),
+                                it.location,
+                                it.type
+                            )
+                }
+            }
+
+            LetStatement(terms)
+        }
 
         is LowerIDExpression ->
             if (e.v.value == old) LowerIDExpression(StringLocation(new, e.v.location), e.type, e.binding) else e
@@ -680,13 +933,34 @@ private fun subst(e: Expression, old: String, new: String): Expression =
         is LiteralArrayExpression ->
             LiteralArrayExpression(e.es.map { Pair(subst(it.first, old, new), it.second) }, e.location, e.type)
 
-        is LiteralBoolExpression -> e
-        is LiteralCharExpression -> e
-        is LiteralFloatExpression -> e
-        is LiteralIntExpression -> e
-        is LiteralStringExpression -> e
+        is LiteralFunctionExpression ->
+            if (variables(e.parameters).contains(old))
+                e
+            else
+                LiteralFunctionExpression(
+                    e.typeParameters,
+                    e.parameters,
+                    e.returnTypeQualifier,
+                    subst(e.body, old, new),
+                    e.type
+                )
 
-        else -> TODO(e.toString()) // e
+        is LiteralTupleExpression ->
+            LiteralTupleExpression(e.es.map { subst(it, old, new) }, e.type)
+
+        is PrintStatement ->
+            PrintStatement(e.es.map { subst(it, old, new) }, e.location(), e.type)
+
+        is PrintlnStatement ->
+            PrintlnStatement(e.es.map { subst(it, old, new) }, e.location(), e.type)
+
+        is TypedExpression ->
+            TypedExpression(subst(e.e, old, new), e.typeQualifier, e.type)
+
+        is WhileExpression ->
+            WhileExpression(subst(e.guard, old, new), subst(e.body, old, new), e.type)
+
+        else -> e
     }
 
 private fun patternType(equations: List<Equation>): Type? =
