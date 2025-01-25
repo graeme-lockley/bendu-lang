@@ -259,12 +259,12 @@ fun <T> partition(list: List<T>, predicate: (T) -> Boolean): List<List<T>> {
     return list.foldRight(emptyList()) { e, acc -> combine(e, acc) }
 }
 
-private fun removeLiterals(equations: List<Equation>): List<Equation> {
+private fun transformLiteralsAndTypedPatterns(equations: List<Equation>): List<Equation> {
     var counter = 0
 
     fun nextVarName(): String = "_l${counter++}"
 
-    fun removeLiterals(equation: Equation): Equation {
+    fun transformEquation(equation: Equation): Equation {
         var guard = equation.guard
 
         fun appendToGuard(expr: Expression) {
@@ -276,11 +276,11 @@ private fun removeLiterals(equations: List<Equation>): List<Equation> {
             )
         }
 
-        fun removeLiterals(pattern: Pattern): Pattern = when (pattern) {
+        fun transformPattern(pattern: Pattern): Pattern = when (pattern) {
             is ConstructorPattern -> ConstructorPattern(
                 pattern.moduleID,
                 pattern.id,
-                pattern.patterns.map { removeLiterals(it) },
+                pattern.patterns.map { transformPattern(it) },
                 pattern.location,
                 pattern.type,
                 pattern.constructor
@@ -362,22 +362,22 @@ private fun removeLiterals(equations: List<Equation>): List<Equation> {
                 pattern
 
             is NamedPattern ->
-                NamedPattern(removeLiterals(pattern.pattern), pattern.id, pattern.type)
+                NamedPattern(transformPattern(pattern.pattern), pattern.id, pattern.type)
 
             is TuplePattern ->
-                TuplePattern(pattern.patterns.map { removeLiterals(it) }, pattern.location(), pattern.type)
+                TuplePattern(pattern.patterns.map { transformPattern(it) }, pattern.location(), pattern.type)
 
             is TypedPattern ->
-                TypedPattern(removeLiterals(pattern.pattern), pattern.typeQualifier, pattern.type)
+                transformPattern(pattern.pattern)
 
             is WildcardPattern ->
                 LowerIDPattern(StringLocation(nextVarName(), pattern.location()), pattern.type)
         }
 
-        return Equation(equation.patterns.map { removeLiterals(it) }, equation.body, guard)
+        return Equation(equation.patterns.map { transformPattern(it) }, equation.body, guard)
     }
 
-    return equations.map { removeLiterals(it) }
+    return equations.map { transformEquation(it) }
 }
 
 private fun replaceFailWithE(ep: Expression, expr: Expression): Expression =
@@ -1066,7 +1066,7 @@ fun match(variables: List<String>, equations: List<Equation>, e: Expression, env
 }
 
 fun fullMatch(variables: List<String>, equations: List<Equation>, e: Expression, env: PatternEnvironment): Expression {
-    val eqn1 = removeLiterals(equations)
+    val eqn1 = transformLiteralsAndTypedPatterns(equations)
     val e2 = match(variables, eqn1, e, env)
     val e3 = tidyUpFails(e2)
 

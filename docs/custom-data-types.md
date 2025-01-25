@@ -103,6 +103,23 @@ We can now rewrite `sum` using a `fold` function.
 55: Int
 ```
 
+## Additional Pattern  Scenarios
+
+The pattern matching has three additional features that are worth highlighting:
+
+- A pattern can have a type qualifier,
+- A component of a pattern can be assigned an identifier, and
+- A expression can be added to a pattern and incorporated into the guard.
+
+#### Pattern Type Qualifier
+
+```bendu-repl
+> let f(n) =
+.   match n with
+.   | v: Int -> v
+fn: (Int) -> Int
+```
+
 ## Custom Data Type Scenarios
 
 The following is a systematic list of the scenarios that can be used to test custom data types.
