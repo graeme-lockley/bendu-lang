@@ -449,6 +449,54 @@ fn: (Int) -> Int
 100: Int
 ```
 
+#### Literal Array Expression
+
+```bendu-repl
+> let f(n) =
+.   match n with
+.   | 0 -> [1]
+.   | v -> [1, 2, v]
+fn: (Int) -> Array[Int]
+
+> f(0)
+[1]: Array[Int]
+
+> f(10)
+[1, 2, 10]: Array[Int]
+```
+
+#### Literal Function Expression
+
+```bendu-repl
+> let f(n) =
+.   match n with
+.   | 0 -> fn(v) = v###
+.   | v -> fn(vv) = (vv - v) * 2
+fn: (Int) -> (Int) -> Int
+
+> f(0)(10)
+10: Int
+
+> f(10)(3)
+-14: Int
+```
+
+#### Literal Tuple Expression
+
+```bendu-repl
+> let f(n) =
+.   match n with
+.   | 0 -> (0, 0)
+.   | v -> (n, n * 2)
+fn: (Int) -> Int * Int
+
+> f(0)
+(0, 0): Int * Int
+
+> f(10)
+(10, 20): Int * Int
+```
+
 #### Literal Type Expression
 
 ```bendu-repl
@@ -465,4 +513,28 @@ fn: (Optional[Int * Int]) -> Int
 
 > f(Some((1, 2)))
 3: Int
+```
+
+#### Match Expression
+
+```bendu-repl
+> type Optional[a] = None | Some[a]
+
+> let f(n) =
+.   match n with
+.   | None() -> 0
+.   | Some(a) -> 
+.       match a with
+.       | None() -> 1
+.       | Some(b) -> b
+fn: (Optional[Optional[Int]]) -> Int
+
+> f(None())
+0: Int
+
+> f(Some(None()))
+1: Int
+
+> f(Some(Some(10)))
+10: Int
 ```

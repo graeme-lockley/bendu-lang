@@ -30,7 +30,7 @@ The following is the list of big features that need to be implemented.
 - [x] Custom Data Types
 - [ ] Records
 - [ ] Type aliases
-- [ ] Patterns
+- [x] Patterns
 - [ ] Signals
 - [ ] Builtins
 - [ ] Integrate libuv
@@ -62,7 +62,7 @@ The following is the list of big features that need to be implemented.
 
 - [x] Incorporate the match expression into the parser and AST
 - [x] Incorporate the match expression into type inference
-- [ ] Compile match expression
+- [x] Compile match expression
 
 ## Packages
 
