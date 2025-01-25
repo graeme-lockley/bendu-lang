@@ -84,7 +84,25 @@ class MatchTransformerTest {
     }
 
     @Test
-    fun `scratch pad`() {
+    fun `tidy fails on left and right`() {
+
+        assertTransformation(
+            listOf(
+                "{",
+                "  let _x: [a, b] a * b = Tuple(Nil(), Nil())",
+                "  case _x with",
+                "  | _Tuple2(_u0, _u1) -> case _u0 with",
+                "    | Nil() -> true",
+                "    | Cons(_, _) -> case _u1 with",
+                "      | Nil() -> true",
+                "      | Cons(_, _) -> false",
+                "}"
+            ), "type List[a] = Nil | Cons[a, List[a]] ; match (Nil(), Nil()) with " +
+                    "| (Nil(), _) -> True " +
+                    "| (_, Nil()) -> True " +
+                    "| _ -> False"
+        )
+
 //        assertTransformation(listOf(""), "match 1 with 0 -> 1 | 1 -> 2 | n -> n * n")
 
 //        assertTransformation(

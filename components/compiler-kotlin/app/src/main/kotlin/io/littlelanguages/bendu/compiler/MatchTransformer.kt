@@ -380,131 +380,131 @@ private fun removeLiterals(equations: List<Equation>): List<Equation> {
     return equations.map { removeLiterals(it) }
 }
 
-private fun tidyUpFails(e: Expression): Expression {
-    fun replaceFailWithE(ep: Expression, expr: Expression): Expression =
-        when (ep) {
-            is AbortStatement ->
-                AbortStatement(ep.es.map { replaceFailWithE(it, expr) }, ep.location(), ep.type)
+private fun replaceFailWithE(ep: Expression, expr: Expression): Expression =
+    when (ep) {
+        is AbortStatement ->
+            AbortStatement(ep.es.map { replaceFailWithE(it, expr) }, ep.location(), ep.type)
 
-            is ApplyExpression ->
-                ApplyExpression(replaceFailWithE(ep.f, expr), ep.arguments.map { replaceFailWithE(it, expr) }, ep.type)
+        is ApplyExpression ->
+            ApplyExpression(replaceFailWithE(ep.f, expr), ep.arguments.map { replaceFailWithE(it, expr) }, ep.type)
 
-            is ArrayElementProjectionExpression ->
-                ArrayElementProjectionExpression(
-                    replaceFailWithE(ep.array, expr),
-                    replaceFailWithE(ep.index, expr),
-                    ep.type
-                )
+        is ArrayElementProjectionExpression ->
+            ArrayElementProjectionExpression(
+                replaceFailWithE(ep.array, expr),
+                replaceFailWithE(ep.index, expr),
+                ep.type
+            )
 
-            is ArrayRangeProjectionExpression ->
-                ArrayRangeProjectionExpression(
-                    replaceFailWithE(ep.array, expr),
-                    ep.start?.let { replaceFailWithE(it, expr) },
-                    ep.end?.let { replaceFailWithE(it, expr) },
-                    ep.type
-                )
+        is ArrayRangeProjectionExpression ->
+            ArrayRangeProjectionExpression(
+                replaceFailWithE(ep.array, expr),
+                ep.start?.let { replaceFailWithE(it, expr) },
+                ep.end?.let { replaceFailWithE(it, expr) },
+                ep.type
+            )
 
-            is AssignmentExpression ->
-                AssignmentExpression(replaceFailWithE(ep.lhs, expr), replaceFailWithE(ep.rhs, expr), ep.type)
+        is AssignmentExpression ->
+            AssignmentExpression(replaceFailWithE(ep.lhs, expr), replaceFailWithE(ep.rhs, expr), ep.type)
 
-            is BinaryExpression ->
-                BinaryExpression(replaceFailWithE(ep.e1, expr), ep.op, replaceFailWithE(ep.e2, expr), ep.type)
+        is BinaryExpression ->
+            BinaryExpression(replaceFailWithE(ep.e1, expr), ep.op, replaceFailWithE(ep.e2, expr), ep.type)
 
-            is BlockExpression ->
-                BlockExpression(ep.es.map { replaceFailWithE(it, expr) }, ep.location(), ep.type)
+        is BlockExpression ->
+            BlockExpression(ep.es.map { replaceFailWithE(it, expr) }, ep.location(), ep.type)
 
-            is CaseExpression ->
-                CaseExpression(
-                    ep.variable,
-                    ep.clauses.map { Clause(it.constructor, it.variables, replaceFailWithE(it.expression, expr)) },
-                    ep.location,
-                    ep.type
-                )
+        is CaseExpression ->
+            CaseExpression(
+                ep.variable,
+                ep.clauses.map { Clause(it.constructor, it.variables, replaceFailWithE(it.expression, expr)) },
+                ep.location,
+                ep.type
+            )
 
-            is FailExpression ->
-                expr
+        is FailExpression ->
+            expr
 
-            is FatBarExpression ->
-                FatBarExpression(ep.left, replaceFailWithE(ep.right, expr), ep.location)
+        is FatBarExpression ->
+            FatBarExpression(ep.left, replaceFailWithE(ep.right, expr), ep.location)
 
-            is IfExpression ->
-                IfExpression(
-                    ep.guards.map { Pair(replaceFailWithE(it.first, expr), replaceFailWithE(it.second, expr)) },
-                    ep.elseBranch?.let { replaceFailWithE(it, expr) },
-                    ep.type
-                )
+        is IfExpression ->
+            IfExpression(
+                ep.guards.map { Pair(replaceFailWithE(it.first, expr), replaceFailWithE(it.second, expr)) },
+                ep.elseBranch?.let { replaceFailWithE(it, expr) },
+                ep.type
+            )
 
-            is LiteralArrayExpression ->
-                LiteralArrayExpression(
-                    ep.es.map { Pair(replaceFailWithE(it.first, expr), it.second) },
-                    ep.location,
-                    ep.type
-                )
+        is LiteralArrayExpression ->
+            LiteralArrayExpression(
+                ep.es.map { Pair(replaceFailWithE(it.first, expr), it.second) },
+                ep.location,
+                ep.type
+            )
 
-            is MatchExpression ->
-                throw IllegalStateException("Match expressions should be desugared")
+        is MatchExpression ->
+            throw IllegalStateException("Match expressions should be desugared")
 
-            is LetStatement ->
-                LetStatement(ep.terms.map {
-                    when (it) {
-                        is LetValueStatementTerm ->
-                            LetValueStatementTerm(
-                                it.id,
-                                it.mutable,
-                                it.exported,
-                                it.typeVariables,
-                                it.typeQualifier,
-                                replaceFailWithE(it.e, expr),
-                                it.location,
-                                it.type
-                            )
+        is LetStatement ->
+            LetStatement(ep.terms.map {
+                when (it) {
+                    is LetValueStatementTerm ->
+                        LetValueStatementTerm(
+                            it.id,
+                            it.mutable,
+                            it.exported,
+                            it.typeVariables,
+                            it.typeQualifier,
+                            replaceFailWithE(it.e, expr),
+                            it.location,
+                            it.type
+                        )
 
-                        is LetFunctionStatementTerm ->
-                            LetFunctionStatementTerm(
-                                it.id,
-                                it.mutable,
-                                it.exported,
-                                it.typeVariables,
-                                it.parameters,
-                                it.typeQualifier,
-                                replaceFailWithE(it.body, expr),
-                                it.location,
-                                it.type
-                            )
-                    }
-                })
+                    is LetFunctionStatementTerm ->
+                        LetFunctionStatementTerm(
+                            it.id,
+                            it.mutable,
+                            it.exported,
+                            it.typeVariables,
+                            it.parameters,
+                            it.typeQualifier,
+                            replaceFailWithE(it.body, expr),
+                            it.location,
+                            it.type
+                        )
+                }
+            })
 
-            is LiteralFunctionExpression ->
-                LiteralFunctionExpression(
-                    ep.typeParameters,
-                    ep.parameters,
-                    ep.returnTypeQualifier,
-                    replaceFailWithE(ep.body, expr),
-                    ep.type
-                )
+        is LiteralFunctionExpression ->
+            LiteralFunctionExpression(
+                ep.typeParameters,
+                ep.parameters,
+                ep.returnTypeQualifier,
+                replaceFailWithE(ep.body, expr),
+                ep.type
+            )
 
-            is LiteralTupleExpression ->
-                LiteralTupleExpression(ep.es.map { replaceFailWithE(it, expr) }, ep.type)
+        is LiteralTupleExpression ->
+            LiteralTupleExpression(ep.es.map { replaceFailWithE(it, expr) }, ep.type)
 
-            is PrintStatement ->
-                PrintStatement(ep.es.map { replaceFailWithE(it, expr) }, ep.location(), ep.type)
+        is PrintStatement ->
+            PrintStatement(ep.es.map { replaceFailWithE(it, expr) }, ep.location(), ep.type)
 
-            is PrintlnStatement ->
-                PrintlnStatement(ep.es.map { replaceFailWithE(it, expr) }, ep.location(), ep.type)
+        is PrintlnStatement ->
+            PrintlnStatement(ep.es.map { replaceFailWithE(it, expr) }, ep.location(), ep.type)
 
-            is TypedExpression ->
-                TypedExpression(replaceFailWithE(ep.e, expr), ep.typeQualifier, ep.type)
+        is TypedExpression ->
+            TypedExpression(replaceFailWithE(ep.e, expr), ep.typeQualifier, ep.type)
 
-            is UnaryExpression ->
-                UnaryExpression(ep.op, replaceFailWithE(ep.e, expr), ep.type)
+        is UnaryExpression ->
+            UnaryExpression(ep.op, replaceFailWithE(ep.e, expr), ep.type)
 
-            is WhileExpression ->
-                WhileExpression(replaceFailWithE(ep.guard, expr), replaceFailWithE(ep.body, expr), ep.type)
+        is WhileExpression ->
+            WhileExpression(replaceFailWithE(ep.guard, expr), replaceFailWithE(ep.body, expr), ep.type)
 
-            else -> ep
-        }
+        else -> ep
+    }
 
-    return when (e) {
+private fun tidyUpFails(e: Expression): Expression =
+    when (e) {
         is AbortStatement ->
             AbortStatement(e.es.map { tidyUpFails(it) }, e.location(), e.type)
 
@@ -542,7 +542,7 @@ private fun tidyUpFails(e: Expression): Expression {
             is ErrorExpression -> tidyUpFails(replaceFailWithE(e.left, ErrorExpression(e.right.location)))
             is FailExpression -> tidyUpFails(e.left)
             else -> replaceFailWithE(
-                e.left,
+                tidyUpFails(e.left),
                 tidyUpFails(e.right)
             ) // FatBarExpression(tidyUpFails(e.left), tidyUpFails(e.right), e.location)
         }
@@ -618,7 +618,6 @@ private fun tidyUpFails(e: Expression): Expression {
 
         else -> e
     }
-}
 
 private fun variables(parameter: FunctionParameter): Set<String> =
     when (parameter) {
