@@ -97,7 +97,7 @@ fun transform(e: Expression): Expression =
 
             val match = fullMatch(
                 listOf(variable),
-                e.cases.map { Equation(listOf(it.pattern), transform(it.body)) },
+                e.cases.map { Equation(listOf(it.pattern), transform(it.body), it.guard) },
                 ErrorExpression(e.location()),
                 PatternEnvironment()
             )
@@ -161,14 +161,18 @@ data class TuplePseudoConstructor(val arity: Int) : Constructor {
 
 data class Equation(val patterns: List<Pattern>, val body: Expression, val guard: Expression? = null) {
     fun isVar(): Boolean = patterns.isNotEmpty() && patterns[0] is LowerIDPattern
-
     fun isCon(): Boolean = patterns.isNotEmpty() && (patterns[0] is ConstructorPattern || patterns[0] is TuplePattern)
+    fun isNamed(): Boolean = patterns.isNotEmpty() && patterns[0] is NamedPattern
+
+    fun getVar(): String = (patterns[0] as LowerIDPattern).v.value
 
     fun getCon(): Constructor =
         if (patterns[0] is ConstructorPattern)
             (patterns[0] as ConstructorPattern).constructor!!
         else
             TuplePseudoConstructor((patterns[0] as TuplePattern).patterns.size)
+
+    fun getNamed(): NamedPattern = patterns[0] as NamedPattern
 }
 
 private fun canError(e: Expression): Boolean =
@@ -976,7 +980,7 @@ fun match(variables: List<String>, equations: List<Equation>, e: Expression, env
         val us = variables.drop(1)
 
         return match(us, equations.map {
-            val variable = (it.patterns[0] as LowerIDPattern).v.value
+            val variable = it.getVar()
 
             Equation(
                 it.patterns.drop(1),
@@ -1037,11 +1041,47 @@ fun match(variables: List<String>, equations: List<Equation>, e: Expression, env
         return FatBarExpression(left, e, e.location())
     }
 
-    fun matchVarCon(variables: List<String>, equations: List<Equation>, e: Expression): Expression = when {
-        equations.first().isVar() -> matchVar(variables, equations, e)
-        equations.first().isCon() -> matchCon(variables, equations, e)
-        else -> throw IllegalArgumentException("First equation must be a variable or constructor: ${equations.first()}")
+    fun matchVarCon(variables: List<String>, equations: List<Equation>, e: Expression): Expression {
+        fun matchNamed(variables: List<String>, equations: List<Equation>, e: Expression): Expression {
+            val u = equations.first().getNamed()
+            val us = equations.drop(1)
+
+            val newEquation = Equation(
+                listOf(u.pattern) + equations.first().patterns.drop(1),
+                equations.first().body,
+                equations.first().guard
+            )
+            val newEquations = listOf(newEquation) + us
+
+            return BlockExpression(
+                listOf(
+                    LetStatement(
+                        listOf(
+                            LetValueStatementTerm(
+                                u.id,
+                                mutable = false,
+                                exported = false,
+                                typeVariables = emptyList(),
+                                typeQualifier = null,
+                                e = LowerIDExpression(StringLocation(variables[0], u.location()), u.type),
+                                location = u.location(),
+                                type = u.type
+                            )
+                        )
+                    ),
+                    matchVarCon(variables, newEquations, e)
+                ), e.location(), e.type
+            )
+        }
+
+        return when {
+            equations.first().isNamed() -> matchNamed(variables, equations, e)
+            equations.first().isVar() -> matchVar(variables, equations, e)
+            equations.first().isCon() -> matchCon(variables, equations, e)
+            else -> throw IllegalArgumentException("First equation must be a variable or constructor: ${equations.first()}")
+        }
     }
+
 
     if (variables.isEmpty()) {
         fun combine(equation: Equation, expr: Expression): Expression {

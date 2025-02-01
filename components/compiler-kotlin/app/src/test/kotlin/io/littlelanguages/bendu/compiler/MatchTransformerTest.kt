@@ -95,6 +95,21 @@ class MatchTransformerTest {
         )
     }
 
+    @Test
+    fun `pattern identifier`() {
+        assertTransformation(
+            listOf(
+                "{",
+                "  let _x: Int = 123",
+                "  {",
+                "    let v: Int = _x",
+                "    v",
+                "  }",
+                "}"
+            ), "match 123 with _ @ v -> v"
+        )
+    }
+
 
     @Test
     fun `tidy fails on left and right`() {
@@ -186,7 +201,7 @@ fun assertTransformation(expected: List<String>, input: String) {
 
     assertTrue(errors.hasNoErrors())
 
-    println(result.joinToString("\n"))
+//    println(result.joinToString("\n"))
 
     assertContentEquals(expected, result)
 }

@@ -103,7 +103,7 @@ We can now rewrite `sum` using a `fold` function.
 55: Int
 ```
 
-## Additional Pattern  Scenarios
+## Additional Pattern Scenarios
 
 The pattern matching has three additional features that are worth highlighting:
 
@@ -118,6 +118,31 @@ The pattern matching has three additional features that are worth highlighting:
 .   match n with
 .   | v: Int -> v
 fn: (Int) -> Int
+```
+
+#### Pattern Identifier
+
+```bendu-repl
+> let f(n) =
+.   match n with
+.   | _ @ v -> v
+fn: [a] (a) -> a
+```
+
+### Pattern Guard
+
+```bendu-repl
+> let f(n) =
+.   match n with
+.   | v, v == 0 -> "Zero"
+.   | _ -> "Other"
+fn: (Int) -> String
+
+> f(0)
+"Zero": String
+
+> f(1)
+"Other": String
 ```
 
 ## Custom Data Type Scenarios
