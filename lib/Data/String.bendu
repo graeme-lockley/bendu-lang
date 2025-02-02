@@ -1,0 +1,9 @@
+import "./Option.bendu"
+
+let length*(s: String): Int =
+  @@"String.length"(s)
+
+let at*(s: String, pos: Int): Option[Char] =
+  if pos < 0 || pos > length(s) -> None()
+   | Some(@@"String.at"(s, pos))
+

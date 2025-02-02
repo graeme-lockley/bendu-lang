@@ -163,6 +163,12 @@ data class BlockExpression(val es: List<Expression>, val location: Location, ove
         location
 }
 
+data class BuiltinExpression(val v: StringLocation, val arguments: List<Expression>, override var type: Type? = null) :
+    Expression(type) {
+    override fun location(): Location =
+        v.location
+}
+
 data class IfExpression(
     val guards: List<Pair<Expression, Expression>>,
     val elseBranch: Expression?,

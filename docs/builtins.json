@@ -1,0 +1,12 @@
+{
+    "builtins": [
+        {
+            "name": "String.length",
+            "type": "(String) -> Int"
+        },
+        {
+            "name": "String.at",
+            "type": "(String, Int) -> Option[Char]"
+        }
+    ]
+}

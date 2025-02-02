@@ -1,0 +1,15 @@
+#!/usr/bin/env rebo
+
+rebo.lang["import.verbose"] := false
+
+let FS = import("fs")
+let JSON = import("json")
+let Path = import("path")
+let Str = import("str")
+
+let projectHome = (Path.join(cwd(), rebo.args[1]) |> Path.dir()) + "/.."
+
+let builtinsFileName = Path.join(projectHome, "docs/builtins.json")
+let builtins = FS.readFile(builtinsFileName) |> JSON.parse()
+
+println(builtins)

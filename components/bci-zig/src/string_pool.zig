@@ -85,7 +85,7 @@ pub const String = struct {
         }
     }
 
-    pub fn slice(this: *const String) []const u8 {
+    pub inline fn slice(this: *const String) []const u8 {
         return this.data;
     }
 
@@ -114,7 +114,7 @@ pub const String = struct {
         }
     }
 
-    pub fn len(this: *const String) usize {
+    pub inline fn len(this: *const String) usize {
         return this.data.len;
     }
 

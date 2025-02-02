@@ -1,0 +1,68 @@
+type Option*[a] = 
+    None
+  | Some[a]
+
+let withDefault*(a, op) =
+  match op with
+  | None() -> a
+  | Some(v) -> v
+
+let map*(f, op) =
+  match op with
+  | None() -> None()
+  | Some(v) -> Some(f(v))
+
+let map2*(f, op1, op2) =
+  match op1 with
+  | None() -> None()
+  | Some(v1) ->
+      match op2 with
+      | None() -> None()
+      | Some(v2) -> Some(f(v1, v2))
+
+let map3*(f, op1, op2, op3) =
+  match op1 with
+  | None() -> None()
+  | Some(v1) ->
+      match op2 with
+      | None() -> None()
+      | Some(v2) -> 
+          match op3 with
+          | None() -> None()
+          | Some(v3) -> Some(f(v1, v2, v3))
+
+let map4*(f, op1, op2, op3, op4) =
+  match op1 with
+  | None() -> None()
+  | Some(v1) ->
+      match op2 with
+      | None() -> None()
+      | Some(v2) -> 
+          match op3 with
+          | None() -> None()
+          | Some(v3) -> 
+              match op4 with
+              | None() -> None()
+              | Some(v4) -> Some(f(v1, v2, v3, v4))
+
+let map5*(f, op1, op2, op3, op4, op5) =
+  match op1 with
+  | None() -> None()
+  | Some(v1) ->
+      match op2 with
+      | None() -> None()
+      | Some(v2) -> 
+          match op3 with
+          | None() -> None()
+          | Some(v3) -> 
+              match op4 with
+              | None() -> None()
+              | Some(v4) -> 
+                  match op5 with
+                  | None() -> None()
+                  | Some(v5) -> Some(f(v1, v2, v3, v4, v5))
+
+let andThen*(f, op) =
+  match op with
+  | None() -> None()
+  | Some(v) -> f(v)

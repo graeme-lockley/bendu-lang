@@ -116,6 +116,7 @@ Factor
     | "True"
     | "False"
     | "!" Factor
+    | "@@" LiteralString "(" [Expression {"," Expression}] ")"
     | "@" Factor
     | "fn" [TypeParameters] FunctionParameters [TypeQualifier] ["="] Expression
     | "{" {Expression [";"]} "}"

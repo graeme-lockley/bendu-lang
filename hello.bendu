@@ -1,3 +1,6 @@
+import "./lib/Data/Option.bendu" as OP
+import "./lib/Data/String.bendu" as String
+
 type List*[a] = Nil | Cons[a, List[a]]
 
 let value = Cons(1, Nil())
@@ -42,3 +45,8 @@ println(f(Some([1, 2, 3, 4, 5]), Left()))
 println(f(Some([1, 2, 3, 4, 5]), Right()))
 
 println(f(Some([1, 2, 3, 4, 5]), Both()))
+
+println(OP.withDefault(100, OP.Some(42)))
+println(OP.withDefault(100, OP.None()))
+
+println(String.length("hello"))

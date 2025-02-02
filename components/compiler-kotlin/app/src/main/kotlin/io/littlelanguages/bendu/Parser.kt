@@ -356,10 +356,21 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     override fun visitFactor10(a1: Token, a2: Expression): Expression =
         UnaryExpression(UnaryOpLocation(UnaryOp.Not, a1.location), a2)
 
-    override fun visitFactor11(a1: Token, a2: Expression): Expression =
+    override fun visitFactor11(
+        a1: Token,
+        a2: Token,
+        a3: Token,
+        a4: Tuple2<Expression, List<Tuple2<Token, Expression>>>?,
+        a5: Token
+    ): Expression =
+        BuiltinExpression(
+            StringLocation(parseLiteralString(a2.lexeme), a2.location),
+            a4?.let { listOf(a4.a) + a4.b.map { it.b } } ?: emptyList())
+
+    override fun visitFactor12(a1: Token, a2: Expression): Expression =
         UnaryExpression(UnaryOpLocation(UnaryOp.TypeOf, a1.location), a2)
 
-    override fun visitFactor12(
+    override fun visitFactor13(
         a1: Token,
         a2: List<StringLocation>?,
         a3: List<FunctionParameter>,
@@ -369,10 +380,10 @@ private class ParserVisitor(val errors: Errors = Errors()) :
     ): Expression =
         LiteralFunctionExpression(a2 ?: emptyList(), a3, a4, a6)
 
-    override fun visitFactor13(a1: Token, a2: List<Tuple2<Expression, Token?>>, a3: Token): Expression =
+    override fun visitFactor14(a1: Token, a2: List<Tuple2<Expression, Token?>>, a3: Token): Expression =
         BlockExpression(a2.map { it.a }, a1.location + a3.location)
 
-    override fun visitFactor14(
+    override fun visitFactor15(
         a1: Token,
         a2: Tuple3<Token?, Expression, List<Tuple3<Token, Token?, Expression>>>?,
         a3: Token
@@ -385,7 +396,7 @@ private class ParserVisitor(val errors: Errors = Errors()) :
                 a1.location + a3.location
             )
 
-    override fun visitFactor15(
+    override fun visitFactor16(
         a1: Token,
         a2: Expression,
         a3: Token,

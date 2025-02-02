@@ -320,6 +320,10 @@ private fun inferExpression(expression: Expression, env: Environment) {
                     expression.es.last().type
         }
 
+        is BuiltinExpression -> {
+            expression.type = env.nextVar()
+        }
+
         is CaseExpression -> throw IllegalArgumentException("CaseExpression should not be in the AST")
 
         is ErrorExpression -> throw IllegalArgumentException("ErrorExpression should not be in the AST")

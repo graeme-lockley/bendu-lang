@@ -208,6 +208,7 @@ private class Compiler(val errors: Errors) {
             is AssignmentExpression -> compileAssignmentExpression(expression, keepResult)
             is BinaryExpression -> compileBinaryExpression(expression, keepResult)
             is BlockExpression -> compileStatements(expression.es, keepResult)
+            is BuiltinExpression -> compileBuiltinExpression(expression, keepResult)
             is CaseExpression -> compileCaseExpression(expression, keepResult)
             is ErrorExpression -> compileErrorExpression(expression, keepResult)
             is FailExpression -> throw IllegalStateException("Fail expressions should be factored out: ${expression.location()}")
@@ -637,6 +638,24 @@ private class Compiler(val errors: Errors) {
                     )
                 }
             }
+        }
+
+        if (!keepResult) {
+            byteBuilder.appendInstruction(Instructions.DISCARD)
+        }
+    }
+
+    private fun compileBuiltinExpression(expression: BuiltinExpression, keepResult: Boolean) {
+        val opCode = builtinNames[expression.v.value]
+
+        if (opCode == null) {
+            throw IllegalStateException("Unknown builtin: ${expression.v.value}")
+        } else {
+            expression.arguments.forEach { e ->
+                compileExpression(e)
+            }
+            byteBuilder.appendInstruction(Instructions.BUILTIN)
+            byteBuilder.appendInt(opCode)
         }
 
         if (!keepResult) {

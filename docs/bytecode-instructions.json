@@ -667,6 +667,16 @@
       "name": "PRINT_UNIT",
       "args": [],
       "description": "Outputs the unit value at the top of the stack and removes it from the stack."
+    },
+    {
+      "name": "BUILTIN",
+      "args": [
+        {
+          "name": "id",
+          "type": "u32"
+        }
+      ],
+      "description": "Invokes the builtin instruction corresponding to id."
     }
   ]
 }

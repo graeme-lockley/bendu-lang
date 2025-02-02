@@ -951,6 +951,17 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
 
                 try runtime.print_unit();
             },
+            .builtin => {
+                const builtinOp = readi32(bc, ip);
+
+                if (DEBUG) {
+                    std.debug.print("{d} {d} {d}: builtin: op={d}\n", .{ ip - 1, fp, runtime.stack.items.len, builtinOp });
+                }
+
+                try @import("./builtins/dispatch.zig").dispatch(runtime, @intCast(builtinOp));
+
+                ip += 4;
+            },
 
             else => std.debug.panic("unknown op code: {d}\n", .{bc[ip - 1]}),
         }
