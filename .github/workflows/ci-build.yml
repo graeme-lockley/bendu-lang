@@ -49,6 +49,10 @@ jobs:
         run: |
           ./tasks/generate_ops
 
+      - name: Generate Builtins
+        run: |
+          ./tasks/generate_builtins
+
       - name: Generate Bendu Kotlin Parser
         working-directory: ./components/compiler-kotlin
         run: |

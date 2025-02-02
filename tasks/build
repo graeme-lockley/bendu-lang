@@ -5,6 +5,7 @@ PROJECT_HOME=$(dirname "$0")/..
 cd "$PROJECT_HOME"
 
 ./tasks/generate_ops || exit 1
+./tasks/generate_builtins || exit 1
 
 (
     cd ./components/bci-zig

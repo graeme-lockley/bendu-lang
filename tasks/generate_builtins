@@ -12,4 +12,43 @@ let projectHome = (Path.join(cwd(), rebo.args[1]) |> Path.dir()) + "/.."
 let builtinsFileName = Path.join(projectHome, "docs/builtins.json")
 let builtins = FS.readFile(builtinsFileName) |> JSON.parse()
 
-println(builtins)
+let zigFileName = "components/bci-zig/src/builtins/dispatch.zig"
+let fullZigFileName = Path.join(projectHome, zigFileName)
+
+if !fexists(fullZigFileName) || rebo.os.fstat(fullZigFileName).mtime < rebo.os.fstat(builtinsFileName).mtime -> {
+    let zigOut = [
+        "const std = @import(\"std\");",
+        "const Runtime = @import(\"../runtime.zig\");",
+        "",
+        "pub fn dispatch(runtime: *Runtime.Runtime, id: usize) !void {",
+        "    switch (id) {"
+    ]
+    each(builtins.builtins, fn (builtin, lp) zigOut <! "        " + str(lp) + " => try @import(\"./" + Str.replace(Str.lower(builtin.name), ".", "/") + ".zig\").do(runtime),")
+
+    zigOut <! "        else => std.debug.panic(\"unknown builtin op code: {d}\\n\", .{id}),"
+    zigOut <! "    }"
+    zigOut <! "}"
+    zigOut <! ""
+        
+    println("Writing to "+ zigFileName)
+    FS.writeFile(fullZigFileName, zigOut |> join("\n"))
+}
+
+let kotlinFileName = "components/compiler-kotlin/app/src/main/kotlin/io/littlelanguages/bendu/compiler/Builtins.kt"
+let fullKotlinFileName = Path.join(projectHome, kotlinFileName)
+    
+if !fexists(fullKotlinFileName) || rebo.os.fstat(fullKotlinFileName).mtime < rebo.os.fstat(builtinsFileName).mtime -> {
+    let kotlinOut = [
+        "package io.littlelanguages.bendu.compiler",
+        "",
+        "val builtinNames = mapOf("
+    ]
+
+    each(builtins.builtins, fn (builtin, lp) kotlinOut <! "    Pair(\"" + builtin.name + "\", " + str(lp) + "),")
+
+    kotlinOut <! ")"
+    kotlinOut <! ""
+
+    println("Writing to "+ kotlinFileName)
+    FS.writeFile(fullKotlinFileName, kotlinOut |> join("\n"))
+}
