@@ -13,7 +13,7 @@ pub fn runBytecode(bc: []const u8, runtime: *Runtime.Runtime) !void {
     try run(package, runtime);
 }
 
-const InterpreterErrors = error{ OutOfMemory, DiskQuota, FileTooBig, InputOutput, NoSpaceLeft, DeviceBusy, InvalidArgument, AccessDenied, BrokenPipe, SystemResources, OperationAborted, NotOpenForWriting, LockViolation, WouldBlock, ConnectionResetByPeer, Unexpected, IsDir, ConnectionTimedOut, NotOpenForReading, SocketNotConnected, InvalidUtf8, ProcessFdQuotaExceeded, SystemFdQuotaExceeded, SharingViolation, PathAlreadyExists, FileNotFound, PipeBusy, NameTooLong, InvalidWtf8, BadPathName, NetworkNotFound, AntivirusInterference, SymLinkLoop, NoDevice, NotDir, FileLocksNotSupported, FileBusy, Unseekable };
+const InterpreterErrors = error{ OutOfMemory, DiskQuota, FileTooBig, InputOutput, NoSpaceLeft, DeviceBusy, InvalidArgument, AccessDenied, BrokenPipe, SystemResources, OperationAborted, NotOpenForWriting, LockViolation, WouldBlock, ConnectionResetByPeer, Unexpected, IsDir, ConnectionTimedOut, NotOpenForReading, SocketNotConnected, InvalidUtf8, ProcessFdQuotaExceeded, SystemFdQuotaExceeded, SharingViolation, PathAlreadyExists, FileNotFound, PipeBusy, NameTooLong, InvalidWtf8, BadPathName, NetworkNotFound, AntivirusInterference, SymLinkLoop, NoDevice, NotDir, FileLocksNotSupported, FileBusy, Unseekable, ProcessNotFound, Canceled };
 
 pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) InterpreterErrors!void {
     if (DEBUG) {

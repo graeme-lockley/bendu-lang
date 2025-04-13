@@ -291,7 +291,7 @@ pub const Runtime = struct {
     }
 
     pub inline fn pop(self: *Runtime) Pointer.Pointer {
-        return self.stack.pop();
+        return self.stack.pop().?;
     }
 
     pub inline fn popN(self: *Runtime, n: usize) void {
@@ -641,7 +641,7 @@ pub const Runtime = struct {
     }
 
     pub inline fn discard(self: *Runtime) void {
-        const value = self.stack.pop();
+        const value = self.stack.pop().?;
 
         Memory.decRef(value);
     }
