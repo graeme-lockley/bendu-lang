@@ -466,6 +466,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 ip = offset;
             },
             .call_closure => {
+                const oldPackageID = package.id;
                 const arity: usize = @intCast(readi32(bc, ip));
 
                 if (DEBUG) {
@@ -485,13 +486,13 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const oldFP = fp;
                 fp = runtime.stack.items.len;
                 try runtime.push(newFramePointer);
-                try runtime.push(Pointer.fromInt(@intCast(package.id)));
+                try runtime.push(Pointer.fromInt(@intCast(oldPackageID)));
                 try runtime.push(Pointer.fromInt(@intCast(ip + 4)));
                 try runtime.push(Pointer.fromInt(@intCast(oldFP)));
 
                 ip = closure.v.ClosureKind.function;
 
-                if (package.id != closure.v.ClosureKind.packageID) {
+                if (oldPackageID != closure.v.ClosureKind.packageID) {
                     package = &runtime.packages.items.items[closure.v.ClosureKind.packageID];
                     bc = try package.getByteCode(runtime);
                 }
@@ -551,6 +552,8 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
             },
 
             .ret => {
+                const oldPackageID = package.id;
+
                 if (DEBUG) {
                     std.debug.print("{d} {d} {d} {d}: ret\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
@@ -565,7 +568,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 runtime.discard();
                 try runtime.push(v);
 
-                if (package.id != newPackageID) {
+                if (oldPackageID != newPackageID) {
                     package = &runtime.packages.items.items[newPackageID];
                     bc = try package.getByteCode(runtime);
                 }
