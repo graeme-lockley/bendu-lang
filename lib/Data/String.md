@@ -21,7 +21,7 @@ Returns the length of the passed string.
 
 Returns the character at `pos` in `s`.  Should `pos` be less than 0 or greater than the length of `pos`, then `None` is returned.
 
-```bendu-repl
+```bendu
 > import "./lib/Data/Option.bendu"
 > import "./lib/Data/String.bendu"
 
