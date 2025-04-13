@@ -1552,10 +1552,26 @@ class CompilerTest {
 
     @Test
     fun `something new`() {
+//        assertCompiledBC(
+//            byteArrayOf(),
+//            "type Option[a] = Some[a] | None ; match Some(10) with None() -> 0 | Some(n1) -> match Some(20) with None() -> 0 | Some(n2) -> n1 + n2"
+//        )
+
+
 //        successfulCompile("match (3, 4) with (1, 2) -> \"One\" | (3, 4) -> \"Two\" | _ -> \"Other\"")
 //        successfulCompile("type Optional[a] = None | Some[a] match None() with Some(Some(n)) -> \"One\" | _ -> \"Other\"")
 
 //        successfulCompile("type Tuple[a, b] = Tuple[a, b] match Tuple(3, 4) with Tuple(1, 2) -> \"One\" | Tuple(3, 4) -> \"Two\" | _ -> \"Other\"")
+
+            successfulCompile("import \"test/test.bendu\" as OP\n" +
+                    "match OP.Some(10) with\n" +
+                    "| OP.None() -> -1\n" +
+                    "| OP.Some(n) -> n")
+
+//            successfulCompile("import \"test/test.bendu\"\n" +
+//                    "match Some(10) with\n" +
+//                    "| None() -> -1\n" +
+//                    "| Some(n) -> n")
     }
 }
 

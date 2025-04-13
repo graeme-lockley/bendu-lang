@@ -108,8 +108,9 @@ We can now rewrite `sum` using a `fold` function.
 The pattern matching has three additional features that are worth highlighting:
 
 - A pattern can have a type qualifier,
-- A component of a pattern can be assigned an identifier, and
-- A expression can be added to a pattern and incorporated into the guard.
+- A component of a pattern can be assigned an identifier,
+- A expression can be added to a pattern and incorporated into the guard, and
+- Matching against an imported custom data type.
 
 #### Pattern Type Qualifier
 
@@ -144,14 +145,31 @@ fn: (Int) -> String
 > f(1)
 "Other": String
 ```
+### Imported Custom Data Type
+
+```bendu-repl
+> import "docs/example.bendu"
+> match Some(10) with
+. | None() -> -1
+. | Some(n) -> n
+10: Int
+```
+
+```bendu-repl
+> import "docs/example.bendu" as OP
+> match OP.Some(10) with
+. | OP.None() -> -1
+. | OP.Some(n) -> n
+10: Int
+```
 
 ## Custom Data Type Scenarios
 
 The following is a systematic list of the scenarios that can be used to test custom data types.
 
-### Literal Values
+## Literal Values
 
-#### Boolean
+### Boolean
 ```bendu-repl
 > let f(n) = 
 .   match n with
@@ -166,7 +184,7 @@ fn: (Bool) -> String
 "False": String
 ```
 
-#### Character
+### Character
 
 ```bendu-repl
 > let f(n) = 
@@ -186,7 +204,7 @@ fn: (Char) -> String
 "Other": String
 ```
 
-#### Float
+### Float
 
 ```bendu-repl
 > let f(n) = 
@@ -206,7 +224,7 @@ fn: (Float) -> String
 "Big": String
 ```
 
-#### Integer
+### Integer
 
 ```bendu-repl
 > let f(n) = 
@@ -226,7 +244,7 @@ fn: (Int) -> String
 "Big": String
 ```
 
-#### String
+### String
 
 ```bendu-repl
 > let f(n) = 
@@ -246,7 +264,7 @@ fn: (String) -> Int
 180: Int
 ```
 
-#### Tuple
+### Tuple
 
 ```bendu-repl
 > let f(n) = 
@@ -266,7 +284,7 @@ fn: (Int * Int) -> String
 "Other": String
 ```
 
-#### Unit
+### Unit
 
 ```bendu-repl
 > let f(n) = 
@@ -278,11 +296,11 @@ fn: (Unit) -> String
 "Unit": String
 ```
 
-### Transform Custom Data Type Case Expressions
+## Transform Custom Data Type Case Expressions
 
 The matching algorithm needs to transform all custom data type case expressions.  The following scenarios consider each expression type as a case expression and ensures that the transformation is correct by executing the compiled code.
 
-#### Abort Expression
+### Abort Expression
 
 ```bendu-repl
 > type List[a] = Nil | Cons[a, List[a]]
@@ -310,7 +328,7 @@ fn: [a] (List[a]) -> String
 Abort: 1
 ```
 
-#### Apply Expression
+### Apply Expression
 
 ```bendu-repl
 > type List[a] = Nil | Cons[a, List[a]]
@@ -333,7 +351,7 @@ fn: (List[Int]) -> Int
 3: Int
 ```
 
-#### Array Element Projection Expression
+### Array Element Projection Expression
 
 ```bendu-repl
 > type Optional[a] = None | Some[a]
@@ -351,7 +369,7 @@ fn: (Optional[Array[Int]]) -> Int
 4: Int
 ```
 
-#### Array Range Projection Expression
+### Array Range Projection Expression
 
 ```bendu-repl
 > type Optional[a] = None | Some[a]
@@ -378,7 +396,7 @@ fn: [a] (Optional[Array[a]], Option) -> Array[a]
 [2, 3]: Array[Int]
 ```
 
-#### Assignment Expression
+### Assignment Expression
 
 ```bendu-repl
 > let x! = 0
@@ -408,7 +426,7 @@ fn: [a] (Optional[Array[a]], Option) -> Array[a]
 10: Int
 ```
 
-#### Binary Op Expression
+### Binary Op Expression
 
 ```bendu-repl
 > let f(a, b) =
@@ -424,7 +442,7 @@ fn: (Int, Int) -> Int
 14: Int
 ```
 
-#### Block Expression
+### Block Expression
 
 ```bendu-repl
 > let f(n) =
@@ -440,7 +458,7 @@ fn: (Int) -> Int
 100: Int
 ```
 
-#### If Expression
+### If Expression
 
 ```bendu-repl
 > type List[a] = Nil | Cons[a, List[a]]
@@ -461,7 +479,7 @@ fn: (List[Int]) -> String
 "Other": String
 ```
 
-#### Let Expression
+### Let Expression
 
 ```bendu-repl
 > let f(n) =
@@ -491,7 +509,7 @@ fn: (Int) -> Int
 100: Int
 ```
 
-#### Literal Array Expression
+### Literal Array Expression
 
 ```bendu-repl
 > let f(n) =
@@ -507,7 +525,7 @@ fn: (Int) -> Array[Int]
 [1, 2, 10]: Array[Int]
 ```
 
-#### Literal Function Expression
+### Literal Function Expression
 
 ```bendu-repl
 > let f(n) =
@@ -523,7 +541,7 @@ fn: (Int) -> (Int) -> Int
 -14: Int
 ```
 
-#### Literal Tuple Expression
+### Literal Tuple Expression
 
 ```bendu-repl
 > let f(n) =
@@ -539,7 +557,7 @@ fn: (Int) -> Int * Int
 (10, 20): Int * Int
 ```
 
-#### Literal Type Expression
+### Literal Type Expression
 
 ```bendu-repl
 > type Optional[a] = None | Some[a]
@@ -557,7 +575,7 @@ fn: (Optional[Int * Int]) -> Int
 3: Int
 ```
 
-#### Match Expression
+### Match Expression
 
 ```bendu-repl
 > type Optional[a] = None | Some[a]

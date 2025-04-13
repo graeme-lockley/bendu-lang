@@ -167,7 +167,7 @@ private class Compiler(val errors: Errors) {
                                     typeDecl.constructors.map {
                                         val functionBinding = symbolTable.find(it.name) as FunctionBinding
 
-                                        ConstructorExport(
+                                        ConstructorExportData(
                                             it.name,
                                             it.parameters,
                                             functionBinding.codeOffset

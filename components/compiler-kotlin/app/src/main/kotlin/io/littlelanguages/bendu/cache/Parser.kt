@@ -10,7 +10,7 @@ import io.littlelanguages.data.Tuple4
 import java.io.StringReader
 
 private class ParserVisitor :
-    Visitor<List<ScriptExport>, ScriptExport, ConstructorExport, Scheme, Unit, Type, Type> {
+    Visitor<List<ScriptExport>, ScriptExport, ConstructorExportData, Scheme, Unit, Type, Type> {
 
     val typeParameters = mutableMapOf<String, Var>()
     var typeParametersIdx = 0
@@ -42,7 +42,7 @@ private class ParserVisitor :
         a1: Token,
         a2: Token,
         a3: Unit?,
-        a4: Tuple3<Token, ConstructorExport, List<Tuple2<Token, ConstructorExport>>>?
+        a4: Tuple3<Token, ConstructorExportData, List<Tuple2<Token, ConstructorExportData>>>?
     ): ScriptExport =
         CustomTypeExport(
             a2.lexeme,
@@ -56,8 +56,8 @@ private class ParserVisitor :
         a2: Tuple4<Token, Type, List<Tuple2<Token, Type>>, Token>?,
         a3: Token,
         a4: Token
-    ): ConstructorExport =
-        ConstructorExport(
+    ): ConstructorExportData =
+        ConstructorExportData(
             a1.lexeme,
             if (a2 == null) emptyList() else (listOf(a2.b) + a2.c.map { it.b }),
             a4.lexeme.toInt()
