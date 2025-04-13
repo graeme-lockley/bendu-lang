@@ -17,7 +17,7 @@ const InterpreterErrors = error{ OutOfMemory, DiskQuota, FileTooBig, InputOutput
 
 pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) InterpreterErrors!void {
     if (DEBUG) {
-        std.debug.print("run: start: packageID={d}\n", .{initPackage.id});
+        std.debug.print("run: start: packageID={d}, packageSrc={s}\n", .{ initPackage.id, initPackage.src.slice() });
     }
 
     var package = initPackage;
@@ -40,7 +40,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const code = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: abort, code={d}\n", .{ ip - 1, fp, runtime.stack.items.len, code });
+                    std.debug.print("{d} {d} {d} {d}: abort, code={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, code });
                 }
 
                 std.posix.exit(@intCast(code));
@@ -50,7 +50,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const len = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_array: len={d}\n", .{ ip - 1, fp, runtime.stack.items.len, len });
+                    std.debug.print("{d} {d} {d} {d}: push_array: len={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, len });
                 }
 
                 try runtime.push_array(@intCast(len));
@@ -58,35 +58,35 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
             },
             .push_array_element => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_array_element\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: push_array_element\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.push_array_element();
             },
             .push_array_range_from => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_array_range_from\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: push_array_range_from\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.push_array_range_from();
             },
             .push_array_range_to => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_array_range_to\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: push_array_range_to\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.push_array_range_to();
             },
             .push_array_range => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_array_range\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: push_array_range\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.push_array_range();
             },
             .push_bool_true => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_bool_true\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: push_bool_true\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.push_bool_true();
@@ -94,7 +94,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
 
             .push_bool_false => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_bool_false\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: push_bool_false\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.push_bool_false();
@@ -104,7 +104,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const frame: usize = @intCast(readi32(bc, ip + 4));
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: create_closure: offset={d}, frame={d}\n", .{ ip - 1, fp, runtime.stack.items.len, offset, frame });
+                    std.debug.print("{d} {d} {d} {d}: create_closure: offset={d}, frame={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, offset, frame });
                 }
 
                 const previousFrame = Memory.FrameValue.skip(Pointer.asPointer(*Memory.Value, runtime.stack.items[fp]), frame);
@@ -117,7 +117,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const index = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_constructor_component: index={d}\n", .{ ip - 1, fp, runtime.stack.items.len, index });
+                    std.debug.print("{d} {d} {d} {d}: push_constructor_component: index={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, index });
                 }
 
                 try runtime.push_constructor_component(@intCast(index));
@@ -132,7 +132,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const arity: usize = @intCast(readi32(bc, ip + 8 + nameLen));
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_custom: name={s}, id={d}, size={d}\n", .{ ip - 1, fp, runtime.stack.items.len, name, id, arity });
+                    std.debug.print("{d} {d} {d} {d}: push_custom: name={s}, id={d}, size={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, name, id, arity });
                 }
 
                 try runtime.push_custom(name, id, arity);
@@ -142,7 +142,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const value = readf32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_f32_literal: value={d}\n", .{ ip - 1, fp, runtime.stack.items.len, value });
+                    std.debug.print("{d} {d} {d} {d}: push_f32_literal: value={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, value });
                 }
 
                 try runtime.push_f32_literal(value);
@@ -152,7 +152,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const value = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_i32_literal: value={d}\n", .{ ip - 1, fp, runtime.stack.items.len, value });
+                    std.debug.print("{d} {d} {d} {d}: push_i32_literal: value={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, value });
                 }
 
                 try runtime.push_i32_literal(value);
@@ -162,7 +162,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const value = bc[ip];
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_u8_literal: value={d}\n", .{ ip - 1, fp, runtime.stack.items.len, value });
+                    std.debug.print("{d} {d} {d} {d}: push_u8_literal: value={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, value });
                 }
 
                 try runtime.push_u8_literal(value);
@@ -173,7 +173,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const offset = readi32(bc, ip + 4);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_package_closure: packageID={d}, offset={d}\n", .{ ip - 1, fp, runtime.stack.items.len, packageID, offset });
+                    std.debug.print("{d} {d} {d} {d}: push_package_closure: packageID={d}, offset={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, packageID, offset });
                 }
 
                 var newPackageID: usize = 0;
@@ -198,7 +198,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const data = bc[ip + 4 .. ip + 4 + @as(usize, @intCast(len))];
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_string_literal: len={d}, data={s}\n", .{ ip - 1, fp, runtime.stack.items.len, len, data });
+                    std.debug.print("{d} {d} {d} {d}: push_string_literal: len={d}, data={s}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, len, data });
                 }
 
                 try runtime.push_string_literal(data);
@@ -208,7 +208,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const arity = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_tuple: arity={d}\n", .{ ip - 1, fp, runtime.stack.items.len, arity });
+                    std.debug.print("{d} {d} {d} {d}: push_tuple: arity={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, arity });
                 }
 
                 try runtime.push_tuple(@intCast(arity));
@@ -218,7 +218,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const index = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_tuple_component: index={d}\n", .{ ip - 1, fp, runtime.stack.items.len, index });
+                    std.debug.print("{d} {d} {d} {d}: push_tuple_component: index={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, index });
                 }
 
                 try runtime.push_tuple_component(@intCast(index));
@@ -226,7 +226,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
             },
             .push_unit_literal => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: push_unit_literal\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: push_unit_literal\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.push_unit_literal();
@@ -236,7 +236,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const offset = readi32(bc, ip + 4);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: load: frame={d}, offset={d}\n", .{ ip - 1, fp, runtime.stack.items.len, frame, offset });
+                    std.debug.print("{d} {d} {d} {d}: load: frame={d}, offset={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, frame, offset });
                 }
 
                 try runtime.load(fp, @intCast(frame), @intCast(offset));
@@ -247,7 +247,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const offset = readi32(bc, ip + 4);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: load_package: packageID={d}, offset={d}\n", .{ ip - 1, fp, runtime.stack.items.len, packageID, offset });
+                    std.debug.print("{d} {d} {d} {d}: load_package: packageID={d}, offset={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, packageID, offset });
                 }
 
                 if (packageID < 0) {
@@ -265,7 +265,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const offset = readi32(bc, ip + 4);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: store: frame={d}, offset={d}\n", .{ ip - 1, fp, runtime.stack.items.len, frame, offset });
+                    std.debug.print("{d} {d} {d} {d}: store: frame={d}, offset={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, frame, offset });
                 }
 
                 try runtime.store(fp, @intCast(frame), @intCast(offset));
@@ -276,7 +276,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const offset = readi32(bc, ip + 4);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: store _package: packageID={d}, offset={d}\n", .{ ip - 1, fp, runtime.stack.items.len, packageID, offset });
+                    std.debug.print("{d} {d} {d} {d}: store _package: packageID={d}, offset={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, packageID, offset });
                 }
 
                 if (packageID < 0) {
@@ -290,77 +290,77 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
             },
             .store_array_element => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: store_array_element\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: store_array_element\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.store_array_element();
             },
             .store_array_range => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: store_array_range\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: store_array_range\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.store_array_range();
             },
             .store_array_range_from => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: store_array_range_from\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: store_array_range_from\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.store_array_range_from();
             },
             .store_array_range_to => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: store_array_range_to\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: store_array_range_to\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.store_array_range_to();
             },
             .array_append_element_duplicate => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: array_append_element_duplicate\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: array_append_element_duplicate\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.array_append_element_duplicate();
             },
             .array_prepend_element_duplicate => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: prepend_element_duplicate\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: prepend_element_duplicate\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.array_prepend_element_duplicate();
             },
             .array_append_element => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: array_append_element\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: array_append_element\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.array_append_element();
             },
             .array_append_array => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: array_append_array\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: array_append_array\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.array_append_array();
             },
             .array_prepend_element => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: prepend_element\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: prepend_element\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.array_prepend_element();
             },
             .dup => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: dup\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: dup\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.duplicate();
             },
             .discard => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: discard\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: discard\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 runtime.discard();
@@ -370,7 +370,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const offset = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: jmp: offset={d}\n", .{ ip - 1, fp, runtime.stack.items.len, offset });
+                    std.debug.print("{d} {d} {d} {d}: jmp: offset={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, offset });
                 }
 
                 ip = @intCast(offset);
@@ -379,7 +379,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const offset = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: jmp_false: offset={d}\n", .{ ip - 1, fp, runtime.stack.items.len, offset });
+                    std.debug.print("{d} {d} {d} {d}: jmp_false: offset={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, offset });
                 }
 
                 const value = runtime.pop();
@@ -393,7 +393,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const offset = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: jmp_dup_false: offset={d}\n", .{ ip - 1, fp, runtime.stack.items.len, offset });
+                    std.debug.print("{d} {d} {d} {d}: jmp_dup_false: offset={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, offset });
                 }
 
                 const value = runtime.peek();
@@ -407,7 +407,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const offset = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: jmp_dup_true: offset={d}\n", .{ ip - 1, fp, runtime.stack.items.len, offset });
+                    std.debug.print("{d} {d} {d} {d}: jmp_dup_true: offset={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, offset });
                 }
 
                 const value = runtime.peek();
@@ -420,7 +420,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
             .jmp_dup_constructor => {
                 if (DEBUG) {
                     const arity = readi32(bc, ip);
-                    std.debug.print("{d} {d} {d}: jmp_dup_constructor: arity={d}\n", .{ ip - 1, fp, runtime.stack.items.len, arity });
+                    std.debug.print("{d} {d} {d} {d}: jmp_dup_constructor: arity={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, arity });
                 }
 
                 const value = Pointer.asPointer(*Memory.Value, runtime.peek());
@@ -443,7 +443,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const frame: usize = @intCast(readi32(bc, ip + 8));
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: call: offset={d}, arity={d}, frame={d}\n", .{ ip - 1, fp, runtime.stack.items.len, offset, arity, frame });
+                    std.debug.print("{d} {d} {d} {d}: call: offset={d}, arity={d}, frame={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, offset, arity, frame });
                 }
 
                 const previousFrame = Pointer.asPointer(*Memory.Value, runtime.stack.items[fp]);
@@ -469,7 +469,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const arity: usize = @intCast(readi32(bc, ip));
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: call_closure: arity={d}\n", .{ ip - 1, fp, runtime.stack.items.len, arity });
+                    std.debug.print("{d} {d} {d} {d}: call_closure: arity={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, arity });
                 }
 
                 const closure = Pointer.asPointer(*Memory.Value, runtime.peekN(arity));
@@ -497,12 +497,13 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 }
             },
             .call_package => {
+                const oldPackageID = package.id;
                 const packageID = readi32(bc, ip);
                 const offset: usize = @intCast(readi32(bc, ip + 4));
                 const arity: usize = @intCast(readi32(bc, ip + 8));
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: call_package: packageID={d}, offset={d}, arity={d}\n", .{ ip - 1, fp, runtime.stack.items.len, packageID, offset, arity });
+                    std.debug.print("{d} {d} {d} {d}: call_package: packageID={d}, offset={d}, arity={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, packageID, offset, arity });
                 }
 
                 var newPackageID: usize = 0;
@@ -511,12 +512,20 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                     const newPackage = try Runtime.resolvePackageID(runtime, package, @intCast(-packageID - 1));
                     writei32(bc, ip, @intCast(newPackage.id));
                     newPackageID = newPackage.id;
+                    if (DEBUG) {
+                        std.debug.print("    newPackageID={d}\n", .{newPackageID});
+                    }
                 } else {
                     newPackageID = @intCast(packageID);
                 }
 
                 const newPackage = &runtime.packages.items.items[newPackageID];
                 const newPackageFrame = try newPackage.getFrame(runtime);
+
+                if (DEBUG) {
+                    std.debug.print("    newPackageSrc={s}\n", .{newPackage.src.slice()});
+                    std.debug.print("    oldPackageID={d}\n", .{oldPackageID});
+                }
 
                 _ = try runtime.push_frame(newPackageFrame);
 
@@ -529,13 +538,13 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const oldFP = fp;
                 fp = runtime.stack.items.len;
                 try runtime.push(newFramePointer);
-                try runtime.push(Pointer.fromInt(@intCast(package.id)));
+                try runtime.push(Pointer.fromInt(@intCast(oldPackageID)));
                 try runtime.push(Pointer.fromInt(@intCast(ip + 12)));
                 try runtime.push(Pointer.fromInt(@intCast(oldFP)));
 
                 ip = offset;
 
-                if (package.id != newPackageID) {
+                if (oldPackageID != newPackageID) {
                     package = &runtime.packages.items.items[newPackageID];
                     bc = try package.getByteCode(runtime);
                 }
@@ -543,13 +552,16 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
 
             .ret => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: ret\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: ret\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 const v = runtime.pop();
                 fp = @intCast(Pointer.asInt(runtime.pop()));
                 ip = @intCast(Pointer.asInt(runtime.pop()));
                 const newPackageID: usize = @intCast(Pointer.asInt(runtime.pop()));
+                if (DEBUG) {
+                    std.debug.print("    newPackageID={d}\n", .{newPackageID});
+                }
                 runtime.discard();
                 try runtime.push(v);
 
@@ -561,7 +573,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
 
             .not_bool => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: not_bool\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: not_bool\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.not_bool();
@@ -569,112 +581,112 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
 
             .add_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: add_f32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: add_f32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.add_f32();
             },
             .add_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: add_i32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: add_i32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.add_i32();
             },
             .add_string => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: add_string\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: add_string\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.add_string();
             },
             .add_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: add_u8\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: add_u8\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.add_u8();
             },
             .sub_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: sub_f32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: sub_f32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.sub_f32();
             },
             .sub_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: sub_i32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: sub_i32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.sub_i32();
             },
             .sub_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: sub_u8\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: sub_u8\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.sub_u8();
             },
             .mul_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: mul_f32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: mul_f32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.mul_f32();
             },
             .mul_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: mul_i32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: mul_i32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.mul_i32();
             },
             .mul_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: mul_u8\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: mul_u8\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.mul_u8();
             },
             .div_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: div_f32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: div_f32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.div_f32();
             },
             .div_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: div_i32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: div_i32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.div_i32();
             },
             .div_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: div_u8\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: div_u8\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.div_u8();
             },
             .mod_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: mod_i32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: mod_i32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.mod_i32();
             },
             .pow_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: pow_f32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: pow_f32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.pow_f32();
             },
             .pow_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: pow_i32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: pow_i32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.pow_i32();
@@ -682,210 +694,210 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
 
             .eq => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: eq\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: eq\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.eq();
             },
             .eq_bool => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: eq_bool\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: eq_bool\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.eq_bool();
             },
             .eq_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: eq_f32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: eq_f32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.eq_f32();
             },
             .eq_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: eq_i32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: eq_i32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.eq_i32();
             },
             .eq_string => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: eq_string\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: eq_string\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.eq_string();
             },
             .eq_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: eq_u8\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: eq_u8\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.eq_u8();
             },
             .eq_unit => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: eq_unit\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: eq_unit\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.eq_unit();
             },
             .neq => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: neq\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: neq\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.neq();
             },
             .neq_bool => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: neq_bool\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: neq_bool\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.neq_bool();
             },
             .neq_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: neq_f32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: neq_f32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.neq_f32();
             },
             .neq_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: neq_i32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: neq_i32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.neq_i32();
             },
             .neq_string => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: neq_string\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: neq_string\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.neq_string();
             },
             .neq_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: neq_u8\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: neq_u8\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.neq_u8();
             },
             .neq_unit => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: neq_unit\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: neq_unit\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.neq_unit();
             },
             .lt_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: lt_f32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: lt_f32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.lt_f32();
             },
             .lt_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: lt_i32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: lt_i32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.lt_i32();
             },
             .lt_string => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: lt_string\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: lt_string\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.lt_string();
             },
             .lt_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: lt_u8\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: lt_u8\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.lt_u8();
             },
             .le_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: le_f32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: le_f32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.le_f32();
             },
             .le_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: le_i32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: le_i32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.le_i32();
             },
             .le_string => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: le_string\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: le_string\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.le_string();
             },
             .le_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: le_u8\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: le_u8\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.le_u8();
             },
             .gt_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: gt_f32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: gt_f32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.gt_f32();
             },
             .gt_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: gt_i32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: gt_i32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.gt_i32();
             },
             .gt_string => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: gt_string\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: gt_string\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.gt_string();
             },
             .gt_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: gt_u8\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: gt_u8\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.gt_u8();
             },
             .ge_f32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: ge_f32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: ge_f32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.ge_f32();
             },
             .ge_i32 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: ge_i32\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: ge_i32\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.ge_i32();
             },
             .ge_string => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: ge_string\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: ge_string\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.ge_string();
             },
             .ge_u8 => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: ge_u8\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: ge_u8\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.ge_u8();
@@ -893,21 +905,21 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
 
             .print => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: print\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: print\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.print();
             },
             .println => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: println\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: println\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.println();
             },
             .print_bool => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: print_bool\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: print_bool\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.print_bool();
@@ -915,7 +927,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
             .print_f32 => {
                 if (DEBUG) {
                     const value = runtime.peek();
-                    std.debug.print("{d} {d} {d}: print_f32: value={d}\n", .{ ip - 1, fp, runtime.stack.items.len, Pointer.asInt(value) });
+                    std.debug.print("{d} {d} {d} {d}: print_f32: value={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, Pointer.asInt(value) });
                 }
 
                 try runtime.print_f32();
@@ -923,7 +935,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
             .print_i32 => {
                 if (DEBUG) {
                     const value = runtime.peek();
-                    std.debug.print("{d} {d} {d}: print_i32: value={d}\n", .{ ip - 1, fp, runtime.stack.items.len, Pointer.asInt(value) });
+                    std.debug.print("{d} {d} {d} {d}: print_i32: value={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, Pointer.asInt(value) });
                 }
 
                 try runtime.print_i32();
@@ -931,7 +943,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
             .print_u8 => {
                 if (DEBUG) {
                     const value = runtime.peek();
-                    std.debug.print("{d} {d} {d}: print_u8: value={c}\n", .{ ip - 1, fp, runtime.stack.items.len, Pointer.asChar(value) });
+                    std.debug.print("{d} {d} {d} {d}: print_u8: value={c}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, Pointer.asChar(value) });
                 }
 
                 try runtime.print_u8();
@@ -939,14 +951,14 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
             .print_string => {
                 if (DEBUG) {
                     const value = runtime.peek();
-                    std.debug.print("{d} {d} {d}: print_string: value={s}\n", .{ ip - 1, fp, runtime.stack.items.len, Pointer.asString(value).data });
+                    std.debug.print("{d} {d} {d} {d}: print_string: value={s}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, Pointer.asString(value).data });
                 }
 
                 try runtime.print_string();
             },
             .print_unit => {
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: print_unit\n", .{ ip - 1, fp, runtime.stack.items.len });
+                    std.debug.print("{d} {d} {d} {d}: print_unit\n", .{ package.id, ip - 1, fp, runtime.stack.items.len });
                 }
 
                 try runtime.print_unit();
@@ -955,7 +967,7 @@ pub fn run(initPackage: *Runtime.Package, runtime: *Runtime.Runtime) Interpreter
                 const builtinOp = readi32(bc, ip);
 
                 if (DEBUG) {
-                    std.debug.print("{d} {d} {d}: builtin: op={d}\n", .{ ip - 1, fp, runtime.stack.items.len, builtinOp });
+                    std.debug.print("{d} {d} {d} {d}: builtin: op={d}\n", .{ package.id, ip - 1, fp, runtime.stack.items.len, builtinOp });
                 }
 
                 try @import("./builtins/dispatch.zig").dispatch(runtime, @intCast(builtinOp));
