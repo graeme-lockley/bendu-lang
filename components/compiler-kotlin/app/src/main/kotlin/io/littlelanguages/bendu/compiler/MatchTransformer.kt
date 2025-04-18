@@ -3,52 +3,56 @@ package io.littlelanguages.bendu.compiler
 import io.littlelanguages.bendu.*
 import io.littlelanguages.bendu.typeinference.*
 
-fun transformMatchExpression(e: MatchExpression): Expression =
-    transform(e)
+data class TransformState(var counter: Int = 0) {
+    fun makeVar(): String = "_u${counter++}"
+}
 
-fun transform(e: Expression): Expression =
+fun transformMatchExpression(e: MatchExpression): Expression =
+    transform(e, TransformState())
+
+fun transform(e: Expression, state: TransformState): Expression =
     when (e) {
         is AbortStatement ->
-            AbortStatement(e.es.map { transform(it) }, e.location(), e.type)
+            AbortStatement(e.es.map { transform(it, state) }, e.location(), e.type)
 
         is ApplyExpression ->
-            ApplyExpression(transform(e.f), e.arguments.map { transform(it) }, e.type)
+            ApplyExpression(transform(e.f, state), e.arguments.map { transform(it, state) }, e.type)
 
         is ArrayElementProjectionExpression ->
-            ArrayElementProjectionExpression(transform(e.array), transform(e.index), e.type)
+            ArrayElementProjectionExpression(transform(e.array, state), transform(e.index, state), e.type)
 
         is ArrayRangeProjectionExpression ->
             ArrayRangeProjectionExpression(
-                transform(e.array),
-                e.start?.let { transform(it) },
-                e.end?.let { transform(it) },
+                transform(e.array, state),
+                e.start?.let { transform(it, state) },
+                e.end?.let { transform(it, state) },
                 e.type
             )
 
         is AssignmentExpression ->
-            AssignmentExpression(transform(e.lhs), transform(e.rhs), e.type)
+            AssignmentExpression(transform(e.lhs, state), transform(e.rhs, state), e.type)
 
         is BinaryExpression ->
-            BinaryExpression(transform(e.e1), e.op, transform(e.e2), e.type)
+            BinaryExpression(transform(e.e1, state), e.op, transform(e.e2, state), e.type)
 
         is BlockExpression ->
-            BlockExpression(e.es.map { transform(it) }, e.location(), e.type)
+            BlockExpression(e.es.map { transform(it, state) }, e.location(), e.type)
 
         is CaseExpression ->
             CaseExpression(
                 e.variable,
-                e.clauses.map { Clause(it.constructor, it.variables, transform(it.expression)) },
+                e.clauses.map { Clause(it.constructor, it.variables, transform(it.expression, state)) },
                 e.location,
                 e.type
             )
 
         is FatBarExpression ->
-            FatBarExpression(transform(e.left), transform(e.right), e.location)
+            FatBarExpression(transform(e.left, state), transform(e.right, state), e.location)
 
         is IfExpression ->
             IfExpression(
-                e.guards.map { Pair(transform(it.first), transform(it.second)) },
-                e.elseBranch?.let { transform(it) },
+                e.guards.map { Pair(transform(it.first, state), transform(it.second, state)) },
+                e.elseBranch?.let { transform(it, state) },
                 e.type
             )
 
@@ -62,7 +66,7 @@ fun transform(e: Expression): Expression =
                             it.exported,
                             it.typeVariables,
                             it.typeQualifier,
-                            transform(it.e),
+                            transform(it.e, state),
                             it.location,
                             it.type
                         )
@@ -75,7 +79,7 @@ fun transform(e: Expression): Expression =
                             it.typeVariables,
                             it.parameters,
                             it.typeQualifier,
-                            transform(it.body),
+                            transform(it.body, state),
                             it.location,
                             it.type
                         )
@@ -83,23 +87,29 @@ fun transform(e: Expression): Expression =
             })
 
         is LiteralArrayExpression ->
-            LiteralArrayExpression(e.es.map { Pair(transform(it.first), it.second) }, e.location, e.type)
+            LiteralArrayExpression(e.es.map { Pair(transform(it.first, state), it.second) }, e.location, e.type)
 
         is LiteralTupleExpression ->
-            LiteralTupleExpression(e.es.map { transform(it) }, e.type)
+            LiteralTupleExpression(e.es.map { transform(it, state) }, e.type)
 
         is LiteralFunctionExpression ->
-            LiteralFunctionExpression(e.typeParameters, e.parameters, e.returnTypeQualifier, transform(e.body), e.type)
+            LiteralFunctionExpression(
+                e.typeParameters,
+                e.parameters,
+                e.returnTypeQualifier,
+                transform(e.body, state),
+                e.type
+            )
 
         is MatchExpression -> {
-            val matchExpression = transform(e.e)
-            val variable = if (matchExpression is LowerIDExpression) matchExpression.v.value else "_x"
+            val matchExpression = transform(e.e, state)
+            val variable = if (matchExpression is LowerIDExpression) matchExpression.v.value else state.makeVar()
 
             val match = fullMatch(
                 listOf(variable),
-                e.cases.map { Equation(listOf(it.pattern), transform(it.body), it.guard) },
+                e.cases.map { Equation(listOf(it.pattern), transform(it.body, state), it.guard) },
                 ErrorExpression(e.location()),
-                PatternEnvironment()
+                state
             )
 
             if (matchExpression is LowerIDExpression)
@@ -123,29 +133,22 @@ fun transform(e: Expression): Expression =
         }
 
         is PrintStatement ->
-            PrintStatement(e.es.map { transform(it) }, e.location(), e.type)
+            PrintStatement(e.es.map { transform(it, state) }, e.location(), e.type)
 
         is PrintlnStatement ->
-            PrintlnStatement(e.es.map { transform(it) }, e.location(), e.type)
+            PrintlnStatement(e.es.map { transform(it, state) }, e.location(), e.type)
 
         is TypedExpression ->
-            TypedExpression(transform(e.e), e.typeQualifier, e.type)
+            TypedExpression(transform(e.e, state), e.typeQualifier, e.type)
 
         is UnaryExpression ->
-            UnaryExpression(e.op, transform(e.e), e.type)
+            UnaryExpression(e.op, transform(e.e, state), e.type)
 
         is WhileExpression ->
-            WhileExpression(transform(e.guard), transform(e.body), e.type)
+            WhileExpression(transform(e.guard, state), transform(e.body, state), e.type)
 
         else -> e
     }
-
-data class PatternEnvironment(private var counter: Int = 0) {
-    fun constructors(constructor: Constructor): List<Constructor> =
-        constructor.constructors()
-
-    fun makeVar(): String = "_u${counter++}"
-}
 
 data class TuplePseudoConstructor(val arity: Int) : Constructor {
     override val name: String = "_Tuple$arity"
@@ -974,7 +977,7 @@ private fun patternType(equations: List<Equation>): Type? =
     else
         equations.first().patterns[0].type
 
-fun match(variables: List<String>, equations: List<Equation>, e: Expression, env: PatternEnvironment): Expression {
+fun match(variables: List<String>, equations: List<Equation>, e: Expression, env: TransformState): Expression {
     fun matchVar(variables: List<String>, equations: List<Equation>, e: Expression): Expression {
         val u = variables.first()
         val us = variables.drop(1)
@@ -1025,7 +1028,7 @@ fun match(variables: List<String>, equations: List<Equation>, e: Expression, env
 
         val left = CaseExpression(
             u,
-            env.constructors(equations.first().getCon())
+            equations.first().getCon().constructors()
                 .map { constructor ->
                     matchClause(
                         constructor,
@@ -1105,7 +1108,7 @@ fun match(variables: List<String>, equations: List<Equation>, e: Expression, env
     return partitions.foldRight(e) { eqns, ep -> matchVarCon(variables, eqns, ep) }
 }
 
-fun fullMatch(variables: List<String>, equations: List<Equation>, e: Expression, env: PatternEnvironment): Expression {
+fun fullMatch(variables: List<String>, equations: List<Equation>, e: Expression, env: TransformState): Expression {
     val eqn1 = transformLiteralsAndTypedPatterns(equations)
     val e2 = match(variables, eqn1, e, env)
     val e3 = tidyUpFails(e2)

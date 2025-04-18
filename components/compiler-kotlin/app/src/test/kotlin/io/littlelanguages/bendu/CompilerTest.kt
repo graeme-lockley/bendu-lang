@@ -1563,15 +1563,91 @@ class CompilerTest {
 
 //        successfulCompile("type Tuple[a, b] = Tuple[a, b] match Tuple(3, 4) with Tuple(1, 2) -> \"One\" | Tuple(3, 4) -> \"Two\" | _ -> \"Other\"")
 
-            successfulCompile("import \"test/test.bendu\" as OP\n" +
+        successfulCompile(
+            "import \"test/test.bendu\" as OP\n" +
                     "match OP.Some(10) with\n" +
                     "| OP.None() -> -1\n" +
-                    "| OP.Some(n) -> n")
+                    "| OP.Some(n) -> n"
+        )
 
 //            successfulCompile("import \"test/test.bendu\"\n" +
 //                    "match Some(10) with\n" +
 //                    "| None() -> -1\n" +
 //                    "| Some(n) -> n")
+    }
+
+    @Test
+    fun `next match naming`() {
+        assertCompiledBC(
+            byteArrayOf(
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 10,
+                Instructions.CALL_PACKAGE.op,
+                -1, -1, -1, -1,
+                0, 0, 0, 23,
+                0, 0, 0, 1,
+                Instructions.STORE.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 0,
+                39,
+                0, 0, 0, 2,
+                0, 0, 0, 49,
+                0, 0, 0, 60,
+                Instructions.DISCARD.op,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 0,
+                Instructions.JMP.op,
+                0, 0, 0, -85,
+                Instructions.DUP.op,
+                Instructions.PUSH_CONSTRUCTOR_COMPONENT.op,
+                0, 0, 0, 0,
+                Instructions.STORE.op,
+                0, 0, 0, 0,
+                0, 0, 0, 1,
+                Instructions.DISCARD.op,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 20,
+                Instructions.CALL_PACKAGE.op,
+                -1, -1, -1, -1,
+                0, 0, 0, 23,
+                0, 0, 0, 1,
+                Instructions.STORE.op,
+                0, 0, 0, 0,
+                0, 0, 0, 2,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 2,
+                Instructions.JMP_DUP_CONSTRUCTOR.op,
+                0, 0, 0, 2,
+                0, 0, 0, 125,
+                0, 0, 0, -120,
+                Instructions.DISCARD.op,
+                Instructions.PUSH_I32_LITERAL.op,
+                0, 0, 0, 0,
+                Instructions.JMP.op,
+                0, 0, 0, -85,
+                Instructions.DUP.op,
+                Instructions.PUSH_CONSTRUCTOR_COMPONENT.op,
+                0, 0, 0, 0,
+                Instructions.STORE.op,
+                0, 0, 0, 0,
+                0, 0, 0, 3,
+                Instructions.DISCARD.op,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 1,
+                Instructions.LOAD.op,
+                0, 0, 0, 0,
+                0, 0, 0, 3,
+                Instructions.ADD_I32.op
+            ), "import \"test/test.bendu\" as OP\n" +
+                    "match OP.Some(10) with\n" +
+                    "| OP.None() -> 0\n" +
+                    "| OP.Some(n1) -> match OP.Some(20) with | OP.None() -> 0 | OP.Some(n2) -> n1 + n2"
+        )
     }
 }
 

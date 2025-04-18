@@ -18,5 +18,5 @@ None(): Option[Int]
 None(): Option[Int]
 
 > map2(add, Some(10), Some(20))
-Some(40): Option[Int]
+Some(30): Option[Int]
 ```

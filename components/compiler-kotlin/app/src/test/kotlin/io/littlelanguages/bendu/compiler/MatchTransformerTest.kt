@@ -12,7 +12,7 @@ class MatchTransformerTest {
         assertTransformation(
             listOf(
                 "{",
-                "  let _x: Int = 1",
+                "  let _u0: Int = 1",
                 "  [1, 2, 3]",
                 "}"
             ), "match 1 with _ -> [1, 2, 3]"
@@ -25,13 +25,13 @@ class MatchTransformerTest {
         assertTransformation(
             listOf(
                 "{",
-                "  let _x: [a, b] a * b = Tuple(Nil(), Nil())",
-                "  case _x with",
-                "  | _Tuple2(_u0, _u1) -> case _u0 with",
+                "  let _u0: [a, b] a * b = Tuple(Nil(), Nil())",
+                "  case _u0 with",
+                "  | _Tuple2(_u1, _u2) -> case _u1 with",
                 "    | Nil() -> 0",
-                "    | Cons(_u2, _) -> case _u1 with",
+                "    | Cons(_u3, _) -> case _u2 with",
                 "      | Nil() -> 1",
-                "      | Cons(_u4, _) -> (_u2 Plus _u4)",
+                "      | Cons(_u5, _) -> (_u3 Plus _u5)",
                 "}"
             ), "type List[a] = Nil | Cons[a, List[a]] ; match (Nil(), Nil()) with\n" +
                     "   | (Nil(), ys) -> 0\n" +
@@ -45,12 +45,12 @@ class MatchTransformerTest {
         assertTransformation(
             listOf(
                 "{",
-                "  let _x: List[Int] = Nil()",
-                "  case _x with",
+                "  let _u0: List[Int] = Nil()",
+                "  case _u0 with",
                 "  | Nil() -> 1",
-                "  | Cons(_u0, _u1) -> case _u1 with",
-                "    | Nil() -> _u0",
-                "    | Cons(_u2, _) -> (_u2 Plus _u0)",
+                "  | Cons(_u1, _u2) -> case _u2 with",
+                "    | Nil() -> _u1",
+                "    | Cons(_u3, _) -> (_u3 Plus _u1)",
                 "}"
             ), "type List[a] = Nil | Cons[a, List[a]] ; match Nil() with " +
                     "| Nil() -> 1" +
@@ -64,17 +64,17 @@ class MatchTransformerTest {
         assertTransformation(
             listOf(
                 "{",
-                "  let _x: [a, b] a * b = Tuple(Nil(), Nil())",
-                "  case _x with",
-                "  | _Tuple2(_u0, _u1) -> case _u0 with",
+                "  let _u0: [a, b] a * b = Tuple(Nil(), Nil())",
+                "  case _u0 with",
+                "  | _Tuple2(_u1, _u2) -> case _u1 with",
                 "    | Nil() -> 0",
-                "    | Cons(_, _) -> case _u1 with",
+                "    | Cons(_, _) -> case _u2 with",
                 "      | Nil() -> 1",
-                "      | Cons(_, _) -> case _u0 with",
+                "      | Cons(_, _) -> case _u1 with",
                 "        | Nil() -> Error",
-                "        | Cons(_u2, _) -> case _u1 with",
+                "        | Cons(_u3, _) -> case _u2 with",
                 "          | Nil() -> Error",
-                "          | Cons(_u4, _) -> (_u2 Plus _u4)",
+                "          | Cons(_u5, _) -> (_u3 Plus _u5)",
                 "}"
             ), "type List[a] = Nil | Cons[a, List[a]] ; match (Nil(), Nil()) with\n" +
                     "   | (Nil(), ys) -> 0\n" +
@@ -88,8 +88,8 @@ class MatchTransformerTest {
         assertTransformation(
             listOf(
                 "{",
-                "  let _x: Int = 123",
-                "  _x",
+                "  let _u0: Int = 123",
+                "  _u0",
                 "}"
             ), "match 123 with v: Int -> v"
         )
@@ -100,9 +100,9 @@ class MatchTransformerTest {
         assertTransformation(
             listOf(
                 "{",
-                "  let _x: Int = 123",
+                "  let _u0: Int = 123",
                 "  {",
-                "    let v: Int = _x",
+                "    let v: Int = _u0",
                 "    v",
                 "  }",
                 "}"
@@ -116,11 +116,11 @@ class MatchTransformerTest {
         assertTransformation(
             listOf(
                 "{",
-                "  let _x: [a, b] a * b = Tuple(Nil(), Nil())",
-                "  case _x with",
-                "  | _Tuple2(_u0, _u1) -> case _u0 with",
+                "  let _u0: [a, b] a * b = Tuple(Nil(), Nil())",
+                "  case _u0 with",
+                "  | _Tuple2(_u1, _u2) -> case _u1 with",
                 "    | Nil() -> true",
-                "    | Cons(_, _) -> case _u1 with",
+                "    | Cons(_, _) -> case _u2 with",
                 "      | Nil() -> true",
                 "      | Cons(_, _) -> false",
                 "}"
@@ -201,7 +201,7 @@ fun assertTransformation(expected: List<String>, input: String) {
 
     assertTrue(errors.hasNoErrors())
 
-//    println(result.joinToString("\n"))
+    println(result.joinToString("\n"))
 
     assertContentEquals(expected, result)
 }
@@ -209,5 +209,5 @@ fun assertTransformation(expected: List<String>, input: String) {
 private fun transform(script: Script): Script =
     Script(
         script.imports,
-        script.decs.map { if (it is DeclarationExpression) DeclarationExpression(transform(it.e)) else it }
+        script.decs.map { if (it is DeclarationExpression) DeclarationExpression(transform(it.e, TransformState())) else it }
     )
