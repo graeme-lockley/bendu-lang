@@ -1592,7 +1592,7 @@ class CompilerTest {
                 Instructions.LOAD.op,
                 0, 0, 0, 0,
                 0, 0, 0, 0,
-                39,
+                Instructions.JMP_DUP_CONSTRUCTOR.op,
                 0, 0, 0, 2,
                 0, 0, 0, 49,
                 0, 0, 0, 60,
