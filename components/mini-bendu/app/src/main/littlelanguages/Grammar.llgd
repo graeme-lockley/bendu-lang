@@ -1,0 +1,197 @@
+uses "./Scanner.llld";
+
+Program
+    : { TopLevel }
+    ;
+
+TopLevel
+    : TypeAliasDecl
+    | ExprStmt
+    ;
+
+TypeAliasDecl
+    : "type" UpperID [TypeParams] "=" TypeExpr
+    ;
+
+ExprStmt
+    : Expr
+    ;
+
+Expr
+    : LetExpr
+    | LambdaExpr
+    | LogicalOrExpr
+    | IfExpr
+    | MatchExpr
+    ;
+
+LetExpr
+    : "let" ["rec"] LowerID [TypeParams] [Parameters] [":" TypeExpr] "=" Expr ["in" Expr]
+    ;
+
+Parameters
+    : "(" [ParameterType {"," ParameterType}] ")"
+    ;
+
+ParameterType
+    : LowerID [":" TypeExpr]
+    ;
+
+LambdaExpr
+    : "\" [TypeParams] LowerID [":" TypeExpr] "=>" Expr
+    ;
+
+LogicalOrExpr
+    : LogicalAndExpr {"||" LogicalAndExpr}
+    ;
+
+LogicalAndExpr
+    : EqualityExpr {"&&" EqualityExpr}
+    ;
+
+EqualityExpr
+    : AdditiveExpr {EqualityOp AdditiveExpr}
+    ;
+
+EqualityOp
+    : "=="
+    | "!="
+    ;
+
+AdditiveExpr
+    : MultiplicativeExpr {AdditiveOp MultiplicativeExpr}
+    ;
+
+AdditiveOp
+    : "+"
+    | "-"
+    ;
+
+MultiplicativeExpr
+    : ApplicationExpr {MultiplicativeOp ApplicationExpr}
+    ;
+
+MultiplicativeOp
+    : "*"
+    | "/"
+    ;
+
+ApplicationExpr 
+    : SimpleExpr { "(" [Expr {"," Expr}] ")" }
+    ;
+
+IfExpr
+    : "if" Expr "then" Expr "else" Expr
+    ;
+
+MatchExpr
+    : "match" Expr "with" MatchCase { "|" MatchCase }
+    ;
+
+MatchCase
+    : Pattern "=>" Expr
+    ;
+
+SimpleExpr
+    : PrimaryExpr {"." LowerID}
+    ;
+
+PrimaryExpr
+    : LiteralInt
+    | LiteralString
+    | "True"
+    | "False"
+    | Variable
+    | Record
+    | "(" Expr {"," Expr} ")"
+    ;
+
+Variable : LowerID
+    ;
+
+Record
+    : "{" [ SpreadOrField {"," SpreadOrField} ] "}"
+    ;
+
+SpreadOrField
+    : LowerID "=" Expr
+    | "..." Expr
+    ;
+
+TypeExpr
+    : MergeType ["->" TypeExpr]
+    ;
+
+MergeType
+    : UnionType {"&" UnionType}
+    ;
+
+UnionType
+    : PrimaryType { "|" PrimaryType }
+    ;
+
+PrimaryType
+    : BaseType
+    | RecordType
+    | TupleType
+    | LiteralString
+    ;
+
+BaseType
+    : UpperID [GenericArgs]
+    ;
+
+GenericArgs
+    : "[" TypeExpr {"," TypeExpr} "]"
+    ;
+
+RecordType
+    : "{" [TypeField {"," TypeField}] ["|" UpperID] "}"
+    ;
+
+TypeField
+    : LowerID ":" TypeExpr
+    ;
+
+TupleType
+    : "(" TypeExpr {"," TypeExpr} ")"
+    ;
+
+TypeParams
+    : "[" TypeParam {"," TypeParam} "]"
+    ;
+
+TypeParam
+    : UpperID [":" TypeExpr]
+    ;
+
+Pattern
+    : RecordPattern
+    | VarPattern
+    | Wildcard
+    | LiteralPattern
+    | "(" Pattern {"," Pattern} ")"
+    ;
+
+RecordPattern
+    : "{" [ FieldPattern { "," FieldPattern } ] "}"
+    ;
+
+FieldPattern
+    : LowerID "=" Pattern
+    ;
+
+VarPattern
+    : LowerID
+    ;
+
+Wildcard
+    : "_"
+    ;
+
+LiteralPattern
+    : LiteralInt
+    | LiteralString
+    | "True"
+    | "False"
+    ;

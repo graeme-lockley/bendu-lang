@@ -1,0 +1,55 @@
+📘 Mini-Bendu Grammar (Simplified EBNF, LL(1)-friendly)
+
+Program         ::= { TopLevel }
+
+TopLevel        ::= LetDecl
+                 | TypeAlias
+                 | Expr
+
+LetDecl         ::= 'let' ['rec'] IDENT [':' Type] '=' Expr
+
+TypeAlias       ::= 'type' IDENT [TypeParams] '=' Type
+
+Expr            ::= LetExpr
+                 | LambdaExpr
+                 | ApplicationExpr
+
+LetExpr         ::= 'let' ['rec'] IDENT [':' Type] '=' Expr 'in' Expr
+
+LambdaExpr      ::= '\' [TypeParams] IDENT [':' Type] '=>' Expr
+
+ApplicationExpr ::= SimpleExpr { SimpleExpr }
+
+SimpleExpr      ::= StringLit
+                 | Var
+                 | Record
+                 | Projection
+                 | '(' Expr ')'
+
+Projection      ::= SimpleExpr '.' IDENT
+
+Var             ::= IDENT
+
+StringLit       ::= '"' { character } '"'
+
+Record          ::= '{' [ Field {',' Field} ] '}'
+
+Field           ::= IDENT '=' Expr
+
+Type            ::= UnionType [ '->' Type ]
+
+UnionType       ::= PrimaryType { '|' PrimaryType }
+
+PrimaryType     ::= BaseType
+                 | RecordType
+                 | '(' Type ')'
+
+BaseType        ::= IDENT [ GenericArgs ]
+
+GenericArgs     ::= '[' Type {',' Type} ']'
+
+RecordType      ::= '{' [ TypeField {',' TypeField} ] [ '|' IDENT ] '}'
+
+TypeField       ::= IDENT ':' Type
+
+TypeParams      ::= '[' IDENT {',' IDENT} ']'
