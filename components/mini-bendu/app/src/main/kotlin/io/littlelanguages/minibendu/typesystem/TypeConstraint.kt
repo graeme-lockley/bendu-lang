@@ -54,6 +54,11 @@ sealed class TypeConstraint {
     abstract val priority: ConstraintPriority
     
     /**
+     * Optional source location information for error reporting.
+     */
+    abstract val sourceLocation: SourceLocation?
+    
+    /**
      * Check if this is an equality constraint
      */
     open fun isEquality(): Boolean = false
@@ -74,9 +79,14 @@ sealed class TypeConstraint {
     abstract fun involvesVariable(variable: TypeVariable): Boolean
     
     /**
-     * Apply a substitution to this constraint, returning a new constraint
+     * Get all type variables mentioned in this constraint.
      */
-    abstract fun apply(substitution: Substitution): TypeConstraint
+    abstract fun typeVariables(): Set<TypeVariable>
+    
+    /**
+     * Apply a substitution to this constraint, replacing type variables.
+     */
+    abstract fun applySubstitution(substitution: Substitution): TypeConstraint
     
     /**
      * Get all free type variables mentioned in this constraint
@@ -111,9 +121,10 @@ sealed class TypeConstraint {
  * - f(x) : a ~ f(x) : Int -> Bool (a must be Int -> Bool)
  */
 data class EqualityConstraint(
-    val leftType: Type,
-    val rightType: Type,
-    override val origin: ConstraintOrigin
+    val type1: Type,
+    val type2: Type,
+    override val sourceLocation: SourceLocation? = null,
+    override val origin: ConstraintOrigin = ConstraintOrigin.INFERENCE
 ) : TypeConstraint() {
     
     override val priority: ConstraintPriority = ConstraintPriority.HIGH
@@ -121,32 +132,37 @@ data class EqualityConstraint(
     override fun isEquality(): Boolean = true
     
     override fun involvesVariable(variable: TypeVariable): Boolean {
-        return leftType.freeTypeVariables().contains(variable) ||
-               rightType.freeTypeVariables().contains(variable)
+        return type1.freeTypeVariables().contains(variable) ||
+               type2.freeTypeVariables().contains(variable)
     }
     
-    override fun apply(substitution: Substitution): TypeConstraint {
+    override fun typeVariables(): Set<TypeVariable> {
+        return type1.freeTypeVariables() + type2.freeTypeVariables()
+    }
+    
+    override fun applySubstitution(substitution: Substitution): EqualityConstraint {
         return EqualityConstraint(
-            substitution.apply(leftType),
-            substitution.apply(rightType),
+            substitution.apply(type1),
+            substitution.apply(type2),
+            sourceLocation,
             origin
         )
     }
     
     override fun freeVariables(): Set<TypeVariable> {
-        return leftType.freeTypeVariables() + rightType.freeTypeVariables()
+        return type1.freeTypeVariables() + type2.freeTypeVariables()
     }
     
     override fun simplify(): List<TypeConstraint> {
         // If both types are structurally equivalent, the constraint is satisfied
-        return if (leftType.structurallyEquivalent(rightType)) {
+        return if (type1.structurallyEquivalent(type2)) {
             emptyList() // Constraint is trivially satisfied
         } else {
             listOf(this) // Cannot be simplified further
         }
     }
     
-    override fun toString(): String = "$leftType ~ $rightType"
+    override fun toString(): String = "$type1 ~ $type2"
 }
 
 /**
@@ -163,7 +179,8 @@ data class EqualityConstraint(
 data class SubtypingConstraint(
     val subtype: Type,
     val supertype: Type,
-    override val origin: ConstraintOrigin
+    override val sourceLocation: SourceLocation? = null,
+    override val origin: ConstraintOrigin = ConstraintOrigin.SUBTYPING
 ) : TypeConstraint() {
     
     override val priority: ConstraintPriority = ConstraintPriority.MEDIUM
@@ -175,10 +192,15 @@ data class SubtypingConstraint(
                supertype.freeTypeVariables().contains(variable)
     }
     
-    override fun apply(substitution: Substitution): TypeConstraint {
+    override fun typeVariables(): Set<TypeVariable> {
+        return subtype.freeTypeVariables() + supertype.freeTypeVariables()
+    }
+    
+    override fun applySubstitution(substitution: Substitution): SubtypingConstraint {
         return SubtypingConstraint(
             substitution.apply(subtype),
             substitution.apply(supertype),
+            sourceLocation,
             origin
         )
     }
@@ -215,8 +237,8 @@ data class SubtypingConstraint(
             // iff A2 <: A1 (contravariant) and B1 <: B2 (covariant)
             subtype is FunctionType && supertype is FunctionType -> {
                 return listOf(
-                    SubtypingConstraint(supertype.domain, subtype.domain, origin), // Contravariant
-                    SubtypingConstraint(subtype.codomain, supertype.codomain, origin) // Covariant
+                    SubtypingConstraint(supertype.domain, subtype.domain, sourceLocation), // Contravariant
+                    SubtypingConstraint(subtype.codomain, supertype.codomain, sourceLocation) // Covariant
                 )
             }
         }
@@ -241,7 +263,8 @@ data class SubtypingConstraint(
 data class InstanceConstraint(
     val type: Type,
     val typeClass: String,
-    override val origin: ConstraintOrigin
+    override val origin: ConstraintOrigin,
+    override val sourceLocation: SourceLocation? = null
 ) : TypeConstraint() {
     
     override val priority: ConstraintPriority = ConstraintPriority.LOW
@@ -252,11 +275,16 @@ data class InstanceConstraint(
         return type.freeTypeVariables().contains(variable)
     }
     
-    override fun apply(substitution: Substitution): TypeConstraint {
+    override fun typeVariables(): Set<TypeVariable> {
+        return type.freeTypeVariables()
+    }
+    
+    override fun applySubstitution(substitution: Substitution): InstanceConstraint {
         return InstanceConstraint(
             substitution.apply(type),
             typeClass,
-            origin
+            origin,
+            sourceLocation
         )
     }
     
@@ -289,4 +317,17 @@ data class InstanceConstraint(
     }
     
     override fun toString(): String = "$type : $typeClass"
+}
+
+/**
+ * Simple source location information for error reporting.
+ */
+data class SourceLocation(
+    val line: Int,
+    val column: Int,
+    val filename: String? = null
+) {
+    override fun toString(): String {
+        return if (filename != null) "$filename:$line:$column" else "$line:$column"
+    }
 }

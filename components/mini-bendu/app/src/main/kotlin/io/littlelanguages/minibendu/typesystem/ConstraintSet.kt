@@ -162,8 +162,8 @@ data class ConstraintSet private constructor(
             
             for (constraint in equalityConstraints) {
                 val bindingType = when {
-                    constraint.leftType == variable && constraint.rightType !is TypeVariable -> constraint.rightType
-                    constraint.rightType == variable && constraint.leftType !is TypeVariable -> constraint.leftType
+                    constraint.type1 == variable && constraint.type2 !is TypeVariable -> constraint.type2
+                    constraint.type2 == variable && constraint.type1 !is TypeVariable -> constraint.type1
                     else -> null
                 }
                 
@@ -245,17 +245,17 @@ data class ConstraintSet private constructor(
     ): EqualityConstraint? {
         // Check if constraints share a type that allows transitivity
         return when {
-            constraint1.rightType == constraint2.leftType -> 
-                EqualityConstraint(constraint1.leftType, constraint2.rightType, ConstraintOrigin.INFERENCE)
+            constraint1.type2 == constraint2.type1 -> 
+                EqualityConstraint(constraint1.type1, constraint2.type2, null, ConstraintOrigin.INFERENCE)
             
-            constraint1.leftType == constraint2.rightType -> 
-                EqualityConstraint(constraint1.rightType, constraint2.leftType, ConstraintOrigin.INFERENCE)
+            constraint1.type1 == constraint2.type2 -> 
+                EqualityConstraint(constraint1.type2, constraint2.type1, null, ConstraintOrigin.INFERENCE)
             
-            constraint1.rightType == constraint2.rightType -> 
-                EqualityConstraint(constraint1.leftType, constraint2.leftType, ConstraintOrigin.INFERENCE)
+            constraint1.type2 == constraint2.type2 -> 
+                EqualityConstraint(constraint1.type1, constraint2.type1, null, ConstraintOrigin.INFERENCE)
             
-            constraint1.leftType == constraint2.leftType -> 
-                EqualityConstraint(constraint1.rightType, constraint2.rightType, ConstraintOrigin.INFERENCE)
+            constraint1.type1 == constraint2.type1 -> 
+                EqualityConstraint(constraint1.type2, constraint2.type2, null, ConstraintOrigin.INFERENCE)
             
             else -> null
         }
@@ -313,7 +313,7 @@ data class ConstraintSet private constructor(
      * Apply a substitution to all constraints in the set
      */
     fun apply(substitution: Substitution): ConstraintSet {
-        val substituted = constraints.map { it.apply(substitution) }.toSet()
+        val substituted = constraints.map { it.applySubstitution(substitution) }.toSet()
         return ConstraintSet(substituted)
     }
     

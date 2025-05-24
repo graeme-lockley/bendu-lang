@@ -234,8 +234,8 @@ class ConstraintSetTest {
         val derivedConstraints = propagated.getConstraintsInvolving(var1)
         val hasDirectBinding = derivedConstraints.any { constraint ->
             constraint is EqualityConstraint &&
-            ((constraint.type1 == var1 && constraint.type2 == Types.Int) ||
-             (constraint.type1 == Types.Int && constraint.type2 == var1))
+            ((constraint.type1 == var1 && constraint.rightType == Types.Int) ||
+             (constraint.type1 == Types.Int && constraint.rightType == var1))
         }
         
         assertTrue(hasDirectBinding || propagated.canDerive(EqualityConstraint(var1, Types.Int, null, ConstraintOrigin.INFERENCE)), 
@@ -331,7 +331,7 @@ class ConstraintSetTest {
         val substitutedConstraints = substituted.all()
         val hasSubstitutedEquality = substitutedConstraints.any { constraint ->
             constraint is EqualityConstraint &&
-            constraint.type1 == Types.Bool && constraint.type2 == var2
+            constraint.type1 == Types.Bool && constraint.rightType == var2
         }
         val hasSubstitutedSubtyping = substitutedConstraints.any { constraint ->
             constraint is SubtypingConstraint &&

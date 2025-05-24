@@ -27,10 +27,10 @@ class TypeConstraintTest {
     fun `equality constraint creation and properties`() {
         val var1 = TypeVariable.fresh()
         val var2 = TypeVariable.fresh()
-        val constraint = EqualityConstraint(var1, var2, ConstraintOrigin.UNIFICATION)
+        val constraint = EqualityConstraint(var1, var2, null, ConstraintOrigin.UNIFICATION)
         
-        assertEquals(var1, constraint.leftType, "Left type should be preserved")
-        assertEquals(var2, constraint.rightType, "Right type should be preserved")
+        assertEquals(var1, constraint.type1, "Left type should be preserved")
+        assertEquals(var2, constraint.type2, "Right type should be preserved")
         assertEquals(ConstraintOrigin.UNIFICATION, constraint.origin, "Origin should be preserved")
         assertEquals(ConstraintPriority.HIGH, constraint.priority, "Equality constraints should have high priority")
         assertTrue(constraint.isEquality(), "Should be identified as equality constraint")
@@ -39,10 +39,10 @@ class TypeConstraintTest {
     
     @Test
     fun `equality constraint with primitive types`() {
-        val constraint = EqualityConstraint(Types.Int, Types.String, ConstraintOrigin.INFERENCE)
+        val constraint = EqualityConstraint(Types.Int, Types.String, null, ConstraintOrigin.INFERENCE)
         
-        assertEquals(Types.Int, constraint.leftType, "Left type should be Int")
-        assertEquals(Types.String, constraint.rightType, "Right type should be String")
+        assertEquals(Types.Int, constraint.type1, "Left type should be Int")
+        assertEquals(Types.String, constraint.type2, "Right type should be String")
         assertEquals(ConstraintOrigin.INFERENCE, constraint.origin, "Origin should be INFERENCE")
     }
     
@@ -50,7 +50,7 @@ class TypeConstraintTest {
     fun `subtyping constraint creation and properties`() {
         val recordType = RecordType(mapOf("x" to Types.Int, "y" to Types.String))
         val superRecordType = RecordType(mapOf("x" to Types.Int))
-        val constraint = SubtypingConstraint(recordType, superRecordType, ConstraintOrigin.SUBTYPING)
+        val constraint = SubtypingConstraint(recordType, superRecordType, null, ConstraintOrigin.SUBTYPING)
         
         assertEquals(recordType, constraint.subtype, "Subtype should be preserved")
         assertEquals(superRecordType, constraint.supertype, "Supertype should be preserved")
@@ -80,10 +80,10 @@ class TypeConstraintTest {
         val var1 = TypeVariable.fresh()
         val var2 = TypeVariable.fresh()
         
-        val constraint1 = EqualityConstraint(var1, var2, ConstraintOrigin.UNIFICATION)
-        val constraint2 = EqualityConstraint(var1, var2, ConstraintOrigin.UNIFICATION)
-        val constraint3 = EqualityConstraint(var2, var1, ConstraintOrigin.UNIFICATION) // Flipped
-        val constraint4 = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
+        val constraint1 = EqualityConstraint(var1, var2, null, ConstraintOrigin.UNIFICATION)
+        val constraint2 = EqualityConstraint(var1, var2, null, ConstraintOrigin.UNIFICATION)
+        val constraint3 = EqualityConstraint(var2, var1, null, ConstraintOrigin.UNIFICATION) // Flipped
+        val constraint4 = EqualityConstraint(var1, Types.Int, null, ConstraintOrigin.UNIFICATION)
         
         assertEquals(constraint1, constraint2, "Identical constraints should be equal")
         assertEquals(constraint1.hashCode(), constraint2.hashCode(), "Equal constraints should have same hash code")
@@ -97,8 +97,8 @@ class TypeConstraintTest {
         val var2 = TypeVariable.fresh()
         val var3 = TypeVariable.fresh()
         
-        val equalityConstraint = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
-        val subtypingConstraint = SubtypingConstraint(var2, Types.String, ConstraintOrigin.SUBTYPING)
+        val equalityConstraint = EqualityConstraint(var1, Types.Int, null, ConstraintOrigin.UNIFICATION)
+        val subtypingConstraint = SubtypingConstraint(var2, Types.String, null, ConstraintOrigin.SUBTYPING)
         val instanceConstraint = InstanceConstraint(var3, "Comparable", ConstraintOrigin.TYPE_CLASS)
         
         assertTrue(equalityConstraint.involvesVariable(var1), "Should involve left variable")
@@ -116,32 +116,32 @@ class TypeConstraintTest {
         val var1 = TypeVariable.fresh()
         val var2 = TypeVariable.fresh()
         
-        val constraint = EqualityConstraint(var1, var2, ConstraintOrigin.UNIFICATION)
+        val constraint = EqualityConstraint(var1, var2, null, ConstraintOrigin.UNIFICATION)
         val substitution = Substitution.builder()
             .add(var1, Types.Int)
             .add(var2, Types.String)
             .build()
         
-        val substitutedConstraint = constraint.apply(substitution)
+        val substitutedConstraint = constraint.applySubstitution(substitution)
         
         assertTrue(substitutedConstraint is EqualityConstraint, "Should remain equality constraint")
         val eqConstraint = substitutedConstraint
-        assertEquals(Types.Int, eqConstraint.leftType, "Left type should be substituted")
-        assertEquals(Types.String, eqConstraint.rightType, "Right type should be substituted")
+        assertEquals(Types.Int, eqConstraint.type1, "Left type should be substituted")
+        assertEquals(Types.String, eqConstraint.type2, "Right type should be substituted")
         assertEquals(constraint.origin, eqConstraint.origin, "Origin should be preserved")
     }
     
     @Test
     fun `constraint simplification and normalization`() {
         // Test constraint involving identical types
-        val identicalConstraint = EqualityConstraint(Types.Int, Types.Int, ConstraintOrigin.UNIFICATION)
+        val identicalConstraint = EqualityConstraint(Types.Int, Types.Int, null, ConstraintOrigin.UNIFICATION)
         val simplified = identicalConstraint.simplify()
         
         assertTrue(simplified.isEmpty(), "Constraint between identical types should simplify to empty")
         
         // Test constraint that cannot be simplified
         val var1 = TypeVariable.fresh()
-        val unsimplifiableConstraint = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
+        val unsimplifiableConstraint = EqualityConstraint(var1, Types.Int, null, ConstraintOrigin.UNIFICATION)
         val notSimplified = unsimplifiableConstraint.simplify()
         
         assertEquals(1, notSimplified.size, "Unsimplifiable constraint should return itself")
@@ -153,8 +153,8 @@ class TypeConstraintTest {
         val var1 = TypeVariable.fresh()
         val var2 = TypeVariable.fresh()
         
-        val equalityConstraint = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
-        val subtypingConstraint = SubtypingConstraint(var1, Types.String, ConstraintOrigin.SUBTYPING)
+        val equalityConstraint = EqualityConstraint(var1, Types.Int, null, ConstraintOrigin.UNIFICATION)
+        val subtypingConstraint = SubtypingConstraint(var1, Types.String, null, ConstraintOrigin.SUBTYPING)
         val instanceConstraint = InstanceConstraint(var2, "Comparable", ConstraintOrigin.TYPE_CLASS)
         
         val constraints = listOf(instanceConstraint, subtypingConstraint, equalityConstraint)
@@ -172,7 +172,7 @@ class TypeConstraintTest {
         val var3 = TypeVariable.fresh()
         
         val functionType = FunctionType(var1, var2)
-        val constraint = EqualityConstraint(functionType, var3, ConstraintOrigin.UNIFICATION)
+        val constraint = EqualityConstraint(functionType, var3, null, ConstraintOrigin.UNIFICATION)
         
         val freeVars = constraint.freeVariables()
         
@@ -188,9 +188,9 @@ class TypeConstraintTest {
         val var2 = TypeVariable.fresh()
         val var3 = TypeVariable.fresh()
         
-        val constraint1 = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
-        val constraint2 = EqualityConstraint(var2, var1, ConstraintOrigin.UNIFICATION)
-        val constraint3 = EqualityConstraint(var3, Types.String, ConstraintOrigin.UNIFICATION)
+        val constraint1 = EqualityConstraint(var1, Types.Int, null, ConstraintOrigin.UNIFICATION)
+        val constraint2 = EqualityConstraint(var2, var1, null, ConstraintOrigin.UNIFICATION)
+        val constraint3 = EqualityConstraint(var3, Types.String, null, ConstraintOrigin.UNIFICATION)
         
         // constraint2 depends on constraint1 because they share var1
         assertTrue(constraint2.dependsOn(constraint1), "constraint2 should depend on constraint1")
@@ -207,7 +207,7 @@ class TypeConstraintTest {
         val recordType = RecordType(mapOf("x" to var1, "y" to Types.Int))
         val tupleType = TupleType(listOf(var1, Types.String))
         
-        val constraint = EqualityConstraint(recordType, tupleType, ConstraintOrigin.INFERENCE)
+        val constraint = EqualityConstraint(recordType, tupleType, null, ConstraintOrigin.INFERENCE)
         
         val freeVars = constraint.freeVariables()
         assertEquals(1, freeVars.size, "Should find shared variable")
@@ -215,13 +215,13 @@ class TypeConstraintTest {
         
         // Apply substitution
         val substitution = Substitution.single(var1, Types.Bool)
-        val substitutedConstraint = constraint.apply(substitution)
+        val substitutedConstraint = constraint.applySubstitution(substitution)
         
         assertTrue(substitutedConstraint is EqualityConstraint, "Should remain equality constraint")
         val eqConstraint = substitutedConstraint
         
-        val substitutedRecord = eqConstraint.leftType as RecordType
-        val substitutedTuple = eqConstraint.rightType as TupleType
+        val substitutedRecord = eqConstraint.type1 as RecordType
+        val substitutedTuple = eqConstraint.type2 as TupleType
         
         assertEquals(Types.Bool, substitutedRecord.fields["x"], "Record field should be substituted")
         assertEquals(Types.Bool, substitutedTuple.elements[0], "Tuple element should be substituted")

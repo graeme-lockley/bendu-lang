@@ -38,6 +38,14 @@ data class TypeEnvironment(
     }
     
     /**
+     * Convenience method to bind a variable to a monomorphic type
+     */
+    fun extend(name: String, type: Type): TypeEnvironment {
+        val scheme = TypeScheme(emptySet(), type)
+        return bind(name, scheme)
+    }
+    
+    /**
      * Looks up a variable in the environment, checking scopes from innermost to outermost
      */
     fun lookup(name: String): TypeScheme? {
