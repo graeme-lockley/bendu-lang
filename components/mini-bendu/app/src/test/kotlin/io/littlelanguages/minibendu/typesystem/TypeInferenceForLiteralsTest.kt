@@ -137,8 +137,8 @@ class TypeInferenceForLiteralsTest {
         assertTrue(constraint is EqualityConstraint, "Should be an equality constraint")
         
         val equalityConstraint = constraint as EqualityConstraint
-        val expectedType = LiteralStringType("hello")
-        assertEquals(expectedType, equalityConstraint.type2, "Should constrain to literal string type 'hello'")
+        val expectedType = Types.String
+        assertEquals(expectedType, equalityConstraint.type2, "Should constrain to String type")
         assertEquals(inferredType, equalityConstraint.type1, "Should constrain the inferred type")
         
         // Solve constraints to get final type
@@ -147,7 +147,7 @@ class TypeInferenceForLiteralsTest {
         assertTrue(solverResult is ConstraintSolverResult.Success, "Constraint solving should succeed")
         
         val finalType = (solverResult as ConstraintSolverResult.Success).substitution.apply(inferredType)
-        assertEquals(expectedType, finalType, "Final type should be literal string type 'hello'")
+        assertEquals(expectedType, finalType, "Final type should be String type")
     }
     
     @Test
@@ -165,8 +165,8 @@ class TypeInferenceForLiteralsTest {
         assertTrue(solverResult is ConstraintSolverResult.Success, "Constraint solving should succeed")
         
         val finalType = (solverResult as ConstraintSolverResult.Success).substitution.apply(result.type)
-        val expectedType = LiteralStringType("")
-        assertEquals(expectedType, finalType, "Empty string should infer as literal string type ''")
+        val expectedType = Types.String
+        assertEquals(expectedType, finalType, "Empty string should infer as String type")
     }
     
     @Test
@@ -184,8 +184,8 @@ class TypeInferenceForLiteralsTest {
         assertTrue(solverResult is ConstraintSolverResult.Success, "Constraint solving should succeed")
         
         val finalType = (solverResult as ConstraintSolverResult.Success).substitution.apply(result.type)
-        val expectedType = LiteralStringType("hello world")
-        assertEquals(expectedType, finalType, "Multi-word string should infer as literal string type 'hello world'")
+        val expectedType = Types.String
+        assertEquals(expectedType, finalType, "Multi-word string should infer as String type")
     }
     
     @Test
@@ -203,8 +203,8 @@ class TypeInferenceForLiteralsTest {
         assertTrue(solverResult is ConstraintSolverResult.Success, "Constraint solving should succeed")
         
         val finalType = (solverResult as ConstraintSolverResult.Success).substitution.apply(result.type)
-        val expectedType = LiteralStringType("hello\nworld\t!")
-        assertEquals(expectedType, finalType, "String with special characters should infer as literal string type")
+        val expectedType = Types.String
+        assertEquals(expectedType, finalType, "String with special characters should infer as String type")
     }
     
     @Test
@@ -387,8 +387,8 @@ class TypeInferenceForLiteralsTest {
         val stringSolved = solver.solve(stringResult.constraints)
         assertTrue(stringSolved is ConstraintSolverResult.Success, "String literal solving should succeed")
         val stringType = (stringSolved as ConstraintSolverResult.Success).substitution.apply(stringResult.type)
-        val expectedStringType = LiteralStringType("test")
-        assertEquals(expectedStringType, stringType, "String literal should infer as literal string type 'test'")
+        val expectedStringType = Types.String
+        assertEquals(expectedStringType, stringType, "String literal should infer as String type")
         
         // Test boolean literal
         val boolResult = generator.generateConstraints(boolLiteral)
@@ -462,7 +462,7 @@ class TypeInferenceForLiteralsTest {
             val isExpectedType = when (literal) {
                 is LiteralIntExpr -> eqConstraint.type2 is PrimitiveType
                 is LiteralBoolExpr -> eqConstraint.type2 is PrimitiveType
-                is LiteralStringExpr -> eqConstraint.type2 is LiteralStringType
+                is LiteralStringExpr -> eqConstraint.type2 is PrimitiveType
                 else -> false
             }
             assertTrue(isExpectedType, "Second type should be appropriate for literal type $index")

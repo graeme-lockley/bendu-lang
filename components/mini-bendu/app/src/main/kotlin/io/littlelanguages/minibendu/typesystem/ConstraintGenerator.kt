@@ -121,11 +121,9 @@ class ConstraintGenerator(
         val resultType = TypeVariable.fresh()
         val sourceLocation = extractSourceLocation(expr.location())
         
-        // Create a string literal type for the specific value
-        // This enables discriminated unions and typed enums
-        val literalType = LiteralStringType(expr.value.value)
-        
-        val constraint = EqualityConstraint(resultType, literalType, sourceLocation)
+        // Use general String type for string literals
+        // This allows equality comparison between different string literals
+        val constraint = EqualityConstraint(resultType, Types.String, sourceLocation)
         return Pair(resultType, ConstraintSet.of(constraint))
     }
     
