@@ -111,6 +111,11 @@ class Substitution internal constructor(
         return Substitution(newMappings)
     }
     
+    /**
+     * Returns true if this substitution is empty (no mappings).
+     */
+    fun isEmpty(): Boolean = mappings.isEmpty()
+    
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is Substitution) return false
