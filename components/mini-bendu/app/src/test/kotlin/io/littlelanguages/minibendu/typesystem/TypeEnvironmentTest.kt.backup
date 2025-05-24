@@ -1,0 +1,350 @@
+package io.littlelanguages.minibendu.typesystem
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.test.assertFalse
+
+/**
+ * Tests for TypeEnvironment class - Task 11 of Phase 1
+ * 
+ * This test suite verifies:
+ * - Environment construction with predefined types
+ * - Lookup of variables in environment
+ * - Extending environment with new bindings
+ * - Generalization of type expressions
+ * - Scoping and shadowing behavior
+ */
+class TypeEnvironmentTest {
+    
+    @Test
+    fun `environment construction with predefined types`() {
+        val env = TypeEnvironment.empty()
+        
+        // Environment should be empty initially
+        assertNull(env.lookup("x"), "Empty environment should not contain variables")
+        
+        // Test creating environment with predefined bindings
+        val builtins = TypeEnvironment.empty()
+            .bind("print", TypeScheme.monomorphic(
+                FunctionType(Types.String, Types.Unit)
+            ))
+            .bind("toString", TypeScheme.monomorphic(
+                FunctionType(Types.Int, Types.String)
+            ))
+        
+        assertNotNull(builtins.lookup("print"), "Should find print function")
+        assertNotNull(builtins.lookup("toString"), "Should find toString function")
+        assertNull(builtins.lookup("unknown"), "Should not find unknown identifiers")
+    }
+    
+    @Test
+    fun `lookup of variables in environment`() {
+        val var1 = TypeVariable.fresh()
+        val scheme1 = TypeScheme(setOf(var1), var1)
+        
+        val env = TypeEnvironment.empty()
+            .bind("id", scheme1)
+            .bind("name", TypeScheme.monomorphic(Types.String))
+            .bind("age", TypeScheme.monomorphic(Types.Int))
+        
+        // Test successful lookups
+        val idScheme = env.lookup("id")
+        assertNotNull(idScheme, "Should find id binding")
+        assertEquals(1, idScheme.quantifiedVariables.size, "ID should be polymorphic")
+        
+        val nameScheme = env.lookup("name")
+        assertNotNull(nameScheme, "Should find name binding")
+        assertEquals(0, nameScheme.quantifiedVariables.size, "Name should be monomorphic")
+        assertTrue(nameScheme.body.structurallyEquivalent(Types.String), "Name should have String type")
+        
+        val ageScheme = env.lookup("age")
+        assertNotNull(ageScheme, "Should find age binding")
+        assertTrue(ageScheme.body.structurallyEquivalent(Types.Int), "Age should have Int type")
+        
+        // Test failed lookup
+        assertNull(env.lookup("unknown"), "Should not find unknown variables")
+    }
+    
+    @Test
+    fun `extending environment with new bindings`() {
+        val env1 = TypeEnvironment.empty()
+        val env2 = env1.bind("x", TypeScheme.monomorphic(Types.Int))
+        val env3 = env2.bind("y", TypeScheme.monomorphic(Types.String))
+        
+        // Original environment should remain unchanged
+        assertNull(env1.lookup("x"), "Original environment should not have x")
+        assertNull(env1.lookup("y"), "Original environment should not have y")
+        
+        // Second environment should have x but not y
+        assertNotNull(env2.lookup("x"), "Second environment should have x")
+        assertNull(env2.lookup("y"), "Second environment should not have y")
+        
+        // Third environment should have both
+        assertNotNull(env3.lookup("x"), "Third environment should have x")
+        assertNotNull(env3.lookup("y"), "Third environment should have y")
+        
+        // Test that types are preserved correctly
+        val xScheme = env3.lookup("x")!!
+        assertTrue(xScheme.body.structurallyEquivalent(Types.Int), "x should have Int type")
+        
+        val yScheme = env3.lookup("y")!!
+        assertTrue(yScheme.body.structurallyEquivalent(Types.String), "y should have String type")
+    }
+    
+    @Test
+    fun `generalization of type expressions`() {
+        val var1 = TypeVariable.fresh()
+        val var2 = TypeVariable.fresh()
+        val var3 = TypeVariable.fresh()
+        
+        // Create environment with some bound variables
+        val env = TypeEnvironment.empty()
+            .bind("bound", TypeScheme(setOf(var1), var1))
+        
+        // Test generalization of a type with free variables
+        val freeType = FunctionType(var2, var3) // Both var2 and var3 are free
+        val generalizedScheme = env.generalize(freeType)
+        
+        // Should quantify over all free variables
+        assertEquals(2, generalizedScheme.quantifiedVariables.size, "Should quantify over all free variables")
+        assertTrue(generalizedScheme.quantifiedVariables.contains(var2), "Should quantify var2")
+        assertTrue(generalizedScheme.quantifiedVariables.contains(var3), "Should quantify var3")
+        
+        // Test generalization with partially bound variables
+        val mixedType = FunctionType(var1, var2) // var1 is bound, var2 is free
+        val mixedScheme = env.generalize(mixedType)
+        
+        // Should only quantify over free variables
+        assertEquals(1, mixedScheme.quantifiedVariables.size, "Should only quantify free variables")
+        assertFalse(mixedScheme.quantifiedVariables.contains(var1), "Should not quantify bound variables")
+        assertTrue(mixedScheme.quantifiedVariables.contains(var2), "Should quantify free variables")
+    }
+    
+    @Test
+    fun `scoping with nested environments`() {
+        val outerEnv = TypeEnvironment.empty()
+            .bind("x", TypeScheme.monomorphic(Types.Int))
+            .bind("y", TypeScheme.monomorphic(Types.String))
+        
+        // Create nested environment
+        val innerEnv = outerEnv.openScope()
+            .bind("z", TypeScheme.monomorphic(Types.Bool))
+            .bind("w", TypeScheme.monomorphic(Types.Unit))
+        
+        // Inner environment should see all variables
+        assertNotNull(innerEnv.lookup("x"), "Inner environment should see outer x")
+        assertNotNull(innerEnv.lookup("y"), "Inner environment should see outer y")
+        assertNotNull(innerEnv.lookup("z"), "Inner environment should see inner z")
+        assertNotNull(innerEnv.lookup("w"), "Inner environment should see inner w")
+        
+        // Close scope and check that inner bindings are removed
+        val restoredEnv = innerEnv.closeScope()
+        
+        assertNotNull(restoredEnv.lookup("x"), "Restored environment should still have x")
+        assertNotNull(restoredEnv.lookup("y"), "Restored environment should still have y")
+        assertNull(restoredEnv.lookup("z"), "Restored environment should not have z")
+        assertNull(restoredEnv.lookup("w"), "Restored environment should not have w")
+    }
+    
+    @Test
+    fun `shadowing behavior in nested scopes`() {
+        val outerEnv = TypeEnvironment.empty()
+            .bind("x", TypeScheme.monomorphic(Types.Int))
+            .bind("y", TypeScheme.monomorphic(Types.String))
+        
+        // Create inner scope that shadows x
+        val innerEnv = outerEnv.openScope()
+            .bind("x", TypeScheme.monomorphic(Types.Bool)) // Shadow x with different type
+            .bind("z", TypeScheme.monomorphic(Types.Unit))
+        
+        // Inner environment should see shadowed x
+        val innerX = innerEnv.lookup("x")!!
+        assertTrue(innerX.body.structurallyEquivalent(Types.Bool), "Inner x should have Bool type")
+        
+        // Inner environment should still see non-shadowed y
+        val innerY = innerEnv.lookup("y")!!
+        assertTrue(innerY.body.structurallyEquivalent(Types.String), "Inner y should have String type")
+        
+        // Close scope to restore outer x
+        val restoredEnv = innerEnv.closeScope()
+        
+        val restoredX = restoredEnv.lookup("x")!!
+        assertTrue(restoredX.body.structurallyEquivalent(Types.Int), "Restored x should have original Int type")
+        
+        val restoredY = restoredEnv.lookup("y")!!
+        assertTrue(restoredY.body.structurallyEquivalent(Types.String), "Restored y should have String type")
+    }
+    
+    @Test
+    fun `environment free variables calculation`() {
+        val var1 = TypeVariable.fresh()
+        val var2 = TypeVariable.fresh()
+        val var3 = TypeVariable.fresh()
+        
+        val env = TypeEnvironment.empty()
+            .bind("poly", TypeScheme(setOf(var1), FunctionType(var1, var1)))
+            .bind("partial", TypeScheme(setOf(var2), FunctionType(var2, var3))) // var3 is free
+        
+        val freeVars = env.freeTypeVariables()
+        
+        // Should only contain truly free variables
+        assertEquals(1, freeVars.size, "Should have one free variable")
+        assertTrue(freeVars.contains(var3), "Should contain var3 as free variable")
+        assertFalse(freeVars.contains(var1), "Should not contain quantified var1")
+        assertFalse(freeVars.contains(var2), "Should not contain quantified var2")
+    }
+    
+    @Test
+    fun `environment with complex type schemes`() {
+        val var1 = TypeVariable.fresh()
+        val var2 = TypeVariable.fresh()
+        
+        // Create complex polymorphic type: ∀a,b. (a -> b) -> List<a> -> List<b>
+        val listA = RecordType(mapOf("head" to var1, "tail" to var1))
+        val listB = RecordType(mapOf("head" to var2, "tail" to var2))
+        val mapType = FunctionType(
+            FunctionType(var1, var2),
+            FunctionType(listA, listB)
+        )
+        val mapScheme = TypeScheme(setOf(var1, var2), mapType)
+        
+        val env = TypeEnvironment.empty()
+            .bind("map", mapScheme)
+        
+        val retrievedScheme = env.lookup("map")!!
+        assertEquals(2, retrievedScheme.quantifiedVariables.size, "Map should be rank-2 polymorphic")
+        assertTrue(retrievedScheme.body is FunctionType, "Map should be a function type")
+        
+        // Test that instantiation creates fresh variables
+        val (instance1, _) = retrievedScheme.instantiate()
+        val (instance2, _) = retrievedScheme.instantiate()
+        
+        assertFalse(instance1.structurallyEquivalent(instance2), "Different instantiations should have different variables")
+    }
+    
+    @Test
+    fun `multiple scope levels`() {
+        val env1 = TypeEnvironment.empty()
+            .bind("a", TypeScheme.monomorphic(Types.Int))
+        
+        val env2 = env1.openScope()
+            .bind("b", TypeScheme.monomorphic(Types.String))
+        
+        val env3 = env2.openScope()
+            .bind("c", TypeScheme.monomorphic(Types.Bool))
+            .bind("a", TypeScheme.monomorphic(Types.Unit)) // Shadow a
+        
+        // Level 3 should see all variables with shadowing
+        assertNotNull(env3.lookup("a"), "Level 3 should see a")
+        assertNotNull(env3.lookup("b"), "Level 3 should see b")
+        assertNotNull(env3.lookup("c"), "Level 3 should see c")
+        
+        val level3A = env3.lookup("a")!!
+        assertTrue(level3A.body.structurallyEquivalent(Types.Unit), "Level 3 a should be shadowed to Unit")
+        
+        // Close one level
+        val env2Restored = env3.closeScope()
+        
+        assertNotNull(env2Restored.lookup("a"), "Level 2 should see a")
+        assertNotNull(env2Restored.lookup("b"), "Level 2 should see b")
+        assertNull(env2Restored.lookup("c"), "Level 2 should not see c")
+        
+        val level2A = env2Restored.lookup("a")!!
+        assertTrue(level2A.body.structurallyEquivalent(Types.Int), "Level 2 a should be restored to Int")
+        
+        // Close second level
+        val env1Restored = env2Restored.closeScope()
+        
+        assertNotNull(env1Restored.lookup("a"), "Level 1 should see a")
+        assertNull(env1Restored.lookup("b"), "Level 1 should not see b")
+        assertNull(env1Restored.lookup("c"), "Level 1 should not see c")
+    }
+    
+    @Test
+    fun `environment substitution application`() {
+        val var1 = TypeVariable.fresh()
+        val var2 = TypeVariable.fresh()
+        val var3 = TypeVariable.fresh()
+        
+        val env = TypeEnvironment.empty()
+            .bind("x", TypeScheme(setOf(var1), FunctionType(var1, var2))) // var2 is free
+            .bind("y", TypeScheme.monomorphic(var3))
+        
+        // Apply substitution var2 := String, var3 := Int
+        val substitution = Substitution.builder()
+            .add(var2, Types.String)
+            .add(var3, Types.Int)
+            .build()
+        
+        val resultEnv = env.apply(substitution)
+        
+        // Check that substitution was applied correctly
+        val xScheme = resultEnv.lookup("x")!!
+        val yScheme = resultEnv.lookup("y")!!
+        
+        assertEquals(1, xScheme.quantifiedVariables.size, "x should still be polymorphic")
+        assertTrue(xScheme.quantifiedVariables.contains(var1), "x should still quantify over var1")
+        
+        // The body should have var2 substituted with String
+        val xBody = xScheme.body as FunctionType
+        assertTrue(xBody.codomain.structurallyEquivalent(Types.String), "x codomain should be substituted to String")
+        
+        // y should have var3 substituted with Int  
+        assertTrue(yScheme.body.structurallyEquivalent(Types.Int), "y should be substituted to Int")
+    }
+    
+    @Test
+    fun `environment equality and immutability`() {
+        val env1 = TypeEnvironment.empty()
+        val env2 = TypeEnvironment.empty()
+        
+        // Empty environments should be equal
+        assertEquals(env1, env2, "Empty environments should be equal")
+        
+        val env3 = env1.bind("x", TypeScheme.monomorphic(Types.Int))
+        val env4 = env2.bind("x", TypeScheme.monomorphic(Types.Int))
+        
+        // Environments with same bindings should be equal
+        assertEquals(env3, env4, "Environments with same bindings should be equal")
+        
+        // Original environments should remain unchanged (immutability)
+        assertNull(env1.lookup("x"), "Original env1 should remain unchanged")
+        assertNull(env2.lookup("x"), "Original env2 should remain unchanged")
+        
+        val env5 = env1.bind("x", TypeScheme.monomorphic(Types.String))
+        
+        // Environments with different bindings should not be equal
+        assertFalse(env3 == env5, "Environments with different types should not be equal")
+    }
+    
+    @Test
+    fun `environment domain and variable listing`() {
+        val env = TypeEnvironment.empty()
+            .bind("x", TypeScheme.monomorphic(Types.Int))
+            .bind("y", TypeScheme.monomorphic(Types.String))
+            .bind("z", TypeScheme.monomorphic(Types.Bool))
+        
+        val domain = env.domain()
+        
+        assertEquals(3, domain.size, "Domain should contain all bound variables")
+        assertTrue(domain.contains("x"), "Domain should contain x")
+        assertTrue(domain.contains("y"), "Domain should contain y")
+        assertTrue(domain.contains("z"), "Domain should contain z")
+        
+        // Test with scoped environment
+        val scopedEnv = env.openScope()
+            .bind("w", TypeScheme.monomorphic(Types.Unit))
+            .bind("x", TypeScheme.monomorphic(Types.Int)) // Shadow x
+        
+        val scopedDomain = scopedEnv.domain()
+        
+        assertEquals(4, scopedDomain.size, "Scoped domain should contain all accessible variables")
+        assertTrue(scopedDomain.contains("x"), "Scoped domain should contain x")
+        assertTrue(scopedDomain.contains("y"), "Scoped domain should contain y")
+        assertTrue(scopedDomain.contains("z"), "Scoped domain should contain z")
+        assertTrue(scopedDomain.contains("w"), "Scoped domain should contain w")
+    }
+}

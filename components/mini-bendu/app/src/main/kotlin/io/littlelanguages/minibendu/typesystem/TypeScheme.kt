@@ -19,8 +19,10 @@ package io.littlelanguages.minibendu.typesystem
  */
 data class TypeScheme(
     val quantifiedVariables: Set<TypeVariable>,
-    val type: Type
+    val body: Type
 ) {
+    // Alias for backward compatibility with existing code
+    val type: Type get() = body
     companion object {
         /**
          * Creates a monomorphic type scheme with no quantified variables
@@ -71,7 +73,7 @@ data class TypeScheme(
         }
         
         val substitution = substitutionBuilder.build()
-        val instantiatedType = substitution.apply(type)
+        val instantiatedType = substitution.apply(body)
         
         return Pair(instantiatedType, substitution)
     }
@@ -80,10 +82,15 @@ data class TypeScheme(
      * Calculates the free type variables in this scheme
      * (variables that appear in the type but are not quantified)
      */
-    fun freeVariables(): Set<TypeVariable> {
-        val typeVars = type.freeTypeVariables()
+    fun freeTypeVariables(): Set<TypeVariable> {
+        val typeVars = body.freeTypeVariables()
         return typeVars - quantifiedVariables
     }
+    
+    /**
+     * Legacy alias for freeTypeVariables()
+     */
+    fun freeVariables(): Set<TypeVariable> = freeTypeVariables()
     
     /**
      * Applies a substitution to this type scheme.
@@ -104,7 +111,7 @@ data class TypeScheme(
             return this
         }
         
-        val substitutedType = filteredSubstitution.apply(type)
+        val substitutedType = filteredSubstitution.apply(body)
         return TypeScheme(quantifiedVariables, substitutedType)
     }
     
@@ -120,7 +127,7 @@ data class TypeScheme(
         
         // If both are monomorphic, just compare types
         if (isMonomorphic() && other.isMonomorphic()) {
-            return type == other.type
+            return body == other.body
         }
         
         // For polymorphic schemes, we need to check if they're the same up to renaming
@@ -139,17 +146,17 @@ data class TypeScheme(
         }
         
         val renaming = substitutionBuilder.build()
-        val renamedType = renaming.apply(type)
+        val renamedType = renaming.apply(body)
         
-        return renamedType == other.type
+        return renamedType == other.body
     }
     
     override fun toString(): String {
         return if (isMonomorphic()) {
-            type.toString()
+            body.toString()
         } else {
             val vars = quantifiedVariables.joinToString(",") { it.toString() }
-            "∀$vars. $type"
+            "∀$vars. $body"
         }
     }
 }

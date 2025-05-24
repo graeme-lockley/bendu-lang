@@ -1,0 +1,344 @@
+package io.littlelanguages.minibendu.typesystem
+
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertNotNull
+
+/**
+ * Tests for ConstraintSet class - Task 9 of Phase 1
+ * 
+ * This test suite defines the requirements for constraint sets which provide
+ * efficient collection and management of type constraints during inference.
+ * ConstraintSet supports set operations, simplification, consistency checking,
+ * and constraint propagation for optimal solving.
+ * 
+ * The constraint set system supports:
+ * - Set operations: union, intersection, difference
+ * - Constraint simplification and redundancy elimination
+ * - Consistency checking and early failure detection
+ * - Incremental constraint addition and removal
+ * - Constraint propagation rules
+ * - Priority-based constraint ordering
+ */
+class ConstraintSetTest {
+    
+    @Test
+    fun `empty constraint set creation and properties`() {
+        val emptySet = ConstraintSet.empty()
+        
+        assertTrue(emptySet.isEmpty(), "Empty set should be empty")
+        assertEquals(0, emptySet.size(), "Empty set should have size 0")
+        assertTrue(emptySet.isConsistent(), "Empty set should be consistent")
+        assertFalse(emptySet.isInconsistent(), "Empty set should not be inconsistent")
+        assertTrue(emptySet.all().isEmpty(), "Empty set should contain no constraints")
+    }
+    
+    @Test
+    fun `constraint set creation from single constraint`() {
+        val var1 = TypeVariable.fresh()
+        val constraint = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
+        val set = ConstraintSet.of(constraint)
+        
+        assertFalse(set.isEmpty(), "Set with constraint should not be empty")
+        assertEquals(1, set.size(), "Set should have size 1")
+        assertTrue(set.contains(constraint), "Set should contain the added constraint")
+        assertTrue(set.isConsistent(), "Single valid constraint should be consistent")
+    }
+    
+    @Test
+    fun `constraint set creation from multiple constraints`() {
+        val var1 = TypeVariable.fresh()
+        val var2 = TypeVariable.fresh()
+        val constraint1 = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
+        val constraint2 = SubtypingConstraint(var2, Types.String, ConstraintOrigin.SUBTYPING)
+        val constraint3 = InstanceConstraint(var1, "Comparable", ConstraintOrigin.TYPE_CLASS)
+        
+        val set = ConstraintSet.of(constraint1, constraint2, constraint3)
+        
+        assertEquals(3, set.size(), "Set should contain all three constraints")
+        assertTrue(set.contains(constraint1), "Should contain first constraint")
+        assertTrue(set.contains(constraint2), "Should contain second constraint")
+        assertTrue(set.contains(constraint3), "Should contain third constraint")
+    }
+    
+    @Test
+    fun `constraint set union operations`() {
+        val var1 = TypeVariable.fresh()
+        val var2 = TypeVariable.fresh()
+        
+        val constraint1 = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
+        val constraint2 = EqualityConstraint(var2, Types.String, ConstraintOrigin.UNIFICATION)
+        val constraint3 = SubtypingConstraint(var1, var2, ConstraintOrigin.SUBTYPING)
+        
+        val set1 = ConstraintSet.of(constraint1, constraint2)
+        val set2 = ConstraintSet.of(constraint2, constraint3) // constraint2 is in both
+        
+        val union = set1.union(set2)
+        
+        assertEquals(3, union.size(), "Union should contain all unique constraints")
+        assertTrue(union.contains(constraint1), "Union should contain constraint1")
+        assertTrue(union.contains(constraint2), "Union should contain constraint2")
+        assertTrue(union.contains(constraint3), "Union should contain constraint3")
+    }
+    
+    @Test
+    fun `constraint set intersection operations`() {
+        val var1 = TypeVariable.fresh()
+        val var2 = TypeVariable.fresh()
+        
+        val constraint1 = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
+        val constraint2 = EqualityConstraint(var2, Types.String, ConstraintOrigin.UNIFICATION)
+        val constraint3 = SubtypingConstraint(var1, var2, ConstraintOrigin.SUBTYPING)
+        
+        val set1 = ConstraintSet.of(constraint1, constraint2)
+        val set2 = ConstraintSet.of(constraint2, constraint3)
+        
+        val intersection = set1.intersection(set2)
+        
+        assertEquals(1, intersection.size(), "Intersection should contain only shared constraints")
+        assertTrue(intersection.contains(constraint2), "Intersection should contain shared constraint")
+        assertFalse(intersection.contains(constraint1), "Intersection should not contain unique constraints")
+        assertFalse(intersection.contains(constraint3), "Intersection should not contain unique constraints")
+    }
+    
+    @Test
+    fun `constraint set difference operations`() {
+        val var1 = TypeVariable.fresh()
+        val var2 = TypeVariable.fresh()
+        
+        val constraint1 = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
+        val constraint2 = EqualityConstraint(var2, Types.String, ConstraintOrigin.UNIFICATION)
+        val constraint3 = SubtypingConstraint(var1, var2, ConstraintOrigin.SUBTYPING)
+        
+        val set1 = ConstraintSet.of(constraint1, constraint2, constraint3)
+        val set2 = ConstraintSet.of(constraint2)
+        
+        val difference = set1.difference(set2)
+        
+        assertEquals(2, difference.size(), "Difference should exclude shared constraints")
+        assertTrue(difference.contains(constraint1), "Difference should contain unshared constraints")
+        assertTrue(difference.contains(constraint3), "Difference should contain unshared constraints")
+        assertFalse(difference.contains(constraint2), "Difference should not contain shared constraints")
+    }
+    
+    @Test
+    fun `incremental constraint addition`() {
+        val var1 = TypeVariable.fresh()
+        val var2 = TypeVariable.fresh()
+        
+        val constraint1 = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
+        val constraint2 = EqualityConstraint(var2, Types.String, ConstraintOrigin.UNIFICATION)
+        
+        val set = ConstraintSet.empty()
+            .add(constraint1)
+            .add(constraint2)
+        
+        assertEquals(2, set.size(), "Should contain both added constraints")
+        assertTrue(set.contains(constraint1), "Should contain first constraint")
+        assertTrue(set.contains(constraint2), "Should contain second constraint")
+        
+        // Adding duplicate should not increase size
+        val setWithDupe = set.add(constraint1)
+        assertEquals(2, setWithDupe.size(), "Adding duplicate should not increase size")
+    }
+    
+    @Test
+    fun `constraint removal`() {
+        val var1 = TypeVariable.fresh()
+        val var2 = TypeVariable.fresh()
+        
+        val constraint1 = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
+        val constraint2 = EqualityConstraint(var2, Types.String, ConstraintOrigin.UNIFICATION)
+        
+        val set = ConstraintSet.of(constraint1, constraint2)
+        val reduced = set.remove(constraint1)
+        
+        assertEquals(1, reduced.size(), "Should have one constraint after removal")
+        assertFalse(reduced.contains(constraint1), "Should not contain removed constraint")
+        assertTrue(reduced.contains(constraint2), "Should still contain other constraint")
+        
+        // Removing non-existent constraint should not change set
+        val unchanged = reduced.remove(constraint1)
+        assertEquals(reduced, unchanged, "Removing non-existent constraint should not change set")
+    }
+    
+    @Test
+    fun `constraint simplification within sets`() {
+        // Test simplification of trivially satisfied constraints
+        val trivialConstraint = EqualityConstraint(Types.Int, Types.Int, ConstraintOrigin.UNIFICATION)
+        val var1 = TypeVariable.fresh()
+        val nonTrivialConstraint = EqualityConstraint(var1, Types.String, ConstraintOrigin.UNIFICATION)
+        
+        val set = ConstraintSet.of(trivialConstraint, nonTrivialConstraint)
+        val simplified = set.simplify()
+        
+        assertEquals(1, simplified.size(), "Simplified set should remove trivial constraints")
+        assertFalse(simplified.contains(trivialConstraint), "Should remove trivially satisfied constraint")
+        assertTrue(simplified.contains(nonTrivialConstraint), "Should keep non-trivial constraints")
+    }
+    
+    @Test
+    fun `constraint consistency checking - consistent set`() {
+        val var1 = TypeVariable.fresh()
+        val var2 = TypeVariable.fresh()
+        
+        val constraint1 = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
+        val constraint2 = EqualityConstraint(var2, Types.String, ConstraintOrigin.UNIFICATION)
+        val constraint3 = SubtypingConstraint(var1, var2, ConstraintOrigin.SUBTYPING)
+        
+        val set = ConstraintSet.of(constraint1, constraint2, constraint3)
+        
+        assertTrue(set.isConsistent(), "Compatible constraints should be consistent")
+        assertFalse(set.isInconsistent(), "Consistent set should not be inconsistent")
+        assertNull(set.findInconsistency(), "Should not find inconsistency in consistent set")
+    }
+    
+    @Test
+    fun `constraint consistency checking - inconsistent set`() {
+        val var1 = TypeVariable.fresh()
+        
+        // var1 ~ Int AND var1 ~ String creates inconsistency
+        val constraint1 = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
+        val constraint2 = EqualityConstraint(var1, Types.String, ConstraintOrigin.UNIFICATION)
+        
+        val set = ConstraintSet.of(constraint1, constraint2)
+        
+        assertFalse(set.isConsistent(), "Conflicting constraints should be inconsistent")
+        assertTrue(set.isInconsistent(), "Inconsistent set should be marked as such")
+        
+        val inconsistency = set.findInconsistency()
+        assertNotNull(inconsistency, "Should detect inconsistency")
+        assertTrue(
+            inconsistency.conflictingConstraints.contains(constraint1) && inconsistency.conflictingConstraints.contains(constraint2),
+            "Inconsistency should include conflicting constraints"
+        )
+    }
+    
+    @Test
+    fun `constraint propagation rules`() {
+        val var1 = TypeVariable.fresh()
+        val var2 = TypeVariable.fresh()
+
+        // var1 ~ var2, var2 ~ Int should propagate to var1 ~ Int
+        val constraint1 = EqualityConstraint(var1, var2, ConstraintOrigin.UNIFICATION)
+        val constraint2 = EqualityConstraint(var2, Types.Int, ConstraintOrigin.UNIFICATION)
+        
+        val set = ConstraintSet.of(constraint1, constraint2)
+        val propagated = set.propagate()
+        
+        // After propagation, we should be able to derive that var1 ~ Int
+        val derivedConstraints = propagated.getConstraintsInvolving(var1)
+        val hasDirectBinding = derivedConstraints.any { constraint ->
+            constraint is EqualityConstraint &&
+            ((constraint.leftType == var1 && constraint.rightType == Types.Int) ||
+             (constraint.leftType == Types.Int && constraint.rightType == var1))
+        }
+        
+        assertTrue(hasDirectBinding || propagated.canDerive(EqualityConstraint(var1, Types.Int, ConstraintOrigin.INFERENCE)), 
+                  "Should be able to derive var1 ~ Int through propagation")
+    }
+    
+    @Test
+    fun `priority-based constraint ordering`() {
+        val var1 = TypeVariable.fresh()
+        val var2 = TypeVariable.fresh()
+        
+        val equalityConstraint = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
+        val subtypingConstraint = SubtypingConstraint(var1, Types.String, ConstraintOrigin.SUBTYPING)
+        val instanceConstraint = InstanceConstraint(var2, "Comparable", ConstraintOrigin.TYPE_CLASS)
+        
+        val set = ConstraintSet.of(instanceConstraint, subtypingConstraint, equalityConstraint)
+        val ordered = set.sortedByPriority()
+        
+        val constraints = ordered.all()
+        assertEquals(3, constraints.size, "Should have all constraints")
+        
+        // Should be ordered by priority: HIGH, MEDIUM, LOW
+        assertTrue(constraints[0].priority == ConstraintPriority.HIGH, "First should be HIGH priority")
+        assertTrue(constraints[1].priority == ConstraintPriority.MEDIUM, "Second should be MEDIUM priority")
+        assertTrue(constraints[2].priority == ConstraintPriority.LOW, "Third should be LOW priority")
+    }
+    
+    @Test
+    fun `constraint set filtering and querying`() {
+        val var1 = TypeVariable.fresh()
+        val var2 = TypeVariable.fresh()
+        
+        val equalityConstraint = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
+        val subtypingConstraint = SubtypingConstraint(var1, Types.String, ConstraintOrigin.SUBTYPING)
+        val instanceConstraint = InstanceConstraint(var2, "Comparable", ConstraintOrigin.TYPE_CLASS)
+        
+        val set = ConstraintSet.of(equalityConstraint, subtypingConstraint, instanceConstraint)
+        
+        // Filter by constraint type
+        val equalityConstraints = set.filterEquality()
+        assertEquals(1, equalityConstraints.size(), "Should have one equality constraint")
+        assertTrue(equalityConstraints.contains(equalityConstraint), "Should contain the equality constraint")
+        
+        val subtypingConstraints = set.filterSubtyping()
+        assertEquals(1, subtypingConstraints.size(), "Should have one subtyping constraint")
+        assertTrue(subtypingConstraints.contains(subtypingConstraint), "Should contain the subtyping constraint")
+        
+        val instanceConstraints = set.filterInstance()
+        assertEquals(1, instanceConstraints.size(), "Should have one instance constraint")
+        assertTrue(instanceConstraints.contains(instanceConstraint), "Should contain the instance constraint")
+        
+        // Filter by variable involvement
+        val var1Constraints = set.getConstraintsInvolving(var1)
+        assertEquals(2, var1Constraints.size, "Should have two constraints involving var1")
+        assertTrue(var1Constraints.contains(equalityConstraint), "Should include equality constraint")
+        assertTrue(var1Constraints.contains(subtypingConstraint), "Should include subtyping constraint")
+        
+        val var2Constraints = set.getConstraintsInvolving(var2)
+        assertEquals(1, var2Constraints.size, "Should have one constraint involving var2")
+        assertTrue(var2Constraints.contains(instanceConstraint), "Should include instance constraint")
+    }
+    
+    @Test
+    fun `constraint set equality and hash code`() {
+        val var1 = TypeVariable.fresh()
+        val constraint1 = EqualityConstraint(var1, Types.Int, ConstraintOrigin.UNIFICATION)
+        val constraint2 = SubtypingConstraint(var1, Types.String, ConstraintOrigin.SUBTYPING)
+        
+        val set1 = ConstraintSet.of(constraint1, constraint2)
+        val set2 = ConstraintSet.of(constraint2, constraint1) // Different order
+        val set3 = ConstraintSet.of(constraint1)
+        
+        assertEquals(set1, set2, "Sets with same constraints should be equal regardless of order")
+        assertEquals(set1.hashCode(), set2.hashCode(), "Equal sets should have same hash code")
+        assertNotEquals(set1, set3, "Sets with different constraints should not be equal")
+    }
+    
+    @Test
+    fun `constraint set with substitution application`() {
+        val var1 = TypeVariable.fresh()
+        val var2 = TypeVariable.fresh()
+        
+        val constraint1 = EqualityConstraint(var1, var2, ConstraintOrigin.UNIFICATION)
+        val constraint2 = SubtypingConstraint(var1, Types.String, ConstraintOrigin.SUBTYPING)
+        
+        val set = ConstraintSet.of(constraint1, constraint2)
+        val substitution = Substitution.single(var1, Types.Bool)
+        
+        val substituted = set.apply(substitution)
+        
+        assertEquals(2, substituted.size(), "Should have same number of constraints after substitution")
+        
+        val substitutedConstraints = substituted.all()
+        val hasSubstitutedEquality = substitutedConstraints.any { constraint ->
+            constraint is EqualityConstraint &&
+            constraint.leftType == Types.Bool && constraint.rightType == var2
+        }
+        val hasSubstitutedSubtyping = substitutedConstraints.any { constraint ->
+            constraint is SubtypingConstraint &&
+            constraint.subtype == Types.Bool && constraint.supertype == Types.String
+        }
+        
+        assertTrue(hasSubstitutedEquality, "Should have substituted equality constraint")
+        assertTrue(hasSubstitutedSubtyping, "Should have substituted subtyping constraint")
+    }
+}
