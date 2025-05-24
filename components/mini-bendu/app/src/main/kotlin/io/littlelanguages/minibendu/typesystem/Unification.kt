@@ -264,6 +264,7 @@ object Unification {
                 (type.rowVar != null && occursCheck(typeVar, type.rowVar))
             }
             is UnionType -> type.alternatives.any { occursCheck(typeVar, it) }
+            is TypeAlias -> type.typeArguments.any { occursCheck(typeVar, it) }
             is PrimitiveType, is LiteralStringType -> false
         }
     }

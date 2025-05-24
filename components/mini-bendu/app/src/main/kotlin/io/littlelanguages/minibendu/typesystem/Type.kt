@@ -188,6 +188,40 @@ class UnionType(val alternatives: Set<Type>) : Type() {
     override fun hashCode(): Int = alternatives.hashCode()
 }
 
+/**
+ * Type alias references (Name[A, B, ...])
+ * Used to reference defined type aliases with optional type parameters
+ */
+class TypeAlias(val name: String, val typeArguments: List<Type> = emptyList()) : Type() {
+    
+    override fun structurallyEquivalent(other: Type): Boolean {
+        return other is TypeAlias && 
+               name == other.name && 
+               typeArguments.size == other.typeArguments.size &&
+               typeArguments.zip(other.typeArguments).all { (a, b) -> a.structurallyEquivalent(b) }
+    }
+    
+    override fun freeTypeVariables(): Set<TypeVariable> {
+        return typeArguments.flatMap { it.freeTypeVariables() }.toSet()
+    }
+    
+    override fun toString(): String {
+        return if (typeArguments.isEmpty()) {
+            name
+        } else {
+            "$name[${typeArguments.joinToString(", ")}]"
+        }
+    }
+    
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TypeAlias) return false
+        return name == other.name && typeArguments == other.typeArguments
+    }
+    
+    override fun hashCode(): Int = 31 * name.hashCode() + typeArguments.hashCode()
+}
+
 // Predefined primitive types
 object Types {
     val Int = PrimitiveType("Int")
