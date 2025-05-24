@@ -501,7 +501,7 @@ object TypeRefinementAnalyzer {
                         }
                     }
                     is PrimitiveType, is LiteralStringType, is FunctionType, is TupleType, 
-                    is IntersectionType, is TypeAlias, is TypeVariable -> {
+                    is IntersectionType, is TypeAlias, is TypeVariable, is RecursiveType -> {
                         // Record patterns cannot match against these types
                         // This would be a type error that should be caught during type checking
                     }

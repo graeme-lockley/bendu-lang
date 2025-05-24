@@ -43,6 +43,7 @@ class Substitution internal constructor(
             is FunctionType -> FunctionType(apply(type.domain), apply(type.codomain))
             is RecordType -> applyToRecordType(type)
             is TupleType -> TupleType(type.elements.map { apply(it) })
+            is RecursiveType -> applyToRecursiveType(type)
             is UnionType -> UnionType(type.alternatives.map { apply(it) }.toSet())
             is IntersectionType -> IntersectionType(type.members.map { apply(it) }.toSet())
             is TypeAlias -> TypeAlias(type.name, type.typeArguments.map { apply(it) })
@@ -79,6 +80,22 @@ class Substitution internal constructor(
                 RecordType(substitutedFields)
             }
         }
+    }
+    
+    /**
+     * Apply substitution to a recursive type, being careful about variable scoping.
+     * The recursive variable is bound within the type body, so we must avoid
+     * substituting it if it's bound to something else outside.
+     */
+    private fun applyToRecursiveType(recursiveType: RecursiveType): RecursiveType {
+        // Remove the recursive variable from the substitution to avoid conflicts
+        // with the binding within the recursive type
+        val restrictedSubst = this.remove(recursiveType.recursiveVar)
+        
+        // Apply the restricted substitution to the body
+        val substitutedBody = restrictedSubst.apply(recursiveType.body)
+        
+        return RecursiveType(recursiveType.name, recursiveType.recursiveVar, substitutedBody)
     }
     
     /**

@@ -76,8 +76,19 @@ object Unification {
             // Record types
             t1 is RecordType && t2 is RecordType -> unifyRecordTypes(t1, t2, substitution)
             
+            // Recursive types
+            t1 is RecursiveType && t2 is RecursiveType -> unifyRecursiveTypes(t1, t2, substitution)
+            
+            // Recursive type with non-recursive type - unfold and try again  
+            t1 is RecursiveType -> unifyRecursiveWithType(t1, t2, substitution)
+            t2 is RecursiveType -> unifyRecursiveWithType(t2, t1, substitution)
+            
             // Union types
             t1 is UnionType && t2 is UnionType -> unifyUnionTypes(t1, t2, substitution)
+            
+            // Union type with non-union type - try to match against one of the alternatives
+            t1 is UnionType -> unifyUnionWithType(t1, t2, substitution)
+            t2 is UnionType -> unifyUnionWithType(t2, t1, substitution)
             
             // Intersection types
             t1 is IntersectionType && t2 is IntersectionType -> unifyIntersectionTypes(t1, t2, substitution)
@@ -338,9 +349,74 @@ object Unification {
             }
             is UnionType -> type.alternatives.any { occursCheck(typeVar, it) }
             is IntersectionType -> type.members.any { occursCheck(typeVar, it) }
+            is RecursiveType -> {
+                // For recursive types, we need to be careful about the occurs check
+                // The recursive variable itself is bound within the type, so we shouldn't
+                // consider it a problematic occurrence if it matches the type's own recursive var
+                if (typeVar == type.recursiveVar) {
+                    // This is fine - the type variable is bound by this recursive type
+                    false
+                } else {
+                    // Check for occurrences in the body, but exclude the recursive variable
+                    // since it's bound within this scope
+                    occursCheck(typeVar, type.body)
+                }
+            }
             is TypeAlias -> type.typeArguments.any { occursCheck(typeVar, it) }
             is PrimitiveType, is LiteralStringType -> false
         }
+    }
+    
+    /**
+     * Unify two recursive types using equi-recursive approach.
+     * Two recursive types unify if their unfolded bodies unify.
+     */
+    private fun unifyRecursiveTypes(rec1: RecursiveType, rec2: RecursiveType, substitution: Substitution): Substitution {
+        // For equi-recursive types, we check if the types have the same structure
+        // by checking if their names match and their bodies are equivalent
+        if (rec1.name != rec2.name) {
+            throw UnificationException("Cannot unify recursive types with different names: ${rec1.name} vs ${rec2.name}")
+        }
+        
+        // Create a mapping from rec2's recursive variable to rec1's recursive variable
+        // This allows us to compare the bodies with aligned recursive references
+        val variableMapping = Substitution.single(rec2.recursiveVar, rec1.recursiveVar)
+        val alignedBody2 = variableMapping.apply(rec2.body)
+        
+        // Now unify the bodies with the recursive variables aligned
+        return unifyInternal(rec1.body, alignedBody2, substitution)
+    }
+    
+    /**
+     * Unify a union type with a non-union type.
+     * The non-union type must match one of the alternatives in the union.
+     */
+    private fun unifyUnionWithType(union: UnionType, type: Type, substitution: Substitution): Substitution {
+        // Try to unify the type with each alternative in the union
+        for (alternative in union.alternatives) {
+            try {
+                // If unification succeeds with this alternative, return the result
+                return unifyInternal(alternative, type, substitution)
+            } catch (e: UnificationException) {
+                // Try next alternative
+                continue
+            }
+        }
+        
+        // If none of the alternatives unify, the unification fails
+        throw UnificationException("Cannot unify $type with any alternative in union $union")
+    }
+    
+    /**
+     * Unify a recursive type with a non-recursive type.
+     * This unfolds the recursive type and attempts unification with its body.
+     */
+    private fun unifyRecursiveWithType(recursiveType: RecursiveType, type: Type, substitution: Substitution): Substitution {
+        // Unfold the recursive type to its body
+        val unfoldedBody = recursiveType.body
+        
+        // Try to unify the unfolded body with the other type
+        return unifyInternal(unfoldedBody, type, substitution)
     }
 }
 

@@ -620,27 +620,31 @@ class ConstraintGenerator(
     private fun generateConstraintsForPattern(pattern: Pattern, expectedType: Type): Pair<ConstraintSet, Map<String, Type>> {
         val sourceLocation = extractSourceLocation(pattern.location())
         
+        // Unfold recursive types before pattern matching
+        val unfoldedExpectedType = unfoldRecursiveType(expectedType)
+        
         return when (pattern) {
             is LiteralIntPattern -> {
                 // Pattern must match Int type
-                val constraint = EqualityConstraint(expectedType, Types.Int, sourceLocation)
+                val constraint = EqualityConstraint(unfoldedExpectedType, Types.Int, sourceLocation)
                 Pair(ConstraintSet.of(listOf(constraint)), emptyMap())
             }
             
             is LiteralStringPattern -> {
-                // Pattern must match String type
-                val constraint = EqualityConstraint(expectedType, Types.String, sourceLocation)
+                // Pattern must match String type or literal string type
+                val literalType = Types.literal(pattern.value.value)
+                val constraint = EqualityConstraint(unfoldedExpectedType, literalType, sourceLocation)
                 Pair(ConstraintSet.of(listOf(constraint)), emptyMap())
             }
             
             is LiteralBoolPattern -> {
                 // Pattern must match Bool type
-                val constraint = EqualityConstraint(expectedType, Types.Bool, sourceLocation)
+                val constraint = EqualityConstraint(unfoldedExpectedType, Types.Bool, sourceLocation)
                 Pair(ConstraintSet.of(listOf(constraint)), emptyMap())
             }
             
             is VarPattern -> {
-                // Variable pattern binds the expected type
+                // Variable pattern binds the expected type (use original, not unfolded)
                 val varName = pattern.id.value
                 val bindings = mapOf(varName to expectedType)
                 Pair(ConstraintSet.empty(), bindings)
@@ -655,7 +659,7 @@ class ConstraintGenerator(
                 // Expected type must be a tuple with matching arity
                 val elementTypes = pattern.elements.map { TypeVariable.fresh() }
                 val tupleType = TupleType(elementTypes)
-                val tupleConstraint = EqualityConstraint(expectedType, tupleType, sourceLocation)
+                val tupleConstraint = EqualityConstraint(unfoldedExpectedType, tupleType, sourceLocation)
                 
                 // Generate constraints for each element pattern
                 val elementResults = pattern.elements.zip(elementTypes).map { (elementPattern, elementType) ->
@@ -697,7 +701,7 @@ class ConstraintGenerator(
                 // Create record type with a row variable for additional fields
                 val rowVariable = TypeVariable.fresh()
                 val recordType = RecordType(patternFields, rowVariable)
-                val recordConstraint = EqualityConstraint(expectedType, recordType, sourceLocation)
+                val recordConstraint = EqualityConstraint(unfoldedExpectedType, recordType, sourceLocation)
                 allConstraints.add(recordConstraint)
                 
                 Pair(ConstraintSet.of(allConstraints), allBindings)
@@ -707,6 +711,21 @@ class ConstraintGenerator(
                 // Unknown pattern type, generate error or default behavior
                 throw ConstraintGenerationException("Unsupported pattern type: ${pattern::class.simpleName}")
             }
+        }
+    }
+    
+    /**
+     * Unfold a recursive type by returning its body.
+     * This allows pattern matching to work with the structure inside the recursive type.
+     */
+    private fun unfoldRecursiveType(type: Type): Type {
+        return when (type) {
+            is RecursiveType -> {
+                // Simply return the body - the recursive variable will be handled
+                // by the constraint solver when needed
+                type.body
+            }
+            else -> type
         }
     }
     
