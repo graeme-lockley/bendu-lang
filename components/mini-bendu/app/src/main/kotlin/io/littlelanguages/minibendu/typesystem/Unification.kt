@@ -60,8 +60,8 @@ object Unification {
             // Identical types
             t1 == t2 -> substitution
             
-            // Structurally equivalent types
-            t1.structurallyEquivalent(t2) -> substitution
+            // Structurally equivalent types (but skip for record types to ensure row variable unification)
+            t1.structurallyEquivalent(t2) && !(t1 is RecordType && t2 is RecordType) -> substitution
             
             // Type variable cases
             t1 is TypeVariable -> unifyVariable(t1, t2, substitution)
@@ -153,7 +153,11 @@ object Unification {
         val fieldSubst = commonFieldNames.fold(substitution) { currentSubst, fieldName ->
             val fieldType1 = record1.fields[fieldName]!!
             val fieldType2 = record2.fields[fieldName]!!
-            unifyInternal(fieldType1, fieldType2, currentSubst)
+            try {
+                unifyInternal(fieldType1, fieldType2, currentSubst)
+            } catch (e: UnificationException) {
+                throw UnificationException("Cannot unify field '$fieldName': ${e.message}")
+            }
         }
         
         // Apply the field substitution to both records (important for subsequent checks)

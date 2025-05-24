@@ -353,8 +353,9 @@ class ConstraintSolver {
                 Substitution.empty
             }
             is TypeVariable -> {
-                // Unify the type variable with a fresh record type
-                val emptyRecord = RecordType(emptyMap())
+                // Unify the type variable with a fresh open record type
+                val rowVariable = TypeVariable.fresh()
+                val emptyRecord = RecordType(emptyMap(), rowVariable)
                 unify(constraint.type, emptyRecord, constraint.sourceLocation)
             }
             else -> {
@@ -444,8 +445,9 @@ class ConstraintSolver {
             }
         }
         
-        // Create the result record type
-        val resultRecordType = RecordType(mergedFields)
+        // Create the result record type with a fresh row variable to maintain openness
+        val rowVariable = TypeVariable.fresh()
+        val resultRecordType = RecordType(mergedFields, rowVariable)
         
         // Unify the result type with the merged record type
         val unificationResult = unify(constraint.resultType, resultRecordType, constraint.sourceLocation)

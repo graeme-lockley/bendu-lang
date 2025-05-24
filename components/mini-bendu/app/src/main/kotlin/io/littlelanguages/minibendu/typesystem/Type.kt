@@ -100,19 +100,15 @@ class RecordType(val fields: Map<String, Type>, val rowVar: TypeVariable? = null
             if (!type.structurallyEquivalent(otherType)) return false
         }
         
+        // Check if the other record has any fields we don't have
+        for ((name, _) in other.fields) {
+            if (name !in fields) return false
+        }
+        
         // Both records must have the same "openness" - both open or both closed
-        if ((rowVar != null) != (other.rowVar != null)) {
-            return false // One is open, one is closed - not structurally equivalent
-        }
-        
-        // For open records, we need the same fields and the same row variables
-        if (rowVar != null && other.rowVar != null) {
-            // Both are open - they're equivalent only if they have the same fields AND same row variables
-            return fields.keys == other.fields.keys && rowVar == other.rowVar
-        }
-        
-        // For closed records, field sets must be identical
-        return fields.keys == other.fields.keys
+        // For structural equivalence, we don't require the same row variable identity,
+        // just that both are open or both are closed
+        return (rowVar != null) == (other.rowVar != null)
     }
     
     override fun freeTypeVariables(): Set<TypeVariable> {

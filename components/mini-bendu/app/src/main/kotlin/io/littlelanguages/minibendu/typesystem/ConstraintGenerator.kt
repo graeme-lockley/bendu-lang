@@ -426,8 +426,9 @@ class ConstraintGenerator(
             val mergeConstraint = MergeConstraint(resultType, spreadTypes, explicitFields, sourceLocation)
             allConstraints = allConstraints.add(mergeConstraint)
         } else {
-            // No spreads, just a regular record
-            val recordType = RecordType(explicitFields)
+            // No spreads, create an open record with a fresh row variable for extensibility
+            val rowVariable = TypeVariable.fresh()
+            val recordType = RecordType(explicitFields, rowVariable)
             val recordConstraint = EqualityConstraint(resultType, recordType, sourceLocation)
             allConstraints = allConstraints.add(recordConstraint)
         }
