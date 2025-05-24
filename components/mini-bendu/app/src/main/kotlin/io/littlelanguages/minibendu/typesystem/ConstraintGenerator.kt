@@ -392,33 +392,45 @@ class ConstraintGenerator(
      * Generate constraints for record expressions.
      */
     private fun generateConstraintsForRecord(expr: RecordExpr, env: TypeEnvironment): Pair<Type, ConstraintSet> {
-        val fieldResults = mutableMapOf<String, Type>()
+        val explicitFields = mutableMapOf<String, Type>()
         var allConstraints = ConstraintSet.empty()
+        val spreadTypes = mutableListOf<Type>()
         
         for (field in expr.fields) {
             when (field) {
                 is FieldExpr -> {
                     val fieldName = field.id.value
                     val (fieldType, fieldConstraints) = generateConstraintsInternal(field.value, env)
-                    fieldResults[fieldName] = fieldType
+                    explicitFields[fieldName] = fieldType
                     allConstraints = allConstraints.union(fieldConstraints)
                 }
                 is SpreadExpr -> {
-                    // Handle spread operations - this is a more advanced feature
-                    // For now, we'll generate constraints but not fully implement spread semantics
+                    // Handle spread operations by constraining the spread expression to be a record type
                     val (spreadType, spreadConstraints) = generateConstraintsInternal(field.expr, env)
                     allConstraints = allConstraints.union(spreadConstraints)
-                    // TODO: Add constraints to ensure spreadType is a record and merge its fields
+                    spreadTypes.add(spreadType)
+                    
+                    // Create a constraint that the spread type must be a record type
+                    val sourceLocation = extractSourceLocation(expr.location())
+                    val recordConstraint = RecordTypeConstraint(spreadType, sourceLocation)
+                    allConstraints = allConstraints.add(recordConstraint)
                 }
             }
         }
         
         val resultType = TypeVariable.fresh()
-        val recordType = RecordType(fieldResults)
         val sourceLocation = extractSourceLocation(expr.location())
         
-        val recordConstraint = EqualityConstraint(resultType, recordType, sourceLocation)
-        allConstraints = allConstraints.add(recordConstraint)
+        // Create a merge constraint that combines all spread types and explicit fields
+        if (spreadTypes.isNotEmpty()) {
+            val mergeConstraint = MergeConstraint(resultType, spreadTypes, explicitFields, sourceLocation)
+            allConstraints = allConstraints.add(mergeConstraint)
+        } else {
+            // No spreads, just a regular record
+            val recordType = RecordType(explicitFields)
+            val recordConstraint = EqualityConstraint(resultType, recordType, sourceLocation)
+            allConstraints = allConstraints.add(recordConstraint)
+        }
         
         return Pair(resultType, allConstraints)
     }

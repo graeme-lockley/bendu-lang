@@ -331,3 +331,102 @@ data class SourceLocation(
         return if (filename != null) "$filename:$line:$column" else "$line:$column"
     }
 }
+
+/**
+ * Record type constraint: T must be a record type.
+ * 
+ * Used to ensure that a type is a record type, particularly
+ * for spread operations where we need to merge record fields.
+ */
+data class RecordTypeConstraint(
+    val type: Type,
+    override val sourceLocation: SourceLocation? = null,
+    override val origin: ConstraintOrigin = ConstraintOrigin.INFERENCE
+) : TypeConstraint() {
+    
+    override val priority: ConstraintPriority = ConstraintPriority.HIGH
+    
+    override fun involvesVariable(variable: TypeVariable): Boolean {
+        return type.freeTypeVariables().contains(variable)
+    }
+    
+    override fun typeVariables(): Set<TypeVariable> {
+        return type.freeTypeVariables()
+    }
+    
+    override fun applySubstitution(substitution: Substitution): RecordTypeConstraint {
+        return RecordTypeConstraint(
+            substitution.apply(type),
+            sourceLocation,
+            origin
+        )
+    }
+    
+    override fun freeVariables(): Set<TypeVariable> {
+        return type.freeTypeVariables()
+    }
+    
+    override fun simplify(): List<TypeConstraint> {
+        // If type is already a record type, constraint is satisfied
+        return if (type is RecordType) {
+            emptyList()
+        } else {
+            listOf(this) // Cannot be simplified further
+        }
+    }
+    
+    override fun toString(): String = "$type must be record"
+}
+
+/**
+ * Merge constraint: result = merge(spreadTypes, explicitFields)
+ * 
+ * Represents that the result type should be a record containing
+ * all fields from the spread types plus the explicit fields.
+ * Later fields override earlier ones in case of conflicts.
+ */
+data class MergeConstraint(
+    val resultType: Type,
+    val spreadTypes: List<Type>,
+    val explicitFields: Map<String, Type>,
+    override val sourceLocation: SourceLocation? = null,
+    override val origin: ConstraintOrigin = ConstraintOrigin.INFERENCE
+) : TypeConstraint() {
+    
+    override val priority: ConstraintPriority = ConstraintPriority.MEDIUM
+    
+    override fun involvesVariable(variable: TypeVariable): Boolean {
+        return resultType.freeTypeVariables().contains(variable) ||
+               spreadTypes.any { it.freeTypeVariables().contains(variable) } ||
+               explicitFields.values.any { it.freeTypeVariables().contains(variable) }
+    }
+    
+    override fun typeVariables(): Set<TypeVariable> {
+        return resultType.freeTypeVariables() +
+               spreadTypes.flatMap { it.freeTypeVariables() }.toSet() +
+               explicitFields.values.flatMap { it.freeTypeVariables() }.toSet()
+    }
+    
+    override fun applySubstitution(substitution: Substitution): MergeConstraint {
+        return MergeConstraint(
+            substitution.apply(resultType),
+            spreadTypes.map { substitution.apply(it) },
+            explicitFields.mapValues { (_, type) -> substitution.apply(type) },
+            sourceLocation,
+            origin
+        )
+    }
+    
+    override fun freeVariables(): Set<TypeVariable> {
+        return resultType.freeTypeVariables() +
+               spreadTypes.flatMap { it.freeTypeVariables() }.toSet() +
+               explicitFields.values.flatMap { it.freeTypeVariables() }.toSet()
+    }
+    
+    override fun simplify(): List<TypeConstraint> {
+        // Can't simplify without knowing the concrete types
+        return listOf(this)
+    }
+    
+    override fun toString(): String = "$resultType = merge(${spreadTypes.joinToString(", ")}, {${explicitFields.entries.joinToString(", ") { "${it.key}: ${it.value}" }}})"
+}

@@ -77,6 +77,8 @@ class ConstraintSolver {
                 is EqualityConstraint -> solveEqualityConstraint(substitutedConstraint)
                 is SubtypingConstraint -> solveSubtypingConstraint(substitutedConstraint)
                 is InstanceConstraint -> solveInstanceConstraint(substitutedConstraint)
+                is RecordTypeConstraint -> solveRecordTypeConstraint(substitutedConstraint)
+                is MergeConstraint -> solveMergeConstraint(substitutedConstraint)
                 else -> throw UnificationException("Unknown constraint type: ${substitutedConstraint::class.simpleName}")
             }
             
@@ -341,6 +343,114 @@ class ConstraintSolver {
         }
     }
     
+    /**
+     * Solve record type constraint: ensure type is a record type
+     */
+    private fun solveRecordTypeConstraint(constraint: RecordTypeConstraint): Substitution {
+        return when (constraint.type) {
+            is RecordType -> {
+                // Already a record type, constraint is satisfied
+                Substitution.empty
+            }
+            is TypeVariable -> {
+                // Unify the type variable with a fresh record type
+                val emptyRecord = RecordType(emptyMap())
+                unify(constraint.type, emptyRecord, constraint.sourceLocation)
+            }
+            else -> {
+                throw UnificationException(
+                    "Type ${constraint.type} cannot be constrained to be a record type" +
+                    if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
+                )
+            }
+        }
+    }
+    
+    /**
+     * Solve merge constraint: result = merge(spreadTypes, explicitFields)
+     */
+    private fun solveMergeConstraint(constraint: MergeConstraint): Substitution {
+        val mergedFields = mutableMapOf<String, Type>()
+        var combinedSubstitution = Substitution.empty
+        
+        // First, collect fields from all spread types
+        for (spreadType in constraint.spreadTypes) {
+            val appliedSpreadType = combinedSubstitution.apply(spreadType)
+            when (appliedSpreadType) {
+                is RecordType -> {
+                    // Check for field conflicts before merging
+                    for ((fieldName, fieldType) in appliedSpreadType.fields) {
+                        val existingType = mergedFields[fieldName]
+                        if (existingType != null) {
+                            // Try to unify conflicting field types
+                            try {
+                                val fieldUnification = unify(existingType, fieldType, constraint.sourceLocation)
+                                combinedSubstitution = fieldUnification.compose(combinedSubstitution)
+                                // Use the unified type
+                                mergedFields[fieldName] = combinedSubstitution.apply(fieldType)
+                            } catch (e: UnificationException) {
+                                throw UnificationException(
+                                    "Cannot merge field '$fieldName': conflicting types $existingType and $fieldType" +
+                                    if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
+                                )
+                            }
+                        } else {
+                            mergedFields[fieldName] = combinedSubstitution.apply(fieldType)
+                        }
+                    }
+                }
+                is TypeVariable -> {
+                    // For type variables, we need to constrain them to be record types
+                    // Create a fresh record type variable and unify
+                    val freshRecordType = RecordType(emptyMap(), TypeVariable.fresh())
+                    try {
+                        val varUnification = unify(appliedSpreadType, freshRecordType, constraint.sourceLocation)
+                        combinedSubstitution = varUnification.compose(combinedSubstitution)
+                    } catch (e: UnificationException) {
+                        throw UnificationException(
+                            "Type variable ${appliedSpreadType} cannot be constrained to record type in merge operation" +
+                            if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
+                        )
+                    }
+                }
+                else -> {
+                    throw UnificationException(
+                        "Cannot spread non-record type ${appliedSpreadType} in merge operation" +
+                        if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
+                    )
+                }
+            }
+        }
+        
+        // Add explicit fields, checking for type compatibility with spread fields
+        for ((fieldName, fieldType) in constraint.explicitFields) {
+            val appliedFieldType = combinedSubstitution.apply(fieldType)
+            val existingType = mergedFields[fieldName]
+            if (existingType != null) {
+                // Field override: explicit field overrides spread field, but types must be unifiable
+                try {
+                    val fieldUnification = unify(existingType, appliedFieldType, constraint.sourceLocation)
+                    combinedSubstitution = fieldUnification.compose(combinedSubstitution)
+                    // Use the unified type (explicit field wins, but must be compatible)
+                    mergedFields[fieldName] = combinedSubstitution.apply(appliedFieldType)
+                } catch (e: UnificationException) {
+                    throw UnificationException(
+                        "Cannot override field '$fieldName': incompatible types $existingType and $appliedFieldType" +
+                        if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
+                    )
+                }
+            } else {
+                mergedFields[fieldName] = appliedFieldType
+            }
+        }
+        
+        // Create the result record type
+        val resultRecordType = RecordType(mergedFields)
+        
+        // Unify the result type with the merged record type
+        val unificationResult = unify(constraint.resultType, resultRecordType, constraint.sourceLocation)
+        return unificationResult.compose(combinedSubstitution)
+    }
 
 }
 
