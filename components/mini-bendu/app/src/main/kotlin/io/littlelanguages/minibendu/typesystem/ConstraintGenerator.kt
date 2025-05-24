@@ -108,11 +108,24 @@ class ConstraintGenerator(
     
     /**
      * Generate constraints for string literals.
+     * 
+     * This implementation supports both general String types and specific string literal types.
+     * String literal types enable discriminated unions and typed enumerations.
+     * 
+     * For example:
+     * - "success" can be inferred as the literal type "success" 
+     * - This allows union types like "pending" | "fulfilled" | "rejected"
+     * - Enables precise type-level constraints for string constants
      */
     private fun generateConstraintsForStringLiteral(expr: LiteralStringExpr): Pair<Type, ConstraintSet> {
         val resultType = TypeVariable.fresh()
         val sourceLocation = extractSourceLocation(expr.location())
-        val constraint = EqualityConstraint(resultType, Types.String, sourceLocation)
+        
+        // Create a string literal type for the specific value
+        // This enables discriminated unions and typed enums
+        val literalType = LiteralStringType(expr.value.value)
+        
+        val constraint = EqualityConstraint(resultType, literalType, sourceLocation)
         return Pair(resultType, ConstraintSet.of(constraint))
     }
     

@@ -66,7 +66,8 @@ class ConstraintGenerationTest {
         assertTrue(constraint is EqualityConstraint, "Should be an equality constraint")
         
         val equalityConstraint = constraint as EqualityConstraint
-        assertEquals(Types.String, equalityConstraint.type2, "Should constrain to String type")
+        val expectedType = LiteralStringType("hello")
+        assertEquals(expectedType, equalityConstraint.type2, "Should constrain to literal string type 'hello'")
         assertEquals(inferredType, equalityConstraint.type1, "Should constrain the inferred type")
     }
     
