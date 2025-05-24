@@ -111,6 +111,16 @@ class ConstraintSolver {
                 Substitution.empty
             }
             
+            // Union type subtyping: T <: (A | B) if T <: A or T <: B
+            constraint.supertype is UnionType -> {
+                solveUnionSupertypeSubtyping(constraint.subtype, constraint.supertype, constraint.sourceLocation)
+            }
+            
+            // Union type subtyping: (A | B) <: T if A <: T and B <: T
+            constraint.subtype is UnionType -> {
+                solveUnionSubtypeSubtyping(constraint.subtype, constraint.supertype, constraint.sourceLocation)
+            }
+            
             // Record width subtyping: {a: A, b: B} <: {a: A}
             constraint.subtype is RecordType && constraint.supertype is RecordType -> {
                 solveRecordSubtyping(constraint.subtype, constraint.supertype, constraint.sourceLocation)
@@ -137,6 +147,60 @@ class ConstraintSolver {
                 )
             }
         }
+    }
+    
+    /**
+     * Solve union supertype subtyping: T <: (A | B)
+     * This succeeds if T can be unified with any alternative in the union
+     */
+    private fun solveUnionSupertypeSubtyping(subtype: Type, superUnion: UnionType, location: SourceLocation?): Substitution {
+        // Try to unify the subtype with each alternative in the union
+        for (alternative in superUnion.alternatives) {
+            try {
+                // If unification succeeds with any alternative, the constraint is satisfied
+                return unify(subtype, alternative, location)
+            } catch (e: UnificationException) {
+                // Continue trying other alternatives
+                continue
+            }
+        }
+        
+        // If no alternative works, check if subtype is a type variable that can be constrained
+        if (subtype is TypeVariable) {
+            // For now, fail - more sophisticated handling could create fresh variables
+            throw UnificationException(
+                "Type variable $subtype cannot be constrained to union type $superUnion" +
+                if (location != null) " at $location" else ""
+            )
+        }
+        
+        throw UnificationException(
+            "Type $subtype is not a subtype of union $superUnion" +
+            if (location != null) " at $location" else ""
+        )
+    }
+    
+    /**
+     * Solve union subtype subtyping: (A | B) <: T
+     * This succeeds if all alternatives in the union are subtypes of T
+     */
+    private fun solveUnionSubtypeSubtyping(unionSubtype: UnionType, supertype: Type, location: SourceLocation?): Substitution {
+        var combinedSubstitution = Substitution.empty
+        
+        // Each alternative in the union must be a subtype of the supertype
+        for (alternative in unionSubtype.alternatives) {
+            try {
+                val altSubstitution = unify(alternative, supertype, location)
+                combinedSubstitution = altSubstitution.compose(combinedSubstitution)
+            } catch (e: UnificationException) {
+                throw UnificationException(
+                    "Union alternative $alternative is not a subtype of $supertype in union subtyping" +
+                    if (location != null) " at $location" else ""
+                )
+            }
+        }
+        
+        return combinedSubstitution
     }
     
     /**

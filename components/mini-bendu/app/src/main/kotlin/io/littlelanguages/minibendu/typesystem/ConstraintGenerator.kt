@@ -545,7 +545,8 @@ class ConstraintGenerator(
             is UnionTypeExpr -> {
                 val left = typeExprToType(typeExpr.left)
                 val right = typeExprToType(typeExpr.right)
-                UnionType(setOf(left, right))
+                // Use normalized union creation to handle flattening and simplification
+                UnionType.create(setOf(left, right))
             }
             is TupleTypeExpr -> {
                 val elements = typeExpr.types.map { typeExprToType(it) }

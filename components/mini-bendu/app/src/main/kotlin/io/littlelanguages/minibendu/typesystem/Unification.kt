@@ -226,19 +226,48 @@ object Unification {
     
     /**
      * Unify two union types by checking that they have the same alternatives.
+     * Enhanced to support more sophisticated union unification patterns.
      */
     private fun unifyUnionTypes(union1: UnionType, union2: UnionType, substitution: Substitution): Substitution {
+        // First try simple structural equivalence
+        if (union1.structurallyEquivalent(union2)) {
+            return substitution
+        }
+        
+        // If sizes differ, they cannot be unified directly
         if (union1.alternatives.size != union2.alternatives.size) {
-            throw UnificationException("Cannot unify unions with different number of alternatives")
+            throw UnificationException("Cannot unify unions with different number of alternatives: ${union1.alternatives.size} vs ${union2.alternatives.size}")
         }
         
-        // For now, require exact structural equivalence of alternatives
-        // More sophisticated unification could try to match alternatives in different orders
-        if (!union1.structurallyEquivalent(union2)) {
-            throw UnificationException("Cannot unify unions with different alternatives: $union1 vs $union2")
+        // Try to find a bijective mapping between alternatives
+        val used = mutableSetOf<Type>()
+        var currentSubst = substitution
+        
+        for (alt1 in union1.alternatives) {
+            var unified = false
+            
+            for (alt2 in union2.alternatives) {
+                if (alt2 in used) continue
+                
+                try {
+                    // Try to unify this pair of alternatives
+                    val altSubst = unifyInternal(alt1, alt2, currentSubst)
+                    used.add(alt2)
+                    currentSubst = altSubst
+                    unified = true
+                    break
+                } catch (e: UnificationException) {
+                    // Try next alternative
+                    continue
+                }
+            }
+            
+            if (!unified) {
+                throw UnificationException("Cannot unify union alternative $alt1 with any alternative in $union2")
+            }
         }
         
-        return substitution
+        return currentSubst
     }
     
     /**

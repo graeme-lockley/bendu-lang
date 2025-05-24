@@ -168,6 +168,54 @@ class UnionType(val alternatives: Set<Type>) : Type() {
         require(alternatives.size >= 2) { "Union type must have at least 2 alternatives" }
     }
     
+    companion object {
+        /**
+         * Create a normalized union type from a set of types.
+         * Automatically handles flattening, deduplication, and simplification.
+         */
+        fun create(types: Set<Type>): Type {
+            val normalized = normalize(types)
+            return when {
+                normalized.isEmpty() -> throw IllegalArgumentException("Cannot create union from empty set")
+                normalized.size == 1 -> normalized.first()
+                else -> UnionType(normalized)
+            }
+        }
+        
+        /**
+         * Create a union from multiple types with automatic normalization.
+         */
+        fun of(vararg types: Type): Type = create(types.toSet())
+        
+        /**
+         * Normalize a set of types for union creation by:
+         * - Flattening nested unions
+         * - Removing duplicates
+         * - Eliminating redundant types
+         */
+        private fun normalize(types: Set<Type>): Set<Type> {
+            val result = mutableSetOf<Type>()
+            
+            for (type in types) {
+                when (type) {
+                    is UnionType -> {
+                        // Flatten nested unions
+                        result.addAll(type.alternatives)
+                    }
+                    else -> {
+                        result.add(type)
+                    }
+                }
+            }
+            
+            // Remove duplicates through Set semantics
+            // TODO: Could add more sophisticated redundancy elimination
+            // e.g., if we have both Int and (Int | String), keep only (Int | String)
+            
+            return result
+        }
+    }
+    
     override fun structurallyEquivalent(other: Type): Boolean {
         return other is UnionType && alternatives.size == other.alternatives.size &&
                alternatives.all { alt -> other.alternatives.any { it.structurallyEquivalent(alt) } }
@@ -175,6 +223,62 @@ class UnionType(val alternatives: Set<Type>) : Type() {
     
     override fun freeTypeVariables(): Set<TypeVariable> {
         return alternatives.flatMap { it.freeTypeVariables() }.toSet()
+    }
+    
+    /**
+     * Check if this union contains a specific type as an alternative.
+     */
+    fun contains(type: Type): Boolean {
+        return alternatives.any { it.structurallyEquivalent(type) }
+    }
+    
+    /**
+     * Check if this union is a subtype of another type.
+     * A union (A | B) is a subtype of T if both A <: T and B <: T.
+     */
+    fun isSubtypeOf(supertype: Type): Boolean {
+        return alternatives.all { alternative ->
+            // Simplified subtype check - could be enhanced with proper subtype logic
+            alternative.structurallyEquivalent(supertype) ||
+            (supertype is UnionType && supertype.contains(alternative))
+        }
+    }
+    
+    /**
+     * Check if a type is a subtype of this union.
+     * A type T is a subtype of union (A | B) if T <: A or T <: B.
+     */
+    fun isSupertypeOf(subtype: Type): Boolean {
+        return alternatives.any { alternative ->
+            // Simplified subtype check
+            subtype.structurallyEquivalent(alternative) ||
+            (subtype is UnionType && subtype.isSubtypeOf(alternative))
+        }
+    }
+    
+    /**
+     * Simplify this union by removing redundant alternatives.
+     * Returns a simplified type (might not be a union if simplified to one alternative).
+     */
+    fun simplify(): Type {
+        val simplified = alternatives.toSet() // For now, just ensure no duplicates
+        
+        return when {
+            simplified.isEmpty() -> throw IllegalStateException("Union cannot be empty")
+            simplified.size == 1 -> simplified.first()
+            else -> UnionType(simplified)
+        }
+    }
+    
+    /**
+     * Get the union of this union with another type.
+     */
+    fun union(other: Type): Type {
+        val newAlternatives = when (other) {
+            is UnionType -> alternatives + other.alternatives
+            else -> alternatives + other
+        }
+        return create(newAlternatives)
     }
     
     override fun toString(): String = alternatives.joinToString(" | ")
