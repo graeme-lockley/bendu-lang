@@ -100,9 +100,15 @@ class RecordType(val fields: Map<String, Type>, val rowVar: TypeVariable? = null
             if (!type.structurallyEquivalent(otherType)) return false
         }
         
-        // For open records (with row variables), we only require subset compatibility
-        if (rowVar != null || other.rowVar != null) {
-            return true // Open records are compatible if fields match
+        // Both records must have the same "openness" - both open or both closed
+        if ((rowVar != null) != (other.rowVar != null)) {
+            return false // One is open, one is closed - not structurally equivalent
+        }
+        
+        // For open records, we need the same fields and the same row variables
+        if (rowVar != null && other.rowVar != null) {
+            // Both are open - they're equivalent only if they have the same fields AND same row variables
+            return fields.keys == other.fields.keys && rowVar == other.rowVar
         }
         
         // For closed records, field sets must be identical

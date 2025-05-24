@@ -41,12 +41,41 @@ class Substitution internal constructor(
             is PrimitiveType -> type
             is LiteralStringType -> type
             is FunctionType -> FunctionType(apply(type.domain), apply(type.codomain))
-            is RecordType -> RecordType(
-                type.fields.mapValues { (_, fieldType) -> apply(fieldType) },
-                type.rowVar?.let { apply(it) as? TypeVariable }
-            )
+            is RecordType -> applyToRecordType(type)
             is TupleType -> TupleType(type.elements.map { apply(it) })
             is UnionType -> UnionType(type.alternatives.map { apply(it) }.toSet())
+        }
+    }
+    
+    /**
+     * Apply substitution to a record type, handling row variable substitution properly.
+     */
+    private fun applyToRecordType(recordType: RecordType): RecordType {
+        val substitutedFields = recordType.fields.mapValues { (_, fieldType) -> apply(fieldType) }
+        
+        if (recordType.rowVar == null) {
+            // Closed record - just apply substitution to fields
+            return RecordType(substitutedFields)
+        }
+        
+        // Open record - need to handle row variable substitution
+        val substitutedRowVar = apply(recordType.rowVar)
+        
+        return when (substitutedRowVar) {
+            is TypeVariable -> {
+                // Row variable is still a variable - keep it as the row variable
+                RecordType(substitutedFields, substitutedRowVar)
+            }
+            is RecordType -> {
+                // Row variable was substituted with a record - merge the fields
+                val mergedFields = substitutedFields + substitutedRowVar.fields
+                RecordType(mergedFields, substitutedRowVar.rowVar)
+            }
+            else -> {
+                // Row variable was substituted with something else (shouldn't happen in well-formed substitutions)
+                // For safety, treat as closed record
+                RecordType(substitutedFields)
+            }
         }
     }
     
