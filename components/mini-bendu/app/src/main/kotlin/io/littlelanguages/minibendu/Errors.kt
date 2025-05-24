@@ -1,8 +1,7 @@
-package io.littlelanguages.bendu
+package io.littlelanguages.minibendu
 
-import io.littlelanguages.bendu.parser.TToken
-import io.littlelanguages.bendu.parser.Token
-import io.littlelanguages.bendu.typeinference.Type
+import io.littlelanguages.minibendu.parser.TToken
+import io.littlelanguages.minibendu.parser.Token
 import io.littlelanguages.scanpiler.Location
 import io.littlelanguages.scanpiler.LocationCoordinate
 import io.littlelanguages.scanpiler.LocationRange
@@ -72,22 +71,6 @@ data class ParsingError(val found: Token, val expected: Set<TToken>) : BenduErro
         printMessage(
             "Parsing Error", "found ${found.lexeme} at ${locationToString(found.location)}, expected $expected"
         )
-    }
-}
-
-data class SingleUnificationError(val e1: Type, val e2: Type) : BenduError() {
-    override fun printError() {
-        printMessage(
-            "Unification Error", "$e1${if (e1.location == null) "" else " " + locationToString(e1.location!!)}, $e2${
-                if (e2.location == null) "" else " ${locationToString(e2.location!!)}"
-            }"
-        )
-    }
-}
-
-data class MultipleUnificationError(val e1: List<Type>, val e2: List<Type>) : BenduError() {
-    override fun printError() {
-        printMessage("Unification Error", "$e1, $e2")
     }
 }
 

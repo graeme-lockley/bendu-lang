@@ -1,4 +1,4 @@
-package io.littlelanguages.bendu
+package io.littlelanguages.minibendu
 
 import kotlin.test.Test
 import kotlin.test.assertEquals

@@ -1,6 +1,6 @@
-package io.littlelanguages.bendu
+package io.littlelanguages.minibendu
 
-import io.littlelanguages.bendu.parser.*
+import io.littlelanguages.minibendu.parser.*
 import java.io.StringReader
 
 fun parse(scanner: Scanner, errors: Errors): Program {

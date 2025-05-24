@@ -59,3 +59,7 @@ let vv = match v1 with
     | Option.Some(n2) -> n1 + n2 }
 
 println(vv, ": ", @vv)
+
+
+let lst = [1, 2, 3, 4, 5]
+println(lst, ": ", @lst)

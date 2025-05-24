@@ -1,4 +1,4 @@
-package io.littlelanguages.bendu
+package io.littlelanguages.minibendu
 
 import io.littlelanguages.scanpiler.Location
 

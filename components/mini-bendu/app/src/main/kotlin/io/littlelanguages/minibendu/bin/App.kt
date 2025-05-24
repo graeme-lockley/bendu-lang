@@ -1,4 +1,4 @@
-package io.littlelanguages.bendu.bin
+package io.littlelanguages.minibendu.bin
 
 
 fun main(args: Array<String>) {
