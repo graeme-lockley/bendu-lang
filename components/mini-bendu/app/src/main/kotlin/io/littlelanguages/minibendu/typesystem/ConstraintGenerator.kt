@@ -176,8 +176,13 @@ class ConstraintGenerator(
         val sourceLocation = extractSourceLocation(expr.location())
         
         // For multiple arguments, create a curried function type: arg1 -> (arg2 -> ... -> result)
-        val expectedFunctionType = argumentTypes.foldRight(resultType as Type) { argType, accType ->
-            FunctionType(argType, accType)
+        // For no arguments, create a nullary function type: Unit -> result
+        val expectedFunctionType = if (argumentTypes.isEmpty()) {
+            FunctionType(Types.Unit, resultType)
+        } else {
+            argumentTypes.foldRight(resultType as Type) { argType, accType ->
+                FunctionType(argType, accType)
+            }
         }
         
         // Function must have the expected function type
