@@ -79,6 +79,9 @@ object Unification {
             // Union types
             t1 is UnionType && t2 is UnionType -> unifyUnionTypes(t1, t2, substitution)
             
+            // Intersection types
+            t1 is IntersectionType && t2 is IntersectionType -> unifyIntersectionTypes(t1, t2, substitution)
+            
             // Different types that cannot be unified
             else -> throw UnificationException("Cannot unify $t1 with $t2")
         }
@@ -271,6 +274,52 @@ object Unification {
     }
     
     /**
+     * Unify two intersection types by checking that they have the same members.
+     * Enhanced to support more sophisticated intersection unification patterns.
+     */
+    private fun unifyIntersectionTypes(intersection1: IntersectionType, intersection2: IntersectionType, substitution: Substitution): Substitution {
+        // First try simple structural equivalence
+        if (intersection1.structurallyEquivalent(intersection2)) {
+            return substitution
+        }
+        
+        // If sizes differ, they cannot be unified directly
+        if (intersection1.members.size != intersection2.members.size) {
+            throw UnificationException("Cannot unify intersections with different number of members: ${intersection1.members.size} vs ${intersection2.members.size}")
+        }
+        
+        // Try to find a bijective mapping between members
+        val used = mutableSetOf<Type>()
+        var currentSubst = substitution
+        
+        for (member1 in intersection1.members) {
+            var unified = false
+            
+            for (member2 in intersection2.members) {
+                if (member2 in used) continue
+                
+                try {
+                    // Try to unify this pair of members
+                    val memberSubst = unifyInternal(member1, member2, currentSubst)
+                    used.add(member2)
+                    currentSubst = memberSubst
+                    unified = true
+                    break
+                } catch (e: UnificationException) {
+                    // Try next member
+                    continue
+                }
+            }
+            
+            if (!unified) {
+                throw UnificationException("Cannot unify intersection member $member1 with any member in $intersection2")
+            }
+        }
+        
+        return currentSubst
+    }
+    
+    /**
      * Occurs check: determine if a type variable occurs within a type.
      * This prevents the creation of infinite types like τ = τ -> Int.
      */
@@ -284,6 +333,7 @@ object Unification {
                 (type.rowVar != null && occursCheck(typeVar, type.rowVar))
             }
             is UnionType -> type.alternatives.any { occursCheck(typeVar, it) }
+            is IntersectionType -> type.members.any { occursCheck(typeVar, it) }
             is TypeAlias -> type.typeArguments.any { occursCheck(typeVar, it) }
             is PrimitiveType, is LiteralStringType -> false
         }

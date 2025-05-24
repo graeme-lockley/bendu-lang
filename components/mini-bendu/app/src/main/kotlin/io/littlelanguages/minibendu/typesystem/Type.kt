@@ -161,6 +161,143 @@ class TupleType(val elements: List<Type>) : Type() {
 }
 
 /**
+ * Intersection types (A & B)
+ */
+class IntersectionType(val members: Set<Type>) : Type() {
+    init {
+        require(members.size >= 2) { "Intersection type must have at least 2 members" }
+    }
+    
+    companion object {
+        /**
+         * Create a normalized intersection type from a set of types.
+         * Automatically handles flattening, deduplication, and simplification.
+         */
+        fun create(types: Set<Type>): Type {
+            val normalized = normalize(types)
+            return when {
+                normalized.isEmpty() -> throw IllegalArgumentException("Cannot create intersection from empty set")
+                normalized.size == 1 -> normalized.first()
+                else -> IntersectionType(normalized)
+            }
+        }
+        
+        /**
+         * Create an intersection from multiple types with automatic normalization.
+         */
+        fun of(vararg types: Type): Type = create(types.toSet())
+        
+        /**
+         * Normalize a set of types for intersection creation by:
+         * - Flattening nested intersections
+         * - Removing duplicates
+         * - Eliminating redundant types
+         */
+        private fun normalize(types: Set<Type>): Set<Type> {
+            val result = mutableSetOf<Type>()
+            
+            for (type in types) {
+                when (type) {
+                    is IntersectionType -> {
+                        // Flatten nested intersections
+                        result.addAll(type.members)
+                    }
+                    else -> {
+                        result.add(type)
+                    }
+                }
+            }
+            
+            // Remove duplicates through Set semantics
+            // TODO: Could add more sophisticated redundancy elimination
+            // e.g., if we have both Int and (Int & String), keep only (Int & String)
+            
+            return result
+        }
+    }
+    
+    override fun structurallyEquivalent(other: Type): Boolean {
+        return other is IntersectionType && members.size == other.members.size &&
+               members.all { member -> other.members.any { it.structurallyEquivalent(member) } }
+    }
+    
+    override fun freeTypeVariables(): Set<TypeVariable> {
+        return members.flatMap { it.freeTypeVariables() }.toSet()
+    }
+    
+    /**
+     * Check if this intersection contains a specific type as a member.
+     */
+    fun contains(type: Type): Boolean {
+        return members.any { it.structurallyEquivalent(type) }
+    }
+    
+    /**
+     * Check if this intersection is a subtype of another type.
+     * An intersection (A & B) is a subtype of T if (A & B) <: T, which means
+     * both A <: T and B <: T (since the intersection must satisfy both constraints).
+     */
+    fun isSubtypeOf(supertype: Type): Boolean {
+        // An intersection is a subtype of a type if any of its members is a subtype
+        // because the intersection represents a value that satisfies ALL constraints
+        return members.any { member ->
+            member.structurallyEquivalent(supertype) ||
+            (supertype is IntersectionType && supertype.contains(member))
+        }
+    }
+    
+    /**
+     * Check if a type is a supertype of this intersection.
+     * A type T is a supertype of intersection (A & B) if T is a supertype of the intersection.
+     * This means T must be a supertype of both A and B.
+     */
+    fun isSupertypeOf(subtype: Type): Boolean {
+        // A type is a supertype of an intersection if it's a supertype of all members
+        return when (subtype) {
+            is IntersectionType -> subtype.members.all { subtypeMember ->
+                members.any { member -> member.structurallyEquivalent(subtypeMember) }
+            }
+            else -> members.any { member -> member.structurallyEquivalent(subtype) }
+        }
+    }
+    
+    /**
+     * Simplify this intersection by removing redundant members.
+     * Returns a simplified type (might not be an intersection if simplified to one member).
+     */
+    fun simplify(): Type {
+        val simplified = members.toSet() // For now, just ensure no duplicates
+        
+        return when {
+            simplified.isEmpty() -> throw IllegalStateException("Intersection cannot be empty")
+            simplified.size == 1 -> simplified.first()
+            else -> IntersectionType(simplified)
+        }
+    }
+    
+    /**
+     * Get the intersection of this intersection with another type.
+     */
+    fun intersect(other: Type): Type {
+        val newMembers = when (other) {
+            is IntersectionType -> members + other.members
+            else -> members + other
+        }
+        return create(newMembers)
+    }
+    
+    override fun toString(): String = members.joinToString(" & ")
+    
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is IntersectionType) return false
+        return members == other.members
+    }
+    
+    override fun hashCode(): Int = members.hashCode()
+}
+
+/**
  * Union types (A | B)
  */
 class UnionType(val alternatives: Set<Type>) : Type() {

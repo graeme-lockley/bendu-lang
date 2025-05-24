@@ -556,11 +556,11 @@ class ConstraintGenerator(
                 LiteralStringType(typeExpr.value.value)
             }
             is MergeTypeExpr -> {
-                // For now, treat merge as intersection - this is simplified
+                // Properly implement intersection types
                 val left = typeExprToType(typeExpr.left)
                 val right = typeExprToType(typeExpr.right)
-                // TODO: Implement proper intersection types
-                left // Return left type for now
+                // Use normalized intersection creation to handle flattening and simplification
+                IntersectionType.create(setOf(left, right))
             }
         }
     }

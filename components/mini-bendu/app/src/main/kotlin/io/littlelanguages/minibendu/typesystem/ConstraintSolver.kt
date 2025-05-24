@@ -121,6 +121,16 @@ class ConstraintSolver {
                 solveUnionSubtypeSubtyping(constraint.subtype, constraint.supertype, constraint.sourceLocation)
             }
             
+            // Intersection type subtyping: (A & B) <: T if A <: T or B <: T
+            constraint.subtype is IntersectionType -> {
+                solveIntersectionSubtypeSubtyping(constraint.subtype, constraint.supertype, constraint.sourceLocation)
+            }
+            
+            // Intersection type subtyping: T <: (A & B) if T <: A and T <: B
+            constraint.supertype is IntersectionType -> {
+                solveIntersectionSupertypeSubtyping(constraint.subtype, constraint.supertype, constraint.sourceLocation)
+            }
+            
             // Record width subtyping: {a: A, b: B} <: {a: A}
             constraint.subtype is RecordType && constraint.supertype is RecordType -> {
                 solveRecordSubtyping(constraint.subtype, constraint.supertype, constraint.sourceLocation)
@@ -200,9 +210,55 @@ class ConstraintSolver {
             }
         }
         
-        return combinedSubstitution
+                return combinedSubstitution
     }
     
+    /**
+     * Solve intersection subtype subtyping: (A & B) <: T
+     * This succeeds if any member in the intersection is a subtype of T
+     */
+    private fun solveIntersectionSubtypeSubtyping(intersectionSubtype: IntersectionType, supertype: Type, location: SourceLocation?): Substitution {
+        // An intersection is a subtype of T if any of its members is a subtype of T
+        // because the intersection represents a value that satisfies ALL constraints
+        for (member in intersectionSubtype.members) {
+            try {
+                // If any member can be unified with the supertype, the constraint is satisfied
+                return unify(member, supertype, location)
+            } catch (e: UnificationException) {
+                // Continue trying other members
+                continue
+            }
+        }
+        
+        throw UnificationException(
+            "Intersection $intersectionSubtype is not a subtype of $supertype" +
+            if (location != null) " at $location" else ""
+        )
+    }
+    
+    /**
+     * Solve intersection supertype subtyping: T <: (A & B)
+     * This succeeds if T is a subtype of all members in the intersection
+     */
+    private fun solveIntersectionSupertypeSubtyping(subtype: Type, superIntersection: IntersectionType, location: SourceLocation?): Substitution {
+        var combinedSubstitution = Substitution.empty
+        
+        // The subtype must be a subtype of all members in the intersection
+        for (member in superIntersection.members) {
+            try {
+                val memberSubstitution = unify(subtype, member, location)
+                combinedSubstitution = memberSubstitution.compose(combinedSubstitution)
+            } catch (e: UnificationException) {
+                throw UnificationException(
+                    "Type $subtype is not a subtype of intersection member $member in intersection subtyping" +
+                    if (location != null) " at $location" else ""
+                )
+            }
+        }
+        
+        return combinedSubstitution
+    }
+
     /**
      * Solve record subtyping constraint
      */
