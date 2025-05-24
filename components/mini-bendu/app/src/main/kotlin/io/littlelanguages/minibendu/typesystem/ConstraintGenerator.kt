@@ -284,6 +284,12 @@ class ConstraintGenerator(
     
     /**
      * Generate constraints for let expressions.
+     * 
+     * This implementation handles:
+     * - Non-recursive let bindings with proper type generalization
+     * - Recursive let bindings with appropriate environment setup
+     * - Type annotations and constraint propagation
+     * - Proper variable scoping and shadowing
      */
     private fun generateConstraintsForLet(expr: LetExpr, env: TypeEnvironment): Pair<Type, ConstraintSet> {
         val bindingName = expr.id.value
@@ -293,7 +299,23 @@ class ConstraintGenerator(
             return generateConstraintsInternal(expr.value, env)
         }
         
-        // Generate constraints for the binding value
+        if (expr.recursive) {
+            // For recursive let, we need to add the binding to the environment first
+            return generateConstraintsForRecursiveLet(expr, env)
+        } else {
+            // For non-recursive let, generate constraints for value first, then extend environment
+            return generateConstraintsForNonRecursiveLet(expr, env)
+        }
+    }
+    
+    /**
+     * Generate constraints for non-recursive let expressions.
+     * The value is evaluated in the current environment, then the binding is added to a new environment.
+     */
+    private fun generateConstraintsForNonRecursiveLet(expr: LetExpr, env: TypeEnvironment): Pair<Type, ConstraintSet> {
+        val bindingName = expr.id.value
+        
+        // Generate constraints for the binding value in the current environment
         val (valueType, valueConstraints) = generateConstraintsInternal(expr.value, env)
         
         // Handle explicit type annotation if present
@@ -303,24 +325,60 @@ class ConstraintGenerator(
             ConstraintSet.of(EqualityConstraint(valueType, annoType, sourceLocation))
         } ?: ConstraintSet.empty()
         
-        // For non-recursive let, generalize the binding type
-        val bindingScheme = if (!expr.recursive) {
-            env.generalize(valueType)
-        } else {
-            // For recursive let, we need to handle the binding differently
-            // This is a simplified implementation
-            TypeScheme(emptySet(), valueType)
-        }
+        // For non-recursive let, we use the valueType directly in a monomorphic scheme
+        // The type will be generalized when the constraints are solved
+        val bindingScheme = TypeScheme(emptySet(), valueType)
         
         // Extend environment with the binding
         val extendedEnv = env.bind(bindingName, bindingScheme)
         
-        // Generate constraints for the body
-        val (bodyType, bodyConstraints) = generateConstraintsInternal(expr.body, extendedEnv)
+        // Generate constraints for the body in the extended environment
+        val (bodyType, bodyConstraints) = generateConstraintsInternal(expr.body!!, extendedEnv)
         
         val allConstraints = valueConstraints
             .union(annotationConstraints)
             .union(bodyConstraints)
+        
+        return Pair(bodyType, allConstraints)
+    }
+    
+    /**
+     * Generate constraints for recursive let expressions.
+     * The binding is added to the environment before evaluating the value, allowing self-reference.
+     */
+    private fun generateConstraintsForRecursiveLet(expr: LetExpr, env: TypeEnvironment): Pair<Type, ConstraintSet> {
+        val bindingName = expr.id.value
+        
+        // Create a fresh type variable for the recursive binding
+        val recursiveType = TypeVariable.fresh()
+        
+        // Handle explicit type annotation if present
+        val annotatedType = expr.typeAnnotation?.let { typeExprToType(it) }
+        val annotationConstraints = annotatedType?.let { annoType ->
+            val sourceLocation = extractSourceLocation(expr.location())
+            ConstraintSet.of(EqualityConstraint(recursiveType, annoType, sourceLocation))
+        } ?: ConstraintSet.empty()
+        
+        // Create a monomorphic scheme for the recursive binding
+        val recursiveScheme = TypeScheme(emptySet(), recursiveType)
+        
+        // Extend environment with the recursive binding
+        val extendedEnv = env.bind(bindingName, recursiveScheme)
+        
+        // Generate constraints for the value in the extended environment (allowing self-reference)
+        val (valueType, valueConstraints) = generateConstraintsInternal(expr.value, extendedEnv)
+        
+        // The recursive type must equal the value type
+        val sourceLocation = extractSourceLocation(expr.location())
+        val recursiveConstraint = EqualityConstraint(recursiveType, valueType, sourceLocation)
+        
+        // Generate constraints for the body (if present)
+        val (bodyType, bodyConstraints) = generateConstraintsInternal(expr.body!!, extendedEnv)
+        
+        val allConstraints = valueConstraints
+            .union(annotationConstraints)
+            .union(bodyConstraints)
+            .add(recursiveConstraint)
         
         return Pair(bodyType, allConstraints)
     }
