@@ -182,39 +182,30 @@ object Unification {
                 }
             }
             
-            // Only record1 has a row variable
+            // Only record1 has a row variable - record1 is open, record2 is closed
             sub1Record1.rowVar != null -> {
-                // Collect fields in record2 that aren't in record1
-                val uniqueFields2 = sub1Record2.fields.filterKeys { it !in sub1Record1.fields }
-                
                 // Check if record1 has fields not in record2, which would be an error for closed record2
                 val uniqueFields1 = sub1Record1.fields.filterKeys { it !in sub1Record2.fields }
                 if (uniqueFields1.isNotEmpty()) {
                     throw UnificationException("Cannot unify open record with closed record: open record has fields ${uniqueFields1.keys} not present in closed record")
                 }
                 
+                // Collect fields in record2 that aren't in record1
+                val uniqueFields2 = sub1Record2.fields.filterKeys { it !in sub1Record1.fields }
+                
                 // Create a record type for the remaining fields in record2
-                // This is an empty record when there are no unique fields (for unifying with empty record)
                 val remainingRecord = RecordType(uniqueFields2)
                 
                 // Unify the row variable with the remaining fields
-                val result = unifyInternal(sub1Record1.rowVar, remainingRecord, fieldSubst)
-                result
+                unifyInternal(sub1Record1.rowVar, remainingRecord, fieldSubst)
             }
             
-            // Only record2 has a row variable
+            // Only record2 has a row variable - record2 is open, record1 is closed
             sub1Record2.rowVar != null -> {
                 // Collect fields in record1 that aren't in record2
                 val uniqueFields1 = sub1Record1.fields.filterKeys { it !in sub1Record2.fields }
                 
-                // Check if record2 has fields not in record1, which would be an error for closed record1
-                val uniqueFields2 = sub1Record2.fields.filterKeys { it !in sub1Record1.fields }
-                if (uniqueFields2.isNotEmpty()) {
-                    throw UnificationException("Cannot unify open record with closed record: open record has fields ${uniqueFields2.keys} not present in closed record")
-                }
-                
-                // Create a record type for the remaining fields in record1
-                // This is an empty record when there are no unique fields (for unifying with empty record)
+                // The row variable should absorb any extra fields from the closed record
                 val remainingRecord = RecordType(uniqueFields1)
                 
                 // Unify the row variable with the remaining fields

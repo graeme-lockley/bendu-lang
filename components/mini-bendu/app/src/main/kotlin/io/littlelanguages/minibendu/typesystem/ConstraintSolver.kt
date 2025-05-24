@@ -208,159 +208,20 @@ class ConstraintSolver {
      * Unify two types, producing a substitution that makes them equal
      */
     private fun unify(type1: Type, type2: Type, location: SourceLocation?): Substitution {
-        return when {
-            // Same types
-            type1 == type2 -> Substitution.empty
-            
-            // Type variable unification
-            type1 is TypeVariable -> unifyVariable(type1, type2, location)
-            type2 is TypeVariable -> unifyVariable(type2, type1, location)
-            
-            // Function type unification
-            type1 is FunctionType && type2 is FunctionType -> {
-                val domainSubst = unify(type1.domain, type2.domain, location)
-                val codomainSubst = unify(
-                    domainSubst.apply(type1.codomain), 
-                    domainSubst.apply(type2.codomain), 
-                    location
-                )
-                codomainSubst.compose(domainSubst)
-            }
-            
-            // Record type unification
-            type1 is RecordType && type2 is RecordType -> {
-                unifyRecords(type1, type2, location)
-            }
-            
-            // Tuple type unification
-            type1 is TupleType && type2 is TupleType -> {
-                unifyTuples(type1, type2, location)
-            }
-            
-            // Union type unification  
-            type1 is UnionType && type2 is UnionType -> {
-                unifyUnionTypes(type1, type2, location)
-            }
-            
-            // Primitive types
-            type1 is PrimitiveType && type2 is PrimitiveType -> {
-                if (type1.name == type2.name) {
-                    Substitution.empty
-                } else {
-                    throw UnificationException(
-                        "Cannot unify primitive types ${type1.name} and ${type2.name}" +
-                        if (location != null) " at $location" else ""
-                    )
-                }
-            }
-            
-            else -> {
-                throw UnificationException(
-                    "Cannot unify types $type1 and $type2" +
-                    if (location != null) " at $location" else ""
-                )
-            }
-        }
-    }
-    
-    /**
-     * Unify a type variable with another type
-     */
-    private fun unifyVariable(variable: TypeVariable, type: Type, location: SourceLocation?): Substitution {
-        // Occurs check: prevent infinite types
-        if (type.freeTypeVariables().contains(variable)) {
+        // Use the sophisticated unification algorithm that handles row polymorphism
+        val result = Unification.unify(type1, type2)
+        
+        if (result.isSuccess()) {
+            return result.getSubstitution()
+        } else {
             throw UnificationException(
-                "Occurs check failed: cannot unify $variable with $type (would create infinite type)" +
+                result.getError() + 
                 if (location != null) " at $location" else ""
             )
         }
-        
-        return Substitution.single(variable, type)
     }
     
-    /**
-     * Unify two record types
-     */
-    private fun unifyRecords(record1: RecordType, record2: RecordType, location: SourceLocation?): Substitution {
-        // Records must have the same fields with unifiable types
-        if (record1.fields.keys != record2.fields.keys) {
-            throw UnificationException(
-                "Cannot unify records with different field sets: ${record1.fields.keys} vs ${record2.fields.keys}" +
-                if (location != null) " at $location" else ""
-            )
-        }
-        
-        var substitution = Substitution.empty
-        for ((fieldName, fieldType1) in record1.fields) {
-            val fieldType2 = record2.fields[fieldName]!!
-            val fieldSubstitution = unify(
-                substitution.apply(fieldType1), 
-                substitution.apply(fieldType2), 
-                location
-            )
-            substitution = fieldSubstitution.compose(substitution)
-        }
-        
-        return substitution
-    }
-    
-    /**
-     * Unify two tuple types
-     */
-    private fun unifyTuples(tuple1: TupleType, tuple2: TupleType, location: SourceLocation?): Substitution {
-        if (tuple1.elements.size != tuple2.elements.size) {
-            throw UnificationException(
-                "Cannot unify tuples of different sizes: ${tuple1.elements.size} vs ${tuple2.elements.size}" +
-                if (location != null) " at $location" else ""
-            )
-        }
-        
-        var substitution = Substitution.empty
-        for (i in tuple1.elements.indices) {
-            val elementSubstitution = unify(
-                substitution.apply(tuple1.elements[i]), 
-                substitution.apply(tuple2.elements[i]), 
-                location
-            )
-            substitution = elementSubstitution.compose(substitution)
-        }
-        
-        return substitution
-    }
-    
-    /**
-     * Unify two union types
-     */
-    private fun unifyUnionTypes(union1: UnionType, union2: UnionType, location: SourceLocation?): Substitution {
-        // For now, union types must be exactly the same
-        // More sophisticated union type unification can be added later
-        if (union1.alternatives.size != union2.alternatives.size) {
-            throw UnificationException(
-                "Cannot unify union types with different numbers of alternatives" +
-                if (location != null) " at $location" else ""
-            )
-        }
-        
-        // Check if all alternatives in union1 can be unified with some alternative in union2
-        for (alt1 in union1.alternatives) {
-            val canUnify = union2.alternatives.any { alt2 ->
-                try {
-                    unify(alt1, alt2, location)
-                    true
-                } catch (e: UnificationException) {
-                    false
-                }
-            }
-            if (!canUnify) {
-                throw UnificationException(
-                    "Cannot unify union types: no matching alternative for $alt1" +
-                    if (location != null) " at $location" else ""
-                )
-            }
-        }
-        
-        return Substitution.empty
-    }
+
 }
 
  
