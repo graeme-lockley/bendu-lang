@@ -304,6 +304,7 @@ class ConstraintGenerator(
         // Convert function syntax to lambda if parameters are present
         val actualValue = if (expr.parameters?.isNotEmpty() == true) {
             // Convert let f(x, y, z) = body to let f = \x => \y => \z => body
+            // If there's a return type annotation, we'll handle it separately in constraint generation
             convertFunctionSyntaxToLambda(expr.parameters, expr.value, expr.id.location)
         } else {
             expr.value
@@ -316,7 +317,17 @@ class ConstraintGenerator(
             val (valueType, valueConstraints) = generateConstraintsInternal(actualValue, env)
             
             // Handle explicit type annotation if present
-            val annotatedType = expr.typeAnnotation?.let { typeExprToType(it) }
+            // For function syntax with return type annotations, we need to construct the full function type
+            val annotatedType = if (expr.parameters?.isNotEmpty() == true && expr.typeAnnotation != null) {
+                // For function syntax with return type annotation, construct the full function type
+                val returnType = typeExprToType(expr.typeAnnotation)
+                expr.parameters.foldRight(returnType) { param, acc ->
+                    val paramType = param.type?.let { typeExprToType(it) } ?: TypeVariable.fresh()
+                    FunctionType(paramType, acc)
+                }
+            } else {
+                expr.typeAnnotation?.let { typeExprToType(it) }
+            }
             val annotationConstraints = annotatedType?.let { annoType ->
                 val sourceLocation = extractSourceLocation(expr.location())
                 ConstraintSet.of(EqualityConstraint(valueType, annoType, sourceLocation))
@@ -364,7 +375,17 @@ class ConstraintGenerator(
         val (valueType, valueConstraints) = generateConstraintsInternal(expr.value, env)
         
         // Handle explicit type annotation if present
-        val annotatedType = expr.typeAnnotation?.let { typeExprToType(it) }
+        // For function syntax with return type annotations, we need to construct the full function type
+        val annotatedType = if (expr.parameters?.isNotEmpty() == true && expr.typeAnnotation != null) {
+            // For function syntax with return type annotation, construct the full function type
+            val returnType = typeExprToType(expr.typeAnnotation)
+            expr.parameters.foldRight(returnType) { param, acc ->
+                val paramType = param.type?.let { typeExprToType(it) } ?: TypeVariable.fresh()
+                FunctionType(paramType, acc)
+            }
+        } else {
+            expr.typeAnnotation?.let { typeExprToType(it) }
+        }
         val annotationConstraints = annotatedType?.let { annoType ->
             val sourceLocation = extractSourceLocation(expr.location())
             ConstraintSet.of(EqualityConstraint(valueType, annoType, sourceLocation))
@@ -414,7 +435,17 @@ class ConstraintGenerator(
         val recursiveType = TypeVariable.fresh()
         
         // Handle explicit type annotation if present
-        val annotatedType = expr.typeAnnotation?.let { typeExprToType(it) }
+        // For function syntax with return type annotations, we need to construct the full function type
+        val annotatedType = if (expr.parameters?.isNotEmpty() == true && expr.typeAnnotation != null) {
+            // For function syntax with return type annotation, construct the full function type
+            val returnType = typeExprToType(expr.typeAnnotation)
+            expr.parameters.foldRight(returnType) { param, acc ->
+                val paramType = param.type?.let { typeExprToType(it) } ?: TypeVariable.fresh()
+                FunctionType(paramType, acc)
+            }
+        } else {
+            expr.typeAnnotation?.let { typeExprToType(it) }
+        }
         val annotationConstraints = annotatedType?.let { annoType ->
             val sourceLocation = extractSourceLocation(expr.location())
             ConstraintSet.of(EqualityConstraint(recursiveType, annoType, sourceLocation))

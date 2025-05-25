@@ -197,19 +197,19 @@ class EndToEndTest {
             """.trimIndent(), "{name: String, age: Int}")
     }
 
-//    @Test
-//    fun testRowPolymorphismWithFunctions() {
-//        val source = """
-//            let getName = \record => record.name in
-//            let person = { name = "Bob", age = 25 } in
-//            let company = { name = "TechCorp", employees = 100 } in
-//            let name1 = getName person in
-//            let name2 = getName company in
-//            name1
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source, "String")
-//    }
-//
+    @Test
+    fun testRowPolymorphismWithFunctions() {
+        assertTypeCheckSuccess(
+            """
+                let getName(record): String = record.name
+                
+                let person = { name = "Bob", age = 25 } in
+                let company = { name = "TechCorp", employees = 100 } in
+                
+                (getName(person), getName(company))
+            """.trimIndent(), "(String, String)")
+    }
+
 //    @Test
 //    fun testComplexUnionTypeProgram() {
 //        val source = """
@@ -584,4 +584,32 @@ class EndToEndTest {
 //        """.trimIndent()
 //        assertTypeCheckSuccess(source)
 //    }
-} 
+
+    @Test
+    fun testReturnTypeAnnotationInFunctionSyntax() {
+        // This should work: function syntax with return type annotation
+        assertTypeCheckSuccess(
+            """
+                let getName(record): String = record.name in
+                let person = { name = "Bob", age = 25 } in
+                let company = { name = "TechCorp", employees = 100 } in
+                let name1 = getName(person) in
+                let name2 = getName(company) in
+                name1
+            """.trimIndent(), "String")
+    }
+
+    @Test
+    fun testRowPolymorphismWithoutReturnTypeAnnotation() {
+        // This works without return type annotation - for comparison
+        assertTypeCheckSuccess(
+            """
+                let getName(record) = record.name in
+                let person = { name = "Bob", age = 25 } in
+                let company = { name = "TechCorp", employees = 100 } in
+                let name1 = getName(person) in
+                let name2 = getName(company) in
+                name1
+            """.trimIndent(), "String")
+    }
+}
