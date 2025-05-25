@@ -330,9 +330,25 @@ class ConstraintGenerator(
             ConstraintSet.of(EqualityConstraint(valueType, annoType, sourceLocation))
         } ?: ConstraintSet.empty()
         
-        // For non-recursive let, we use the valueType directly in a monomorphic scheme
-        // The type will be generalized when the constraints are solved
-        val bindingScheme = TypeScheme(emptySet(), valueType)
+        // For non-recursive let, we need to solve the value constraints first, then generalize
+        // This ensures we generalize the solved type, not the raw type with unresolved variables
+        val valueConstraintsWithAnnotation = valueConstraints.union(annotationConstraints)
+        
+        val solver = ConstraintSolver()
+        val solverResult = solver.solve(valueConstraintsWithAnnotation)
+        
+        val bindingScheme = when (solverResult) {
+            is ConstraintSolverResult.Success -> {
+                // Apply substitution to get the solved type, then generalize
+                val solvedValueType = solverResult.substitution.apply(valueType)
+                env.generalize(solvedValueType)
+            }
+            is ConstraintSolverResult.Failure -> {
+                // If constraint solving fails, fall back to monomorphic scheme
+                // This allows error recovery and prevents cascading failures
+                TypeScheme.monomorphic(valueType)
+            }
+        }
         
         // Extend environment with the binding
         val extendedEnv = env.bind(bindingName, bindingScheme)

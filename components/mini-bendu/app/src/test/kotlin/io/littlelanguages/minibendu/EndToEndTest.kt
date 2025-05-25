@@ -8,43 +8,48 @@ import kotlin.test.assertFalse
 
 class EndToEndTest {
 
-//    private fun parseAndTypeCheck(source: String): TypeCheckResult {
-//        return try {
-//            val errors = Errors()
-//            val program = parse(source, errors)
-//
-//            if (errors.hasErrors()) {
-//                val errorMessages = mutableListOf<String>()
-//                for (error in errors) {
-//                    errorMessages.add(error.toString())
-//                }
-//                TypeCheckResult.Failure("Parse error: ${errorMessages.joinToString("; ")}", SourceLocation(1, 1))
-//            } else {
-//                val typeChecker = TypeChecker()
-//
-//                // Extract the main expression from the program
-//                val expressions = program.expressions()
-//                if (expressions.isEmpty()) {
-//                    TypeCheckResult.Failure("No expressions found in program", SourceLocation(1, 1))
-//                } else {
-//                    // Type check the last expression (main result)
-//                    val mainExpr = expressions.last()
-//                    typeChecker.typeCheck(mainExpr)
-//                }
-//            }
-//        } catch (e: Exception) {
-//            TypeCheckResult.Failure("Parse error: ${e.message}", SourceLocation(1, 1))
-//        }
-//    }
-//
-//    private fun assertTypeCheckSuccess(source: String, expectedType: String? = null) {
-//        val result = parseAndTypeCheck(source)
-//        assertTrue(result is TypeCheckResult.Success, "Expected type check to succeed for: $source")
-//        if (expectedType != null && result is TypeCheckResult.Success) {
-//            assertEquals(expectedType, result.getFinalType().toString())
-//        }
-//    }
-//
+    private fun parseAndTypeCheck(source: String): TypeCheckResult {
+        return try {
+            val errors = Errors()
+            val program = parse(source, errors)
+
+            if (errors.hasErrors()) {
+                val errorMessages = mutableListOf<String>()
+                for (error in errors) {
+                    errorMessages.add(error.toString())
+                }
+                TypeCheckResult.Failure("Parse error: ${errorMessages.joinToString("; ")}", SourceLocation(1, 1))
+            } else {
+                val typeChecker = TypeChecker()
+
+                // Extract the main expression from the program
+                val expressions = program.expressions()
+                if (expressions.isEmpty()) {
+                    TypeCheckResult.Failure("No expressions found in program", SourceLocation(1, 1))
+                } else {
+                    // Type check the last expression (main result)
+                    val mainExpr = expressions.last()
+                    typeChecker.typeCheck(mainExpr)
+                }
+            }
+        } catch (e: Exception) {
+            TypeCheckResult.Failure("Parse error: ${e.message}", SourceLocation(1, 1))
+        }
+    }
+
+    private fun assertTypeCheckSuccess(source: String, expectedType: String? = null) {
+        val result = parseAndTypeCheck(source)
+
+        if (result is TypeCheckResult.Failure) {
+            println("Error: ${result.error}")
+        }
+
+        assertTrue(result is TypeCheckResult.Success, "Expected type check to succeed for: $source")
+        if (expectedType != null) {
+            assertEquals(expectedType, result.getFinalType().toString())
+        }
+    }
+
 //    private fun assertTypeCheckFailure(source: String, expectedErrorContains: String? = null) {
 //        val result = parseAndTypeCheck(source)
 //        assertTrue(result is TypeCheckResult.Failure, "Expected type check to fail for: $source")
@@ -55,28 +60,28 @@ class EndToEndTest {
 //            )
 //        }
 //    }
-//
-//    @Test
-//    fun testSimpleArithmeticProgram() {
-//        val source = """
-//            let x = 5 + 3 in
-//            let y = x * 2 in
-//            y
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source, "Int")
-//    }
-//
-//    @Test
-//    fun testPolymorphicIdentityFunction() {
-//        val source = """
-//            let identity = \x => x in
-//            let result1 = identity 42 in
-//            let result2 = identity "hello" in
-//            result1
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source, "Int")
-//    }
-//
+
+    @Test
+    fun testSimpleArithmeticProgram() {
+        val source = """
+            let x = 5 + 3 in
+            let y = x * 2 in
+            y
+        """.trimIndent()
+        assertTypeCheckSuccess(source, "Int")
+    }
+
+    @Test
+    fun testPolymorphicIdentityFunction() {
+        val source = """
+            let identity = \x => x in
+            let result1 = identity(42) in
+            let result2 = identity("hello") in
+            result1
+        """.trimIndent()
+        assertTypeCheckSuccess(source, "Int")
+    }
+
 //    @Test
 //    fun testRecordManipulationProgram() {
 //        val source = """
