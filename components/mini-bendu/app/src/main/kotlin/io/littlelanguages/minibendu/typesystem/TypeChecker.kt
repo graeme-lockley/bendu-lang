@@ -259,7 +259,17 @@ class TypeChecker(
             is LetExpr -> {
                 val varName = expr.id.value
                 val finalType = result.getFinalType()
-                val scheme = TypeScheme.monomorphic(finalType)
+                
+                // For let expressions without bodies (top-level bindings),
+                // we need to generalize the type to enable polymorphism
+                val scheme = if (expr.body == null) {
+                    currentEnv.generalize(finalType)
+                } else {
+                    // For let expressions with bodies, the type is already properly handled
+                    // during constraint generation, so we can use it as-is
+                    TypeScheme.monomorphic(finalType)
+                }
+                
                 currentEnv.bind(varName, scheme)
             }
             else -> currentEnv

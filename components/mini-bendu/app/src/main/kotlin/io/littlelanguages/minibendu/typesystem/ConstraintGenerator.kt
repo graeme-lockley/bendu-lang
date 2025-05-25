@@ -300,8 +300,23 @@ class ConstraintGenerator(
         val bindingName = expr.id.value
         
         if (expr.body == null) {
-            // Simple binding without body - just return the value's type
-            return generateConstraintsInternal(expr.value, env)
+            // Let expression without body - this is a top-level binding
+            // We need to solve the value constraints and generalize the type
+            // even though there's no body to type-check
+            val (valueType, valueConstraints) = generateConstraintsInternal(expr.value, env)
+            
+            // Handle explicit type annotation if present
+            val annotatedType = expr.typeAnnotation?.let { typeExprToType(it) }
+            val annotationConstraints = annotatedType?.let { annoType ->
+                val sourceLocation = extractSourceLocation(expr.location())
+                ConstraintSet.of(EqualityConstraint(valueType, annoType, sourceLocation))
+            } ?: ConstraintSet.empty()
+            
+            val allConstraints = valueConstraints.union(annotationConstraints)
+            
+            // For top-level bindings, return the value type and constraints
+            // The binding will be handled by the incremental type checker
+            return Pair(valueType, allConstraints)
         }
         
         if (expr.recursive) {

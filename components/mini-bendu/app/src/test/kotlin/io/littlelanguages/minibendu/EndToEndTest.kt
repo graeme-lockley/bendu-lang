@@ -4,7 +4,6 @@ import io.littlelanguages.minibendu.typesystem.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.test.assertFalse
 
 class EndToEndTest {
 
@@ -22,14 +21,25 @@ class EndToEndTest {
             } else {
                 val typeChecker = TypeChecker()
 
-                // Extract the main expression from the program
+                // Extract the expressions from the program
                 val expressions = program.expressions()
                 if (expressions.isEmpty()) {
                     TypeCheckResult.Failure("No expressions found in program", SourceLocation(1, 1))
-                } else {
-                    // Type check the last expression (main result)
+                } else if (expressions.size == 1) {
+                    // Single expression - type check directly
                     val mainExpr = expressions.last()
                     typeChecker.typeCheck(mainExpr)
+                } else {
+                    // Multiple expressions - use incremental type checking
+                    val incrementalResult = typeChecker.typeCheckIncrementally(expressions)
+                    
+                    if (incrementalResult.hasErrors) {
+                        // Return the first error
+                        incrementalResult.errors.first()
+                    } else {
+                        // Return the result of the last expression
+                        incrementalResult.results.last()
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -73,13 +83,22 @@ class EndToEndTest {
 
     @Test
     fun testPolymorphicIdentityFunction() {
-        val source = """
+        val source1 = """
             let identity = \x => x in
             let result1 = identity(42) in
             let result2 = identity("hello") in
             result1
         """.trimIndent()
-        assertTypeCheckSuccess(source, "Int")
+        assertTypeCheckSuccess(source1, "Int")
+
+        val source2 = """
+            let identity = \x => x
+            
+            let result1 = identity(42) in
+            let result2 = identity("hello") in
+            result1
+        """.trimIndent()
+        assertTypeCheckSuccess(source2, "Int")
     }
 
 //    @Test
