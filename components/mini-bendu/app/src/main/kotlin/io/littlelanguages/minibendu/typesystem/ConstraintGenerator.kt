@@ -620,6 +620,29 @@ class ConstraintGenerator(
     private fun generateConstraintsForPattern(pattern: Pattern, expectedType: Type): Pair<ConstraintSet, Map<String, Type>> {
         val sourceLocation = extractSourceLocation(pattern.location())
         
+        // Handle pattern type annotation first
+        val typeAnnotation = pattern.typeAnnotation
+        if (typeAnnotation != null) {
+            // Convert type annotation to Type and constrain it against expected type
+            val annotatedType = typeExprToType(typeAnnotation)
+            val annotationConstraint = EqualityConstraint(expectedType, annotatedType, sourceLocation)
+            
+            // Generate pattern constraints against the annotated type
+            val (patternConstraints, bindings) = generateConstraintsForPatternCore(pattern, annotatedType)
+            val allConstraints = patternConstraints.add(annotationConstraint)
+            return Pair(allConstraints, bindings)
+        }
+        
+        return generateConstraintsForPatternCore(pattern, expectedType)
+    }
+    
+    /**
+     * Generate constraints for a pattern without considering type annotations.
+     * This is the core pattern constraint logic.
+     */
+    private fun generateConstraintsForPatternCore(pattern: Pattern, expectedType: Type): Pair<ConstraintSet, Map<String, Type>> {
+        val sourceLocation = extractSourceLocation(pattern.location())
+        
         // Unfold recursive types before pattern matching
         val unfoldedExpectedType = unfoldRecursiveType(expectedType)
         

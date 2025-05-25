@@ -53,8 +53,7 @@ class TypeInferenceForTypeRefinementTest {
         val successPattern = LiteralStringPattern(createStringLocation("success"))
         val processSuccessCall = ApplicationExpr(
             VarExpr(createStringLocation("processSuccess")),
-            listOf(VarExpr(createStringLocation("x"))),
-            createLocation()
+            listOf(VarExpr(createStringLocation("x"))), createLocation()
         )
         val successCase = MatchCase(successPattern, processSuccessCall)
         
@@ -62,8 +61,7 @@ class TypeInferenceForTypeRefinementTest {
         val errorPattern = LiteralStringPattern(createStringLocation("error"))
         val processErrorCall = ApplicationExpr(
             VarExpr(createStringLocation("processError")),
-            listOf(VarExpr(createStringLocation("x"))),
-            createLocation()
+            listOf(VarExpr(createStringLocation("x"))), createLocation()
         )
         val errorCase = MatchCase(errorPattern, processErrorCall)
         
@@ -269,27 +267,23 @@ class TypeInferenceForTypeRefinementTest {
         // | (1, 2) => "impossible"  // Contradiction with first case
         
         val scrutinee = TupleExpr(listOf(
-            VarExpr(createStringLocation("x")),
-            VarExpr(createStringLocation("y"))
+            VarExpr(createStringLocation("x")), VarExpr(createStringLocation("y"))
         ), createLocation())
         
         val pattern1 = TuplePattern(listOf(
-            LiteralIntPattern(createIntLocation(1)),
-            LiteralIntPattern(createIntLocation(2))
+            LiteralIntPattern(createIntLocation(1)), LiteralIntPattern(createIntLocation(2))
         ), createLocation())
         val body1 = LiteralStringExpr(createStringLocation("specific"))
         val case1 = MatchCase(pattern1, body1)
         
         val pattern2 = TuplePattern(listOf(
-            LiteralIntPattern(createIntLocation(1)),
-            LiteralIntPattern(createIntLocation(3))
+            LiteralIntPattern(createIntLocation(1)), LiteralIntPattern(createIntLocation(3))
         ), createLocation())
         val body2 = LiteralStringExpr(createStringLocation("different"))
         val case2 = MatchCase(pattern2, body2)
         
         val pattern3 = TuplePattern(listOf(
-            LiteralIntPattern(createIntLocation(1)),
-            LiteralIntPattern(createIntLocation(2))
+            LiteralIntPattern(createIntLocation(1)), LiteralIntPattern(createIntLocation(2))
         ), createLocation())  // Same as pattern1!
         val body3 = LiteralStringExpr(createStringLocation("impossible"))
         val case3 = MatchCase(pattern3, body3)

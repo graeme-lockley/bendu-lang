@@ -234,12 +234,10 @@ class TypeCheckerIntegrationTest {
             listOf(
                 FieldExpr(createStringLocation("x"), LiteralIntExpr(createIntLocation(5))),
                 FieldExpr(createStringLocation("y"), LiteralStringExpr(createStringLocation("hello")))
-            ),
-            createLocation()
+            ), createLocation()
         )
         
-        val pattern = RecordPattern(
-            listOf(
+        val pattern = RecordPattern(listOf(
                 FieldPattern(createStringLocation("x"), VarPattern(createStringLocation("n"))),
                 FieldPattern(createStringLocation("y"), VarPattern(createStringLocation("s")))
             ),
@@ -277,18 +275,15 @@ class TypeCheckerIntegrationTest {
         val tupleExpr = TupleExpr(
             listOf(
                 LiteralIntExpr(createIntLocation(10)),
-                LiteralIntExpr(createIntLocation(20)),
-                LiteralStringExpr(createStringLocation("point"))
-            ),
-            createLocation()
+                LiteralIntExpr(createIntLocation(20)), LiteralStringExpr(createStringLocation("point"))
+            ), createLocation()
         )
         
         val coordsVar = VarExpr(createStringLocation("coords"))
         
         val pattern = TuplePattern(
             listOf(
-                VarPattern(createStringLocation("x")),
-                VarPattern(createStringLocation("y")),
+                VarPattern(createStringLocation("x")), VarPattern(createStringLocation("y")),
                 VarPattern(createStringLocation("name"))
             ),
             createLocation()
@@ -522,8 +517,7 @@ class TypeCheckerIntegrationTest {
     @Test
     fun `report pattern match error with source location`() {
         // match 42 with {x: n} -> n - should fail because Int cannot match record pattern
-        val pattern = RecordPattern(
-            listOf(FieldPattern(createStringLocation("x"), VarPattern(createStringLocation("n")))),
+        val pattern = RecordPattern(listOf(FieldPattern(createStringLocation("x"), VarPattern(createStringLocation("n")))),
             LocationCoordinate(20, 3, 7)
         )
         

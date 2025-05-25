@@ -111,8 +111,7 @@ class SourceLocationTrackingTest {
     @Test
     fun `pattern match type error includes pattern location`() {
         // match 42 with {name: x} -> x  (trying to match Int with record pattern)
-        val pattern = RecordPattern(
-            listOf(FieldPattern(createStringLocation("name", 4, 15), VarPattern(createStringLocation("x", 4, 21)))),
+        val pattern = RecordPattern(listOf(FieldPattern(createStringLocation("name", 4, 15), VarPattern(createStringLocation("x", 4, 21), typeAnnotation = null))),
             createLocation(4, 14) // Pattern location
         )
         

@@ -144,9 +144,8 @@ class ErrorReportingTest {
     @Test
     fun `type mismatch error for tuple element access includes tuple info`() {
         // Creating a mismatched tuple assignment
-        val pattern = TuplePattern(
-            listOf(
-                VarPattern(createStringLocation("x", 11, 2)),
+        val pattern = TuplePattern(listOf(
+                VarPattern(createStringLocation("x", 11, 2), typeAnnotation = null),
                 VarPattern(createStringLocation("y", 11, 5)),
                 VarPattern(createStringLocation("z", 11, 8))
             ),
@@ -308,8 +307,7 @@ class ErrorReportingTest {
             createLocation(35, 7)
         )
         
-        val pattern = RecordPattern(
-            listOf(FieldPattern(createStringLocation("name", 35, 38), VarPattern(createStringLocation("n", 35, 44)))),
+        val pattern = RecordPattern(listOf(FieldPattern(createStringLocation("name", 35, 38), VarPattern(createStringLocation("n", 35, 44), typeAnnotation = null))),
             createLocation(35, 37)
         )
         

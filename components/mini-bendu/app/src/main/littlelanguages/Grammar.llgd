@@ -166,6 +166,10 @@ TypeParam
     ;
 
 Pattern
+    : BasePattern [":" TypeExpr]
+    ;
+
+BasePattern
     : RecordPattern
     | VarPattern
     | Wildcard

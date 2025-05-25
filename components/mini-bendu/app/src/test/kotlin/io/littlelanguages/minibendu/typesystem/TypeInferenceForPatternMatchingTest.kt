@@ -480,8 +480,7 @@ class TypeInferenceForPatternMatchingTest {
     fun `tuple pattern arity mismatch should fail`() {
         // match (1, 2) with (x, y, z) => x
         val scrutinee = TupleExpr(listOf(
-            LiteralIntExpr(createIntLocation(1)),
-            LiteralIntExpr(createIntLocation(2))
+            LiteralIntExpr(createIntLocation(1)), LiteralIntExpr(createIntLocation(2))
         ), createLocation())
         
         val xPattern = VarPattern(createStringLocation("x"))
@@ -546,8 +545,7 @@ class TypeInferenceForPatternMatchingTest {
     fun `complex pattern matching with type mismatches should fail`() {
         // match (1, "hello") with (x, y) => x + y  // Should fail: can't add Int + String
         val scrutinee = TupleExpr(listOf(
-            LiteralIntExpr(createIntLocation(1)),
-            LiteralStringExpr(createStringLocation("hello"))
+            LiteralIntExpr(createIntLocation(1)), LiteralStringExpr(createStringLocation("hello"))
         ), createLocation())
         
         val xPattern = VarPattern(createStringLocation("x"))
@@ -819,5 +817,236 @@ class TypeInferenceForPatternMatchingTest {
         // assertTrue(reachabilityResults.hasUnreachablePatterns())
         // assertEquals(1, reachabilityResults.unreachablePatterns.size)
         // assertEquals(fortyTwoPattern, reachabilityResults.unreachablePatterns[0])
+    }
+    
+    // Pattern Type Annotation Tests
+    
+    @Test
+    fun `variable pattern with type annotation should constrain type correctly`() {
+        // match x with n : Int => n + 1
+        val scrutinee = VarExpr(createStringLocation("x"))
+        
+        val typeAnnotation = BaseTypeExpr(createStringLocation("Int"), null)
+        val pattern = VarPattern(createStringLocation("n"), typeAnnotation)
+        
+        val bodyVar = VarExpr(createStringLocation("n"))
+        val addition = BinaryOpExpr(bodyVar, BinaryOp.Plus, LiteralIntExpr(createIntLocation(1)), createLocation())
+        val case1 = MatchCase(pattern, addition)
+        
+        val matchExpr = MatchExpr(scrutinee, listOf(case1), createLocation())
+        
+        val env = TypeEnvironment.empty()
+            .extend("x", Types.Int)
+        
+        val generator = ConstraintGenerator(env)
+        val result = generator.generateConstraints(matchExpr)
+        
+        assertTrue(result.isSuccess(), "Type checking should succeed with type annotation")
+        
+        if (result.isSuccess()) {
+            val solverResult = ConstraintSolver().solve(result.constraints)
+            if (solverResult is ConstraintSolverResult.Success) {
+                val finalType = solverResult.substitution.apply(result.type)
+                assertEquals(Types.Int, finalType, "Match expression should have Int type")
+            }
+        }
+    }
+    
+    @Test
+    fun `wildcard pattern with type annotation should constrain type correctly`() {
+        // match x with _ : Bool => True
+        val scrutinee = VarExpr(createStringLocation("x"))
+        
+        val typeAnnotation = BaseTypeExpr(createStringLocation("Bool"), null)
+        val pattern = WildcardPattern(createLocation(), typeAnnotation)
+        
+        val body = LiteralBoolExpr(createBoolLocation(true))
+        val case1 = MatchCase(pattern, body)
+        
+        val matchExpr = MatchExpr(scrutinee, listOf(case1), createLocation())
+        
+        val env = TypeEnvironment.empty()
+            .extend("x", Types.Bool)
+        
+        val generator = ConstraintGenerator(env)
+        val result = generator.generateConstraints(matchExpr)
+        
+        assertTrue(result.isSuccess(), "Type checking should succeed with wildcard type annotation")
+        
+        if (result.isSuccess()) {
+            val solverResult = ConstraintSolver().solve(result.constraints)
+            if (solverResult is ConstraintSolverResult.Success) {
+                val finalType = solverResult.substitution.apply(result.type)
+                assertEquals(Types.Bool, finalType, "Match expression should have Bool type")
+            }
+        }
+    }
+    
+    @Test
+    fun `literal pattern with type annotation should constrain type correctly`() {
+        // match x with 42 : Int => "found"
+        val scrutinee = VarExpr(createStringLocation("x"))
+        
+        val typeAnnotation = BaseTypeExpr(createStringLocation("Int"), null)
+        val pattern = LiteralIntPattern(createIntLocation(42), typeAnnotation)
+        
+        val body = LiteralStringExpr(createStringLocation("found"))
+        val case1 = MatchCase(pattern, body)
+        
+        val matchExpr = MatchExpr(scrutinee, listOf(case1), createLocation())
+        
+        val env = TypeEnvironment.empty()
+            .extend("x", Types.Int)
+        
+        val generator = ConstraintGenerator(env)
+        val result = generator.generateConstraints(matchExpr)
+        
+        assertTrue(result.isSuccess(), "Type checking should succeed with literal pattern type annotation")
+        
+        if (result.isSuccess()) {
+            val solverResult = ConstraintSolver().solve(result.constraints)
+            if (solverResult is ConstraintSolverResult.Success) {
+                val finalType = solverResult.substitution.apply(result.type)
+                assertEquals(Types.String, finalType, "Match expression should have String type")
+            }
+        }
+    }
+    
+    @Test
+    fun `tuple pattern with type annotation should constrain type correctly`() {
+        // match p with (x, y) : (Int, String) => x
+        val scrutinee = VarExpr(createStringLocation("p"))
+        
+        val xPattern = VarPattern(createStringLocation("x"))
+        val yPattern = VarPattern(createStringLocation("y"))
+        
+        val intType = BaseTypeExpr(createStringLocation("Int"), null)
+        val stringType = BaseTypeExpr(createStringLocation("String"), null)
+        val tupleTypeAnnotation = TupleTypeExpr(listOf(intType, stringType), createLocation())
+        
+        val tuplePattern = TuplePattern(listOf(xPattern, yPattern), createLocation(), tupleTypeAnnotation)
+        
+        val body = VarExpr(createStringLocation("x"))
+        val case1 = MatchCase(tuplePattern, body)
+        
+        val matchExpr = MatchExpr(scrutinee, listOf(case1), createLocation())
+        
+        val pairType = TupleType(listOf(Types.Int, Types.String))
+        val env = TypeEnvironment.empty()
+            .extend("p", pairType)
+        
+        val generator = ConstraintGenerator(env)
+        val result = generator.generateConstraints(matchExpr)
+        
+        assertTrue(result.isSuccess(), "Type checking should succeed with tuple pattern type annotation")
+        
+        if (result.isSuccess()) {
+            val solverResult = ConstraintSolver().solve(result.constraints)
+            if (solverResult is ConstraintSolverResult.Success) {
+                val finalType = solverResult.substitution.apply(result.type)
+                assertEquals(Types.Int, finalType, "Match expression should have Int type (from x)")
+            }
+        }
+    }
+    
+    @Test
+    fun `record pattern with type annotation should constrain type correctly`() {
+        // match user with {name = n} : User => n
+        val scrutinee = VarExpr(createStringLocation("user"))
+        
+        val nameFieldPattern = FieldPattern(createStringLocation("name"), VarPattern(createStringLocation("n")))
+        val typeAnnotation = BaseTypeExpr(createStringLocation("User"), null)
+        val recordPattern = RecordPattern(listOf(nameFieldPattern), createLocation(), typeAnnotation)
+        
+        val body = VarExpr(createStringLocation("n"))
+        val case1 = MatchCase(recordPattern, body)
+        
+        val matchExpr = MatchExpr(scrutinee, listOf(case1), createLocation())
+        
+        val userType = RecordType(mapOf("name" to Types.String, "age" to Types.Int), null)
+        val env = TypeEnvironment.empty()
+            .extend("user", userType)
+            .extend("User", userType) // Simulate type alias
+        
+        val generator = ConstraintGenerator(env)
+        val result = generator.generateConstraints(matchExpr)
+        
+        assertTrue(result.isSuccess(), "Type checking should succeed with record pattern type annotation")
+        
+        if (result.isSuccess()) {
+            val solverResult = ConstraintSolver().solve(result.constraints)
+            if (solverResult is ConstraintSolverResult.Success) {
+                val finalType = solverResult.substitution.apply(result.type)
+                assertEquals(Types.String, finalType, "Match expression should have String type (from name field)")
+            }
+        }
+    }
+    
+    @Test
+    fun `nested patterns with mixed type annotations should work correctly`() {
+        // match data with (x : Int, y) : (Int, String) => x + 1
+        val scrutinee = VarExpr(createStringLocation("data"))
+        
+        val intTypeAnnotation = BaseTypeExpr(createStringLocation("Int"), null)
+        val xPattern = VarPattern(createStringLocation("x"), intTypeAnnotation)
+        val yPattern = VarPattern(createStringLocation("y"))
+        
+        val intType = BaseTypeExpr(createStringLocation("Int"), null)
+        val stringType = BaseTypeExpr(createStringLocation("String"), null)
+        val tupleTypeAnnotation = TupleTypeExpr(listOf(intType, stringType), createLocation())
+        
+        val tuplePattern = TuplePattern(listOf(xPattern, yPattern), createLocation(), tupleTypeAnnotation)
+        
+        val bodyVar = VarExpr(createStringLocation("x"))
+        val addition = BinaryOpExpr(bodyVar, BinaryOp.Plus, LiteralIntExpr(createIntLocation(1)), createLocation())
+        val case1 = MatchCase(tuplePattern, addition)
+        
+        val matchExpr = MatchExpr(scrutinee, listOf(case1), createLocation())
+        
+        val dataType = TupleType(listOf(Types.Int, Types.String))
+        val env = TypeEnvironment.empty()
+            .extend("data", dataType)
+        
+        val generator = ConstraintGenerator(env)
+        val result = generator.generateConstraints(matchExpr)
+        
+        assertTrue(result.isSuccess(), "Type checking should succeed with nested pattern type annotations")
+        
+        if (result.isSuccess()) {
+            val solverResult = ConstraintSolver().solve(result.constraints)
+            if (solverResult is ConstraintSolverResult.Success) {
+                val finalType = solverResult.substitution.apply(result.type)
+                assertEquals(Types.Int, finalType, "Match expression should have Int type")
+            }
+        }
+    }
+    
+    @Test
+    fun `pattern without type annotation should work as before`() {
+        // match x with n => n + 1 (no type annotation)
+        val scrutinee = VarExpr(createStringLocation("x"))
+        val pattern = VarPattern(createStringLocation("n")) // No type annotation
+        
+        val bodyVar = VarExpr(createStringLocation("n"))
+        val addition = BinaryOpExpr(bodyVar, BinaryOp.Plus, LiteralIntExpr(createIntLocation(1)), createLocation())
+        val case1 = MatchCase(pattern, addition)
+        
+        val matchExpr = MatchExpr(scrutinee, listOf(case1), createLocation())
+        
+        val env = TypeEnvironment.empty()
+            .extend("x", Types.Int)
+        
+        val generator = ConstraintGenerator(env)
+        val result = generator.generateConstraints(matchExpr)
+        
+        assertTrue(result.isSuccess(), "Type checking should succeed without type annotation (backward compatibility)")
+        
+        if (result.isSuccess()) {
+            val solverResult = ConstraintSolver().solve(result.constraints)
+            if (solverResult is ConstraintSolverResult.Success) {
+                val finalType = solverResult.substitution.apply(result.type)
+                assertEquals(Types.Int, finalType, "Match expression should have Int type")
+            }
+        }
     }
 } 

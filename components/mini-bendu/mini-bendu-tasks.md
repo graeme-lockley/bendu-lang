@@ -491,79 +491,27 @@ This phase implements the foundational type system that leverages mini-bendu's r
     - Implement regression test automation
     - Include stress testing for complex scenarios
 
-71. **Create Tests for Module System Integration**
-    - Test type checking across module boundaries
-    - Test import/export type compatibility
-    - Test module-level type inference
-    - Test circular dependency handling
+## 8. Documentation and Examples
 
-72. **Implement Module System Integration**
-    - Add module-aware type checking
-    - Implement cross-module type compatibility
-    - Support module-level type inference
-    - Handle circular dependencies properly
-
-## 8. Performance Optimization and Scalability
-
-73. **Create Benchmarks for Type Checking**
-    - Measure performance on various program sizes
-    - Identify bottlenecks in type checking process
-    - Test memory usage patterns
-    - Benchmark constraint solving performance
-
-74. **Optimize Type Checker**
-    - Implement memoization for type checking expressions
-    - Optimize constraint solving algorithm
-    - Reduce memory usage for type representations
-    - Add incremental type checking capabilities
-
-75. **Create Tests for Scalability**
-    - Test type checking on large codebases
-    - Test memory usage under load
-    - Test incremental compilation performance
-    - Test parallel type checking where applicable
-
-76. **Implement Scalability Improvements**
-    - Add support for incremental type checking
-    - Implement parallel constraint solving where safe
-    - Optimize memory usage for large programs
-    - Add caching mechanisms for repeated computations
-
-## 9. IDE Integration Preparation
-
-77. **Create Tests for IDE Features**
-    - Test hover information and type display
-    - Test auto-completion with type information
-    - Test real-time error reporting
-    - Test refactoring support with type safety
-
-78. **Implement IDE Integration Features**
-    - Add hover information API
-    - Implement type-aware auto-completion
-    - Support real-time incremental checking
-    - Provide refactoring safety guarantees
-
-## 9. Documentation and Examples
-
-79. **Create Documentation Tests**
+76. **Create Documentation Tests**
     - Test that examples in documentation are valid
     - Test edge cases mentioned in documentation
     - Test tutorial examples work correctly
     - Test API documentation examples
 
-80. **Update Documentation**
+77. **Update Documentation**
     - Document type system implementation
     - Provide examples of type error messages
     - Document performance characteristics and limitations
     - Create comprehensive API documentation
 
-81. **Create Example Programs**
+78. **Create Example Programs**
     - Develop comprehensive example programs
     - Include common patterns and idioms
     - Add examples of advanced type features
     - Create educational progression of examples
 
-82. **Implement Tutorial and Learning Materials**
+79. **Implement Tutorial and Learning Materials**
     - Create step-by-step type system tutorial
     - Add interactive examples and exercises
     - Document best practices and patterns
@@ -668,14 +616,14 @@ The Phase 1 tasks are organized with careful attention to dependencies:
 2. **Unification (Tasks 13-20)**: Essential algorithms with structural type support
 3. **Basic Inference (Tasks 21-42)**: Type inference for fundamental language constructs
 4. **Advanced Features (Tasks 43-58)**: Complex type system features emphasizing structural typing
-5. **Integration (Tasks 59-72)**: Connecting components and testing interactions
-6. **Optimization (Tasks 73-78)**: Performance and scalability improvements
-7. **Documentation (Tasks 79-82)**: Comprehensive documentation and examples
+5. **Integration (Tasks 59-70)**: Connecting components and testing interactions
+6. **Optimization (Tasks 73-75)**: Performance and scalability improvements
+7. **Documentation (Tasks 76-79)**: Comprehensive documentation and examples
 
 ### Phase 1 Success Criteria
 
 Phase 1 is considered complete when:
-- All 82 tasks pass their tests
+- All 79 tasks pass their tests
 - The type system correctly handles mini-bendu's open record structures
 - Row polymorphism works seamlessly with record operations
 - Structural typing enables flexible interface matching
@@ -703,3 +651,48 @@ For integration testing, create a comprehensive suite of mini-bendu programs tha
 - Examples that will naturally extend to HKT patterns in Phase 2
 
 This comprehensive plan provides a structured approach to implementing a production-quality type system for mini-bendu while maintaining high code quality and thorough testing throughout the development process. The design ensures Phase 1 creates an optimal foundation for the higher-kinded types extension in Phase 2.
+
+## 7. Performance Optimization and Scalability
+
+73. **Create Benchmarks for Type Checking**
+    - Measure performance on various program sizes
+    - Identify bottlenecks in type checking process
+    - Test memory usage patterns
+    - Benchmark constraint solving performance
+
+74. **Optimize Type Checker**
+    - Implement memoization for type checking expressions
+    - Optimize constraint solving algorithm
+    - Reduce memory usage for type representations
+    - Add incremental type checking capabilities
+
+75. **Create Tests for Scalability**
+    - Test type checking on large codebases
+    - Test memory usage under load
+    - Test incremental compilation performance
+
+## 8. Documentation and Examples
+
+76. **Create Documentation Tests**
+    - Test that examples in documentation are valid
+    - Test edge cases mentioned in documentation
+    - Test tutorial examples work correctly
+    - Test API documentation examples
+
+77. **Update Documentation**
+    - Document type system implementation
+    - Provide examples of type error messages
+    - Document performance characteristics and limitations
+    - Create comprehensive API documentation
+
+78. **Create Example Programs**
+    - Develop comprehensive example programs
+    - Include common patterns and idioms
+    - Add examples of advanced type features
+    - Create educational progression of examples
+
+79. **Implement Tutorial and Learning Materials**
+    - Create step-by-step type system tutorial
+    - Add interactive examples and exercises
+    - Document best practices and patterns
+    - Include troubleshooting guides

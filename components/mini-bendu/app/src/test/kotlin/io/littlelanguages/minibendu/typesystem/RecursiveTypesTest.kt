@@ -167,7 +167,7 @@ class RecursiveTypesTest {
         
         val listVar = VarExpr(createStringLocation("list"))
         
-        val nilPattern = LiteralStringPattern(createStringLocation("Nil"))
+        val nilPattern = LiteralStringPattern(createStringLocation("Nil"), typeAnnotation = null)
         val nilResult = LiteralIntExpr(createIntLocation(0))
         
         val consPattern = RecordPattern(listOf(
@@ -217,7 +217,7 @@ class RecursiveTypesTest {
         val lengthCall = VarExpr(createStringLocation("length")) // Recursive call
         val restVar = VarExpr(createStringLocation("rest"))
         
-        val nilPattern = LiteralStringPattern(createStringLocation("Nil"))
+        val nilPattern = LiteralStringPattern(createStringLocation("Nil"), typeAnnotation = null)
         val nilCase = MatchCase(nilPattern, LiteralIntExpr(createIntLocation(0)))
         
         val consPattern = RecordPattern(listOf(

@@ -227,11 +227,13 @@ data class TypeParam(
 // Pattern matching
 sealed class Pattern {
     abstract fun location(): Location
+    abstract val typeAnnotation: TypeExpr?
 }
 
 data class RecordPattern(
     val fields: List<FieldPattern>,
-    val location: Location
+    val location: Location,
+    override val typeAnnotation: TypeExpr? = null
 ) : Pattern() {
     override fun location(): Location = location
 }
@@ -242,13 +244,15 @@ data class FieldPattern(
 )
 
 data class VarPattern(
-    val id: StringLocation
+    val id: StringLocation,
+    override val typeAnnotation: TypeExpr? = null
 ) : Pattern() {
     override fun location(): Location = id.location
 }
 
 data class WildcardPattern(
-    val location: Location
+    val location: Location,
+    override val typeAnnotation: TypeExpr? = null
 ) : Pattern() {
     override fun location(): Location = location
 }
@@ -256,26 +260,30 @@ data class WildcardPattern(
 sealed class LiteralPattern : Pattern()
 
 data class LiteralIntPattern(
-    val value: IntLocation
+    val value: IntLocation,
+    override val typeAnnotation: TypeExpr? = null
 ) : LiteralPattern() {
     override fun location(): Location = value.location
 }
 
 data class LiteralStringPattern(
-    val value: StringLocation
+    val value: StringLocation,
+    override val typeAnnotation: TypeExpr? = null
 ) : LiteralPattern() {
     override fun location(): Location = value.location
 }
 
 data class LiteralBoolPattern(
-    val value: BoolLocation
+    val value: BoolLocation,
+    override val typeAnnotation: TypeExpr? = null
 ) : LiteralPattern() {
     override fun location(): Location = value.location
 }
 
 data class TuplePattern(
     val elements: List<Pattern>,
-    val location: Location
+    val location: Location,
+    override val typeAnnotation: TypeExpr? = null
 ) : Pattern() {
     override fun location(): Location = location
 }

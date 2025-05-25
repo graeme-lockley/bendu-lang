@@ -63,7 +63,7 @@ class ParserVisitor(val errors: Errors = Errors()) :
             Expr, BinaryOp, Expr, Expr, Expr, MatchCase,
             Expr, Expr, Expr, Expr, SpreadOrField, TypeExpr, TypeExpr,
             TypeExpr, TypeExpr, BaseTypeExpr, ParserVisitor.GenericArgs, TypeExpr, TypeField,
-            TypeExpr, List<TypeParam>, TypeParam, Pattern, RecordPattern, FieldPattern,
+            TypeExpr, List<TypeParam>, TypeParam, Pattern, Pattern, RecordPattern, FieldPattern,
             VarPattern, WildcardPattern, LiteralPattern> {
 
     // Program
@@ -378,12 +378,26 @@ class ParserVisitor(val errors: Errors = Errors()) :
             a2?.b
         )
 
-    // Pattern
-    override fun visitPattern1(a: RecordPattern): Pattern = a
-    override fun visitPattern2(a: VarPattern): Pattern = a
-    override fun visitPattern3(a: WildcardPattern): Pattern = a
-    override fun visitPattern4(a: LiteralPattern): Pattern = a
-    override fun visitPattern5(a1: Token, a2: Pattern, a3: List<Tuple2<Token, Pattern>>, a4: Token): Pattern =
+    // Pattern - handles BasePattern [":" TypeExpr]
+    override fun visitPattern(a1: Pattern, a2: Tuple2<Token, TypeExpr>?): Pattern {
+        val typeAnnotation = a2?.b
+        return when (a1) {
+            is RecordPattern -> a1.copy(typeAnnotation = typeAnnotation)
+            is VarPattern -> a1.copy(typeAnnotation = typeAnnotation)
+            is WildcardPattern -> a1.copy(typeAnnotation = typeAnnotation)
+            is LiteralIntPattern -> a1.copy(typeAnnotation = typeAnnotation)
+            is LiteralStringPattern -> a1.copy(typeAnnotation = typeAnnotation)
+            is LiteralBoolPattern -> a1.copy(typeAnnotation = typeAnnotation)
+            is TuplePattern -> a1.copy(typeAnnotation = typeAnnotation)
+        }
+    }
+
+    // BasePattern alternatives
+    override fun visitBasePattern1(a: RecordPattern): Pattern = a
+    override fun visitBasePattern2(a: VarPattern): Pattern = a
+    override fun visitBasePattern3(a: WildcardPattern): Pattern = a
+    override fun visitBasePattern4(a: LiteralPattern): Pattern = a
+    override fun visitBasePattern5(a1: Token, a2: Pattern, a3: List<Tuple2<Token, Pattern>>, a4: Token): Pattern =
         TuplePattern(
             listOf(a2) + a3.map { it.b },
             a1.location + a4.location
