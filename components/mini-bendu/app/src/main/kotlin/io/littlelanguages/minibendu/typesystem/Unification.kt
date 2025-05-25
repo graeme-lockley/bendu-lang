@@ -202,16 +202,16 @@ object Unification {
             
             // Only record1 has a row variable - record1 is open, record2 is closed
             sub1Record1.rowVar != null -> {
-                // Check if record1 has fields not in record2, which would be an error for closed record2
-                val uniqueFields1 = sub1Record1.fields.filterKeys { it !in sub1Record2.fields }
-                if (uniqueFields1.isNotEmpty()) {
-                    throw UnificationException("Cannot unify open record with closed record: open record has fields ${uniqueFields1.keys} not present in closed record")
+                // Check if record1 has concrete fields not in record2
+                val extraFields1 = sub1Record1.fields.filterKeys { it !in sub1Record2.fields }
+                if (extraFields1.isNotEmpty()) {
+                    throw UnificationException("Cannot unify open record with closed record: open record has extra fields ${extraFields1.keys} not present in closed record")
                 }
                 
                 // Collect fields in record2 that aren't in record1
                 val uniqueFields2 = sub1Record2.fields.filterKeys { it !in sub1Record1.fields }
                 
-                // Create a record type for the remaining fields in record2
+                // The row variable should absorb any extra fields from the closed record
                 val remainingRecord = RecordType(uniqueFields2)
                 
                 // Unify the row variable with the remaining fields
@@ -234,7 +234,19 @@ object Unification {
             else -> {
                 // For closed records, the field sets must be identical
                 if (sub1Record1.fields.keys != sub1Record2.fields.keys) {
-                    throw UnificationException("Cannot unify closed records with different fields: ${sub1Record1.fields.keys} vs ${sub1Record2.fields.keys}")
+                    val missingInRecord1 = sub1Record2.fields.keys - sub1Record1.fields.keys
+                    val missingInRecord2 = sub1Record1.fields.keys - sub1Record2.fields.keys
+                    
+                    val errorMessage = when {
+                        missingInRecord1.isNotEmpty() && missingInRecord2.isEmpty() -> 
+                            "Cannot unify closed records: missing required fields $missingInRecord1"
+                        missingInRecord2.isNotEmpty() && missingInRecord1.isEmpty() -> 
+                            "Cannot unify closed records: extra fields $missingInRecord2 not allowed"
+                        else -> 
+                            "Cannot unify closed records: missing fields $missingInRecord1, extra fields $missingInRecord2"
+                    }
+                    
+                    throw UnificationException(errorMessage)
                 }
                 
                 fieldSubst

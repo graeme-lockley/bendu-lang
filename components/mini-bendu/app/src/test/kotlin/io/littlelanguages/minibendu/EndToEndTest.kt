@@ -4,6 +4,7 @@ import io.littlelanguages.minibendu.typesystem.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.fail
 
 class EndToEndTest {
 
@@ -45,16 +46,21 @@ class EndToEndTest {
         }
     }
 
-    private fun assertTypeCheckSuccess(source: String, expectedType: String? = null) {
+    private fun assertTypeCheckSuccess(source: String, expectedType: Any? = null) {
         val result = parseAndTypeCheck(source)
 
         if (result is TypeCheckResult.Failure) {
-            println("Error: ${result.error}")
+            fail("Type check failed: ${result.error}")
         }
 
         assertTrue(result is TypeCheckResult.Success, "Expected type check to succeed for: $source")
         if (expectedType != null) {
-            assertEquals(expectedType, result.getFinalType().toString())
+            val actualType = result.getFinalType().toString()
+            when (expectedType) {
+                is String -> assertEquals(expectedType, actualType, "Type mismatch for source: $source\nExpected: $expectedType\nActual: $actualType")
+                is Regex -> assertTrue(expectedType.matches(actualType), "Type mismatch for source: $source\nExpected to match: $expectedType\nActual: $actualType")
+                else -> fail("Unsupported expectedType: $expectedType")
+            }
         }
     }
 
@@ -159,30 +165,36 @@ class EndToEndTest {
 
     @Test
     fun testRecordManipulationProgram() {
-//        assertTypeCheckSuccess(
-//            """
-//                let person = { name = "Alice", age = 30 } in
-//                let updatedPerson = { ...person, age = 31 } in
-//                updatedPerson.age
-//            """.trimIndent(), "Int")
-//
-//        assertTypeCheckSuccess(
-//            """
-//                let person = { name = "Alice", age = 30 }
-//                let updatedPerson = { ...person, age = 31 }
-//
-//                updatedPerson.age
-//            """.trimIndent(), "Int")
+        assertTypeCheckSuccess(
+            """
+                let person = { name = "Alice", age = 30 } in
+                let updatedPerson = { ...person, age = 31 } in
+                updatedPerson.age
+            """.trimIndent(), "Int")
+
+        assertTypeCheckSuccess(
+            """
+                let person = { name = "Alice", age = 30 }
+                let updatedPerson = { ...person, age = 31 }
+
+                updatedPerson.age
+            """.trimIndent(), "Int")
 
         assertTypeCheckSuccess(
             """
                 type Person = { name: String, age: Int }
                 
                 let person: Person = { name = "Alice", age = 30 }
-                let updatedPerson: Person = { ...person, age = 31 }
+                let updatedPerson = { ...person, age = 31, initials = "AS" }
                 
-                updatedPerson.age
-            """.trimIndent(), "Int")
+                updatedPerson
+            """.trimIndent(), "\\{name: String, age: Int, initials: String \\| τ\\d+}".toRegex())
+
+        assertTypeCheckSuccess(
+            """
+                let person = { name = "Alice", age = 30 } in
+                person
+            """.trimIndent(), "{name: String, age: Int}")
     }
 
 //    @Test

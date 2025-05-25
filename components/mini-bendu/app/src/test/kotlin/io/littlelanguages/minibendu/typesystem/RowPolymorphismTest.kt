@@ -40,14 +40,21 @@ class RowPolymorphismTest {
     @Test
     fun `row variable should allow record extension`() {
         // Test that a function accepting an open record can work with extended records
-        // Process a record {name: String | α} and it should work with {name: "test", age: 25}
+        // This now tests using spread operations to create row polymorphic behavior
         
+        val baseRecord = VarExpr(createStringLocation("baseRecord"))
+        val spreadExpr = SpreadExpr(baseRecord)
         val extendedRecord = RecordExpr(listOf(
-            FieldExpr(createStringLocation("name"), LiteralStringExpr(createStringLocation("test"))),
-            FieldExpr(createStringLocation("age"), LiteralIntExpr(createIntLocation(25)))
+            spreadExpr,
+            FieldExpr(createStringLocation("newField"), LiteralStringExpr(createStringLocation("test")))
         ), createLocation())
         
-        val generator = ConstraintGenerator()
+        // Set up base record with row variable for extension
+        val baseRecordType = RecordType(mapOf("age" to Types.Int), TypeVariable.fresh())
+        val env = TypeEnvironment.empty()
+            .bind("baseRecord", TypeScheme.monomorphic(baseRecordType))
+        
+        val generator = ConstraintGenerator(env)
         val result = generator.generateConstraints(extendedRecord)
         
         assertTrue(result.isSuccess(), "Should successfully infer type for extended record")
@@ -61,13 +68,13 @@ class RowPolymorphismTest {
         val recordType = finalType as RecordType
         
         // The record should have both fields
-        assertTrue(recordType.fields.containsKey("name"))
         assertTrue(recordType.fields.containsKey("age"))
-        assertEquals(Types.String, recordType.fields["name"])
+        assertTrue(recordType.fields.containsKey("newField"))
         assertEquals(Types.Int, recordType.fields["age"])
+        assertEquals(Types.String, recordType.fields["newField"])
         
-        // For extensible records, row variable should be present when needed
-        assertNotNull(recordType.rowVar, "Record should have row variable for extensibility")
+        // For spread-based records, row variable should be present for further extension
+        assertNotNull(recordType.rowVar, "Spread-based record should preserve row variable for extension")
     }
 
     @Test
@@ -94,7 +101,8 @@ class RowPolymorphismTest {
 
     @Test
     fun `fresh row variables for independent records`() {
-        // Test that different open records get fresh row variables
+        // Test that record literals create closed records by default
+        // Row variables are only created through spread operations
         
         val record1 = RecordExpr(listOf(
             FieldExpr(createStringLocation("x"), LiteralIntExpr(createIntLocation(42)))
@@ -128,11 +136,9 @@ class RowPolymorphismTest {
         val recordType1 = type1 as RecordType
         val recordType2 = type2 as RecordType
         
-        // Row variables should be different for independent records
-        if (recordType1.rowVar != null && recordType2.rowVar != null) {
-            assertNotEquals(recordType1.rowVar, recordType2.rowVar,
-                "Independent records should have different row variables")
-        }
+        // Direct record literals should be closed (no row variables)
+        assertNull(recordType1.rowVar, "Direct record literal should be closed")
+        assertNull(recordType2.rowVar, "Direct record literal should be closed")
     }
 
     // ===== RECORD EXTENSION WITH ROW POLYMORPHISM TESTS =====
@@ -337,5 +343,39 @@ class RowPolymorphismTest {
         
         val finalType = (solverResult as ConstraintSolverResult.Success).substitution.apply(result.type)
         assertEquals(Types.String, finalType, "Should preserve field type through scoping")
+    }
+
+    @Test
+    fun `record literals should be closed by default for soundness`() {
+        // Test that standalone record literals create closed records
+        // This prevents unsound type assignments where fields are missing
+        // Row polymorphism is enabled through spread operations, not direct literals
+        
+        val recordLiteral = RecordExpr(listOf(
+            FieldExpr(createStringLocation("name"), LiteralStringExpr(createStringLocation("test"))),
+            FieldExpr(createStringLocation("age"), LiteralIntExpr(createIntLocation(25)))
+        ), createLocation())
+        
+        val generator = ConstraintGenerator()
+        val result = generator.generateConstraints(recordLiteral)
+        
+        assertTrue(result.isSuccess(), "Should successfully infer type for record literal")
+        
+        val solver = ConstraintSolver()
+        val solverResult = solver.solve(result.constraints)
+        assertTrue(solverResult is ConstraintSolverResult.Success, "Constraint solving should succeed")
+        
+        val finalType = (solverResult as ConstraintSolverResult.Success).substitution.apply(result.type)
+        assertTrue(finalType is RecordType, "Record literal should result in record type")
+        val recordType = finalType as RecordType
+        
+        // The record should have both fields
+        assertTrue(recordType.fields.containsKey("name"))
+        assertTrue(recordType.fields.containsKey("age"))
+        assertEquals(Types.String, recordType.fields["name"])
+        assertEquals(Types.Int, recordType.fields["age"])
+        
+        // Record literals should be closed by default for type soundness
+        assertNull(recordType.rowVar, "Record literal should be closed by default for soundness")
     }
 } 

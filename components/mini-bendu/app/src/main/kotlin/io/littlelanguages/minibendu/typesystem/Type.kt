@@ -18,6 +18,12 @@ sealed class Type {
      * Used for generalization and instantiation.
      */
     open fun freeTypeVariables(): Set<TypeVariable> = emptySet()
+    
+    /**
+     * Normalize this type for display purposes.
+     * This simplifies unused row variables and other display artifacts.
+     */
+    open fun normalize(): Type = this
 }
 
 /**
@@ -114,6 +120,16 @@ class RecordType(val fields: Map<String, Type>, val rowVar: TypeVariable? = null
     override fun freeTypeVariables(): Set<TypeVariable> {
         val fieldVars = fields.values.flatMap { it.freeTypeVariables() }.toSet()
         return if (rowVar != null) fieldVars + rowVar else fieldVars
+    }
+    
+    override fun normalize(): Type {
+        val normalizedFields = fields.mapValues { it.value.normalize() }
+        
+        // If the row variable is unconstrained (not referenced elsewhere),
+        // we can simplify this to a closed record for display purposes
+        // For now, we'll keep the row variable but this could be enhanced
+        // with more sophisticated analysis
+        return RecordType(normalizedFields, rowVar)
     }
     
     override fun toString(): String {

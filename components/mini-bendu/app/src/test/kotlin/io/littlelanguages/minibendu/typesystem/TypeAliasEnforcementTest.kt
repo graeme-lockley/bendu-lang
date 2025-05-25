@@ -323,11 +323,11 @@ class TypeAliasEnforcementTest {
             """.trimIndent(), "Int")
     }
 
-    // TODO: Missing field validation in type aliases not fully implemented yet
-    // Uncomment when record field validation is enhanced
-    /*
+    // ===== SOUND TYPE CHECKING WITH TYPE ALIASES =====
+    
     @Test
-    fun `record type alias missing field should fail`() {
+    fun `record type alias with missing field should fail`() {
+        // This should fail because the record literal is missing required fields
         assertTypeCheckFailure(
             """
                 type Person = { name: String, age: Int }
@@ -335,7 +335,33 @@ class TypeAliasEnforcementTest {
                 let person: Person = { name = "Alice" }
                 
                 person.name
-            """.trimIndent(), "missing")
+            """.trimIndent(), "missing required field")
     }
-    */
-} 
+
+    @Test
+    fun `accessing missing field from incomplete record should fail`() {
+        // This test checks that accessing a field that was missing from the literal fails
+        assertTypeCheckFailure(
+            """
+                type Person = { name: String, age: Int }
+                
+                let person: Person = { name = "Alice" }
+                
+                person.age
+            """.trimIndent(), "missing required field")
+    }
+    
+    @Test
+    fun `record type alias with extra field fails due to structural constraints`() {
+        // Cannot assign a record with extra fields to a closed type alias
+        // { name: String, age: Int, active: Bool } cannot unify with { name: String, age: Int }
+        assertTypeCheckFailure(
+            """
+                type Person = { name: String, age: Int }
+                
+                let person: Person = { name = "Alice", age = 30, active = True }
+                
+                person.age
+            """.trimIndent(), "extra field")
+    }
+}

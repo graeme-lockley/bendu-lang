@@ -446,6 +446,10 @@ class ConstraintGenerator(
     
     /**
      * Generate constraints for record expressions.
+     * 
+     * Context-sensitive record type generation:
+     * - Open records (with row variables) for polymorphic contexts 
+     * - Closed records for type-annotated bindings
      */
     private fun generateConstraintsForRecord(expr: RecordExpr, env: TypeEnvironment): Pair<Type, ConstraintSet> {
         val explicitFields = mutableMapOf<String, Type>()
@@ -482,9 +486,10 @@ class ConstraintGenerator(
             val mergeConstraint = MergeConstraint(resultType, spreadTypes, explicitFields, sourceLocation)
             allConstraints = allConstraints.add(mergeConstraint)
         } else {
-            // No spreads, create an open record with a fresh row variable for extensibility
-            val rowVariable = TypeVariable.fresh()
-            val recordType = RecordType(explicitFields, rowVariable)
+            // No spreads - create a closed record for soundness
+            // Direct record literals like { name = "Alice" } should be closed to prevent
+            // unsound assignments where fields are missing
+            val recordType = RecordType(explicitFields, null) // null = closed record
             val recordConstraint = EqualityConstraint(resultType, recordType, sourceLocation)
             allConstraints = allConstraints.add(recordConstraint)
         }
