@@ -93,6 +93,22 @@ class EndToEndTest {
 
         assertTypeCheckSuccess(
             """
+                let identity[A]: A -> A = \x => x in
+                let result1 = identity(42) in
+                let result2 = identity("hello") in
+                result1
+            """.trimIndent(), "Int")
+
+        assertTypeCheckSuccess(
+            """
+                let identity = \x => x in
+                let result1 = identity(42) in
+                let result2 = identity("hello") in
+                (result1, result2)
+            """.trimIndent(), "(Int, String)")
+
+        assertTypeCheckSuccess(
+            """
                 let identity(x) = x in
                 let result1 = identity(42) in
                 let result2 = identity("hello") in
@@ -101,7 +117,41 @@ class EndToEndTest {
 
         assertTypeCheckSuccess(
             """
+                let identity(x) = x in
+                let result1 = identity(42) in
+                let result2 = identity("hello") in
+                (result1, result2)
+            """.trimIndent(), "(Int, String)")
+
+        assertTypeCheckSuccess(
+            """
+                let identity[A](x: A): A = x in
+                let result1 = identity(42) in
+                let result2 = identity("hello") in
+                (result1, result2)
+            """.trimIndent(), "(Int, String)")
+
+        assertTypeCheckSuccess(
+            """
                 let identity = \x => x
+                
+                let result1 = identity(42) in
+                let result2 = identity("hello") in
+                result1
+            """.trimIndent(), "Int")
+
+        assertTypeCheckSuccess(
+            """
+                let identity(x) = x
+                
+                let result1 = identity(42) in
+                let result2 = identity("hello") in
+                result1
+            """.trimIndent(), "Int")
+
+        assertTypeCheckSuccess(
+            """
+                let identity[A](x: A): A = x
                 
                 let result1 = identity(42) in
                 let result2 = identity("hello") in
