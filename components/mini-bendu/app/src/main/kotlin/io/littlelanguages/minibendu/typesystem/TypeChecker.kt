@@ -44,9 +44,11 @@ sealed class TypeCheckResult {
  * - Comprehensive error reporting with source locations
  * - Environment management for bindings
  * - Support for incremental type checking
+ * - Type alias support and resolution
  */
 class TypeChecker(
-    private val initialEnvironment: TypeEnvironment = TypeEnvironment.empty()
+    private val initialEnvironment: TypeEnvironment = TypeEnvironment.empty(),
+    private val typeAliasRegistry: TypeAliasRegistry = TypeAliasRegistry()
 ) {
     
     /**
@@ -64,7 +66,7 @@ class TypeChecker(
     fun typeCheckWithEnvironment(expr: Expr, environment: TypeEnvironment): TypeCheckResult {
         return try {
             // Step 1: Generate constraints
-            val generator = ConstraintGenerator(environment)
+            val generator = ConstraintGenerator(environment, typeAliasRegistry)
             val constraintResult = generator.generateConstraints(expr)
             
             if (constraintResult.isFailure()) {
@@ -161,6 +163,84 @@ class TypeChecker(
             errors = errors,
             hasErrors = errors.isNotEmpty()
         )
+    }
+    
+    /**
+     * Type check a program with top-level declarations including type aliases.
+     * Processes type aliases first, then expressions incrementally.
+     */
+    fun typeCheckProgram(program: Program): IncrementalTypeCheckResult {
+        var currentEnvironment = initialEnvironment
+        val results = mutableListOf<TypeCheckResult>()
+        val errors = mutableListOf<TypeCheckResult.Failure>()
+        
+        for (topLevel in program.topLevels) {
+            when (topLevel) {
+                is TypeAliasDecl -> {
+                    // Process type alias declaration
+                    val aliasResult = processTypeAliasDeclaration(topLevel)
+                    if (aliasResult.isFailure) {
+                        val failure = TypeCheckResult.Failure(
+                            error = (aliasResult as TypeAliasResult.Failure).error,
+                            location = extractSourceLocation(topLevel.id.location)
+                        )
+                        errors.add(failure)
+                        results.add(failure)
+                    } else {
+                        // Type alias processed successfully - no result type needed
+                        val success = TypeCheckResult.Success(
+                            type = Types.Unit, // Dummy type for type alias declarations
+                            substitution = Substitution.empty,
+                            environment = currentEnvironment
+                        )
+                        results.add(success)
+                    }
+                }
+                is ExprStmt -> {
+                    // Process expression statement
+                    val expr = topLevel.expr
+                    val result = typeCheckWithEnvironment(expr, currentEnvironment)
+                    results.add(result)
+                    
+                    when (result) {
+                        is TypeCheckResult.Success -> {
+                            // Update environment with successful bindings
+                            currentEnvironment = updateEnvironmentFromExpression(expr, result, currentEnvironment)
+                        }
+                        is TypeCheckResult.Failure -> {
+                            errors.add(result)
+                            // Continue with the current environment (error recovery)
+                        }
+                    }
+                }
+            }
+        }
+        
+        return IncrementalTypeCheckResult(
+            results = results,
+            finalEnvironment = currentEnvironment,
+            errors = errors,
+            hasErrors = errors.isNotEmpty()
+        )
+    }
+    
+    /**
+     * Process a type alias declaration and add it to the registry.
+     */
+    private fun processTypeAliasDeclaration(typeAliasDecl: TypeAliasDecl): TypeAliasResult {
+        val aliasName = typeAliasDecl.id.value
+        
+        // Convert type parameters to TypeVariable instances
+        val typeParameters = typeAliasDecl.typeParams?.map { param ->
+            TypeVariable.fresh()
+        } ?: emptyList()
+        
+        // Create a temporary constraint generator to convert the type expression
+        val tempGenerator = ConstraintGenerator(TypeEnvironment.empty(), typeAliasRegistry)
+        val aliasedType = tempGenerator.convertTypeExprToType(typeAliasDecl.typeExpr)
+        
+        // Define the alias in the registry
+        return typeAliasRegistry.defineAlias(aliasName, typeParameters, aliasedType)
     }
     
     /**

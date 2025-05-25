@@ -21,24 +21,22 @@ class EndToEndTest {
             } else {
                 val typeChecker = TypeChecker()
 
-                // Extract the expressions from the program
-                val expressions = program.expressions()
-                if (expressions.isEmpty()) {
-                    TypeCheckResult.Failure("No expressions found in program", SourceLocation(1, 1))
-                } else if (expressions.size == 1) {
-                    // Single expression - type check directly
-                    val mainExpr = expressions.last()
-                    typeChecker.typeCheck(mainExpr)
+                // Use the new typeCheckProgram method that handles both type aliases and expressions
+                val incrementalResult = typeChecker.typeCheckProgram(program)
+                
+                if (incrementalResult.hasErrors) {
+                    // Return the first error
+                    incrementalResult.errors.first()
                 } else {
-                    // Multiple expressions - use incremental type checking
-                    val incrementalResult = typeChecker.typeCheckIncrementally(expressions)
+                    // Return the result of the last expression (skip type alias declarations)
+                    val expressionResults = incrementalResult.results.zip(program.topLevels)
+                        .filter { (_, topLevel) -> topLevel is ExprStmt }
+                        .map { (result, _) -> result }
                     
-                    if (incrementalResult.hasErrors) {
-                        // Return the first error
-                        incrementalResult.errors.first()
+                    if (expressionResults.isEmpty()) {
+                        TypeCheckResult.Failure("No expressions found in program", SourceLocation(1, 1))
                     } else {
-                        // Return the result of the last expression
-                        incrementalResult.results.last()
+                        expressionResults.last()
                     }
                 }
             }
@@ -159,16 +157,34 @@ class EndToEndTest {
             """.trimIndent(), "Int")
     }
 
-//    @Test
-//    fun testRecordManipulationProgram() {
-//        val source = """
-//            let person = { name = "Alice", age = 30 } in
-//            let updatedPerson = { ...person, age = 31 } in
-//            updatedPerson.age
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source, "Int")
-//    }
+    @Test
+    fun testRecordManipulationProgram() {
+//        assertTypeCheckSuccess(
+//            """
+//                let person = { name = "Alice", age = 30 } in
+//                let updatedPerson = { ...person, age = 31 } in
+//                updatedPerson.age
+//            """.trimIndent(), "Int")
 //
+//        assertTypeCheckSuccess(
+//            """
+//                let person = { name = "Alice", age = 30 }
+//                let updatedPerson = { ...person, age = 31 }
+//
+//                updatedPerson.age
+//            """.trimIndent(), "Int")
+
+        assertTypeCheckSuccess(
+            """
+                type Person = { name: String, age: Int }
+                
+                let person: Person = { name = "Alice", age = 30 }
+                let updatedPerson: Person = { ...person, age = 31 }
+                
+                updatedPerson.age
+            """.trimIndent(), "Int")
+    }
+
 //    @Test
 //    fun testRowPolymorphismWithFunctions() {
 //        val source = """

@@ -47,7 +47,8 @@ sealed class ConstraintGenerationResult {
  * - Preserves source location information for error reporting
  */
 class ConstraintGenerator(
-    private val environment: TypeEnvironment = TypeEnvironment.empty()
+    private val environment: TypeEnvironment = TypeEnvironment.empty(),
+    private val typeAliasRegistry: TypeAliasRegistry = TypeAliasRegistry()
 ) {
     
     /**
@@ -809,7 +810,15 @@ class ConstraintGenerator(
     
     /**
      * Convert a type expression (from the AST) to a Type (from the type system).
-     * This is a simplified implementation.
+     * This is the public interface for type expression conversion.
+     */
+    fun convertTypeExprToType(typeExpr: TypeExpr): Type {
+        return typeExprToType(typeExpr)
+    }
+    
+    /**
+     * Convert a type expression (from the AST) to a Type (from the type system).
+     * This handles type alias resolution and normalization.
      */
     private fun typeExprToType(typeExpr: TypeExpr): Type {
         return when (typeExpr) {
@@ -819,7 +828,19 @@ class ConstraintGenerator(
                     "String" -> Types.String
                     "Bool" -> Types.Bool
                     "Unit" -> Types.Unit
-                    else -> TypeVariable.fresh() // Unknown type - could be a type variable
+                    else -> {
+                        // Check if it's a type alias
+                        val aliasName = typeExpr.id.value
+                        val typeArguments = typeExpr.args?.map { typeExprToType(it) } ?: emptyList()
+                        
+                        val expandedType = typeAliasRegistry.expandAlias(aliasName, typeArguments)
+                        if (expandedType != null) {
+                            expandedType
+                        } else {
+                            // Not a known type alias, could be a type variable or undefined type
+                            TypeVariable.fresh()
+                        }
+                    }
                 }
             }
             is FunctionTypeExpr -> {
