@@ -83,22 +83,30 @@ class EndToEndTest {
 
     @Test
     fun testPolymorphicIdentityFunction() {
-        val source1 = """
-            let identity = \x => x in
-            let result1 = identity(42) in
-            let result2 = identity("hello") in
-            result1
-        """.trimIndent()
-        assertTypeCheckSuccess(source1, "Int")
+        assertTypeCheckSuccess(
+            """
+                let identity = \x => x in
+                let result1 = identity(42) in
+                let result2 = identity("hello") in
+                result1
+            """.trimIndent(), "Int")
 
-        val source2 = """
-            let identity = \x => x
-            
-            let result1 = identity(42) in
-            let result2 = identity("hello") in
-            result1
-        """.trimIndent()
-        assertTypeCheckSuccess(source2, "Int")
+        assertTypeCheckSuccess(
+            """
+                let identity(x) = x in
+                let result1 = identity(42) in
+                let result2 = identity("hello") in
+                result1
+            """.trimIndent(), "Int")
+
+        assertTypeCheckSuccess(
+            """
+                let identity = \x => x
+                
+                let result1 = identity(42) in
+                let result2 = identity("hello") in
+                result1
+            """.trimIndent(), "Int")
     }
 
 //    @Test

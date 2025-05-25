@@ -293,17 +293,26 @@ class ConstraintGenerator(
      * This implementation handles:
      * - Non-recursive let bindings with proper type generalization
      * - Recursive let bindings with appropriate environment setup
+     * - Function syntax (let f(x) = ...) by converting to lambda
      * - Type annotations and constraint propagation
      * - Proper variable scoping and shadowing
      */
     private fun generateConstraintsForLet(expr: LetExpr, env: TypeEnvironment): Pair<Type, ConstraintSet> {
         val bindingName = expr.id.value
         
+        // Convert function syntax to lambda if parameters are present
+        val actualValue = if (expr.parameters?.isNotEmpty() == true) {
+            // Convert let f(x, y, z) = body to let f = \x => \y => \z => body
+            convertFunctionSyntaxToLambda(expr.parameters, expr.value, expr.id.location)
+        } else {
+            expr.value
+        }
+        
         if (expr.body == null) {
             // Let expression without body - this is a top-level binding
             // We need to solve the value constraints and generalize the type
             // even though there's no body to type-check
-            val (valueType, valueConstraints) = generateConstraintsInternal(expr.value, env)
+            val (valueType, valueConstraints) = generateConstraintsInternal(actualValue, env)
             
             // Handle explicit type annotation if present
             val annotatedType = expr.typeAnnotation?.let { typeExprToType(it) }
@@ -321,10 +330,25 @@ class ConstraintGenerator(
         
         if (expr.recursive) {
             // For recursive let, we need to add the binding to the environment first
-            return generateConstraintsForRecursiveLet(expr, env)
+            return generateConstraintsForRecursiveLet(expr.copy(value = actualValue), env)
         } else {
             // For non-recursive let, generate constraints for value first, then extend environment
-            return generateConstraintsForNonRecursiveLet(expr, env)
+            return generateConstraintsForNonRecursiveLet(expr.copy(value = actualValue), env)
+        }
+    }
+    
+    /**
+     * Convert function syntax let f(x, y) = body to lambda form \x => \y => body
+     */
+    private fun convertFunctionSyntaxToLambda(parameters: List<Parameter>, body: Expr, location: ScanpilerLocation): Expr {
+        return parameters.foldRight(body) { param, acc ->
+            LambdaExpr(
+                typeParams = null,
+                param = param.id,
+                paramType = param.type,
+                body = acc,
+                location = location
+            )
         }
     }
     
