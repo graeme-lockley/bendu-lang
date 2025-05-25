@@ -287,9 +287,6 @@ class TypeAliasEnforcementTest {
     
     // ===== PARAMETRIC TYPE ALIAS TESTS =====
     
-    // TODO: Parameterized type aliases are not fully implemented yet
-    // Uncomment when generic type support is added
-    /*
     @Test
     fun `parameterized type alias should work`() {
         assertTypeCheckSuccess(
@@ -325,8 +322,7 @@ class TypeAliasEnforcementTest {
                 numbers.head
             """.trimIndent(), "Int")
     }
-    */
-    
+
     // TODO: Missing field validation in type aliases not fully implemented yet
     // Uncomment when record field validation is enhanced
     /*

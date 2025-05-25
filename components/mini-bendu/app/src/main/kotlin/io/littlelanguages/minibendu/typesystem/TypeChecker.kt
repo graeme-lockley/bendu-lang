@@ -230,13 +230,21 @@ class TypeChecker(
     private fun processTypeAliasDeclaration(typeAliasDecl: TypeAliasDecl): TypeAliasResult {
         val aliasName = typeAliasDecl.id.value
         
-        // Convert type parameters to TypeVariable instances
+        // Create mapping from type parameter names to TypeVariable instances
+        val typeParameterMapping = mutableMapOf<String, TypeVariable>()
         val typeParameters = typeAliasDecl.typeParams?.map { param ->
-            TypeVariable.fresh()
+            val typeVar = TypeVariable.fresh()
+            typeParameterMapping[param.id.value] = typeVar
+            typeVar
         } ?: emptyList()
         
-        // Create a temporary constraint generator to convert the type expression
-        val tempGenerator = ConstraintGenerator(TypeEnvironment.empty(), typeAliasRegistry)
+        // Create temporary environment with type parameters
+        val tempEnvironment = typeParameterMapping.entries.fold(TypeEnvironment.empty()) { env, (name, typeVar) ->
+            env.bind(name, TypeScheme.monomorphic(typeVar))
+        }
+        
+        // Create constraint generator with the environment that knows about type parameters
+        val tempGenerator = ConstraintGenerator(tempEnvironment, typeAliasRegistry)
         val aliasedType = tempGenerator.convertTypeExprToType(typeAliasDecl.typeExpr)
         
         // Define the alias in the registry

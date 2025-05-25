@@ -47,7 +47,7 @@ sealed class ConstraintGenerationResult {
  * - Preserves source location information for error reporting
  */
 class ConstraintGenerator(
-    private val environment: TypeEnvironment = TypeEnvironment.empty(),
+    private val env: TypeEnvironment = TypeEnvironment.empty(),
     private val typeAliasRegistry: TypeAliasRegistry = TypeAliasRegistry()
 ) {
     
@@ -69,7 +69,7 @@ class ConstraintGenerator(
      */
     fun generateConstraints(expr: Expr): ConstraintGenerationResult {
         return try {
-            val (type, constraints) = generateConstraintsInternal(expr, environment)
+            val (type, constraints) = generateConstraintsInternal(expr, env)
             ConstraintGenerationResult.Success(type, constraints)
         } catch (e: ConstraintGenerationException) {
             ConstraintGenerationResult.Failure(e.message ?: "Constraint generation failed")
@@ -829,15 +829,23 @@ class ConstraintGenerator(
                     "Bool" -> Types.Bool
                     "Unit" -> Types.Unit
                     else -> {
-                        // Check if it's a type alias
-                        val aliasName = typeExpr.id.value
+                        val typeName = typeExpr.id.value
                         val typeArguments = typeExpr.args?.map { typeExprToType(it) } ?: emptyList()
                         
-                        val expandedType = typeAliasRegistry.expandAlias(aliasName, typeArguments)
+                        // First check if it's a type parameter in the current environment
+                        val typeParameter = env.lookup(typeName)
+                        if (typeParameter != null) {
+                            // It's a type parameter, instantiate it
+                            val (instantiatedType, _) = typeParameter.instantiate()
+                            return instantiatedType
+                        }
+                        
+                        // Check if it's a type alias
+                        val expandedType = typeAliasRegistry.expandAlias(typeName, typeArguments)
                         if (expandedType != null) {
                             expandedType
                         } else {
-                            // Not a known type alias, could be a type variable or undefined type
+                            // Not a known type alias or type parameter, could be undefined type
                             TypeVariable.fresh()
                         }
                     }
