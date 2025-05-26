@@ -146,7 +146,12 @@ GenericArgs
     ;
 
 RecordType
-    : "{" [TypeField {"," TypeField}] ["|" UpperID] "}"
+    : "{" [RecordBodyType] "}"
+    ;
+
+RecordBodyType
+    : "..." UpperID
+    | TypeField ["," RecordBodyType]
     ;
 
 TypeField

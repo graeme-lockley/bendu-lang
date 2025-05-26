@@ -54,6 +54,8 @@ import io.littlelanguages.data.Tuple2
 import io.littlelanguages.data.Tuple3
 import java.io.StringReader
 
+
+
 /**
  * ParserVisitor for mini-bendu that converts the parse tree into an AST
  */
@@ -62,7 +64,7 @@ class ParserVisitor(val errors: Errors = Errors()) :
             Expr, Expr, Expr, BinaryOp, Expr, BinaryOp,
             Expr, BinaryOp, Expr, Expr, Expr, MatchCase,
             Expr, Expr, Expr, Expr, SpreadOrField, TypeExpr, TypeExpr,
-            TypeExpr, TypeExpr, BaseTypeExpr, ParserVisitor.GenericArgs, TypeExpr, TypeField,
+            TypeExpr, TypeExpr, BaseTypeExpr, ParserVisitor.GenericArgs, TypeExpr, ParserVisitor.RecordBodyType, TypeField,
             TypeExpr, List<TypeParam>, TypeParam, Pattern, Pattern, RecordPattern, FieldPattern,
             VarPattern, WildcardPattern, LiteralPattern> {
 
@@ -340,16 +342,69 @@ class ParserVisitor(val errors: Errors = Errors()) :
     override fun visitGenericArgs(a1: Token, a2: TypeExpr, a3: List<Tuple2<Token, TypeExpr>>, a4: Token): GenericArgs =
         GenericArgs(listOf(a2) + a3.map { it.b })
 
+    // RecordBodyType
+    override fun visitRecordBodyType1(a1: Token, a2: Token): RecordBodyType {
+        // "..." UpperID - only extension
+        return RecordBodyType.OnlyExtension(StringLocation(a2.lexeme, a2.location))
+    }
+    
+    override fun visitRecordBodyType2(
+        a1: TypeField, 
+        a2: Tuple2<Token, RecordBodyType>?
+    ): RecordBodyType {
+        // TypeField ["," RecordBodyType] - field with optional rest
+        return RecordBodyType.FieldWithOptionalRecordBodyType(a1, a2?.b)
+    }
+
     // RecordType
-    override fun visitRecordType(
-        a1: Token, a2: Tuple2<TypeField, List<Tuple2<Token, TypeField>>>?,
-        a3: Tuple2<Token, Token>?, a4: Token
-    ): TypeExpr =
-        RecordTypeExpr(
-            if (a2 == null) emptyList() else listOf(a2.a) + a2.b.map { it.b },
-            a3?.b?.let { StringLocation(it.lexeme, it.location) },
-            a1.location + a4.location
-        )
+    override fun visitRecordType(a1: Token, a2: RecordBodyType?, a3: Token): TypeExpr {
+        return when (a2) {
+            null -> {
+                // Empty record type: {}
+                RecordTypeExpr(
+                    fields = emptyList(),
+                    extension = null,
+                    location = a1.location + a3.location
+                )
+            }
+            is RecordBodyType.OnlyExtension -> {
+                // Only extension: { ...A }
+                RecordTypeExpr(
+                    fields = emptyList(),
+                    extension = a2.extension,
+                    location = a1.location + a3.location
+                )
+            }
+            is RecordBodyType.FieldWithOptionalRecordBodyType -> {
+                // Field with optional rest: { name: String } or { name: String, ...A } or { name: String, age: Int }
+                val (fields, extension) = collectFieldsAndExtension(a2)
+                RecordTypeExpr(
+                    fields = fields,
+                    extension = extension,
+                    location = a1.location + a3.location
+                )
+            }
+        }
+    }
+    
+    private fun collectFieldsAndExtension(recordBodyType: RecordBodyType.FieldWithOptionalRecordBodyType): Pair<List<TypeField>, StringLocation?> {
+        val fields = mutableListOf<TypeField>()
+        var current: RecordBodyType? = recordBodyType
+        
+        while (current != null) {
+            when (current) {
+                is RecordBodyType.OnlyExtension -> {
+                    return Pair(fields, current.extension)
+                }
+                is RecordBodyType.FieldWithOptionalRecordBodyType -> {
+                    fields.add(current.field)
+                    current = current.rest
+                }
+            }
+        }
+        
+        return Pair(fields, null)
+    }
 
     // TypeField
     override fun visitTypeField(a1: Token, a2: Token, a3: TypeExpr): TypeField =
@@ -444,8 +499,17 @@ class ParserVisitor(val errors: Errors = Errors()) :
     override fun visitLiteralPattern4(a: Token): LiteralPattern =
         LiteralBoolPattern(BoolLocation(false, a.location))
 
-    // Helper class for GenericArgs since it's not in the AST
+    // Helper classes for parser intermediate types
     data class GenericArgs(val types: List<TypeExpr>)
+    
+    // Helper sealed class for RecordBodyType
+    sealed class RecordBodyType {
+        data class OnlyExtension(val extension: StringLocation) : RecordBodyType()
+        data class FieldWithOptionalRecordBodyType(
+            val field: TypeField,
+            val rest: RecordBodyType?
+        ) : RecordBodyType()
+    }
 }
 
 fun parseLiteralString(s: String): String {

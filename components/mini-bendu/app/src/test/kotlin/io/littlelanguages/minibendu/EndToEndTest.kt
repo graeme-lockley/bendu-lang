@@ -208,6 +208,16 @@ class EndToEndTest {
                 
                 (getName(person), getName(company))
             """.trimIndent(), "(String, String)")
+
+        assertTypeCheckSuccess(
+            """
+                let getName[A](record: {name: String, ...A}): String = record.name
+                
+                let person = { name = "Bob", age = 25 } in
+                let company = { name = "TechCorp", employees = 100 } in
+                
+                (getName(person), getName(company))
+            """.trimIndent(), "(String, String)")
     }
 
 //    @Test

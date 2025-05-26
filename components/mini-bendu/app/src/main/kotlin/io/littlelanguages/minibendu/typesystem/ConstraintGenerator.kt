@@ -305,7 +305,7 @@ class ConstraintGenerator(
         val actualValue = if (expr.parameters?.isNotEmpty() == true) {
             // Convert let f(x, y, z) = body to let f = \x => \y => \z => body
             // If there's a return type annotation, we'll handle it separately in constraint generation
-            convertFunctionSyntaxToLambda(expr.parameters, expr.value, expr.id.location)
+            convertFunctionSyntaxToLambda(expr.typeParams, expr.parameters, expr.value, expr.id.location)
         } else {
             expr.value
         }
@@ -352,10 +352,10 @@ class ConstraintGenerator(
     /**
      * Convert function syntax let f(x, y) = body to lambda form \x => \y => body
      */
-    private fun convertFunctionSyntaxToLambda(parameters: List<Parameter>, body: Expr, location: ScanpilerLocation): Expr {
+    private fun convertFunctionSyntaxToLambda(typeParams: List<TypeParam>?, parameters: List<Parameter>, body: Expr, location: ScanpilerLocation): Expr {
         return parameters.foldRight(body) { param, acc ->
             LambdaExpr(
-                typeParams = null,
+                typeParams = typeParams,
                 param = param.id,
                 paramType = param.type,
                 body = acc,

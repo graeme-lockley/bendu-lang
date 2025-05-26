@@ -1288,6 +1288,61 @@ class ParserTest {
         assertEquals(0, (structMatchExpr.cases[2].body as LiteralIntExpr).value.value, "Body value should be 0")
     }
 
+    @Test
+    fun `record type parsing with TypeScript-style open records`() {
+        // Test parsing of open record type with TypeScript-style syntax
+        val openRecordInput = "type Person[A] = { name: String, age: Int, ...A }"
+        val openRecordStatements = successfulParse(openRecordInput, 1)
+        
+        assertIs<TypeAliasDecl>(openRecordStatements[0], "Statement should be a TypeAliasDecl")
+        val typeAlias = openRecordStatements[0] as TypeAliasDecl
+        assertEquals("Person", typeAlias.id.value, "Type name should be 'Person'")
+        assertEquals(1, typeAlias.typeParams?.size, "Should have one type parameter")
+        assertEquals("A", typeAlias.typeParams?.get(0)?.id?.value, "Type parameter should be 'A'")
+        
+        assertIs<RecordTypeExpr>(typeAlias.typeExpr, "Type expression should be a RecordTypeExpr")
+        val recordType = typeAlias.typeExpr
+        assertEquals(2, recordType.fields.size, "Record should have 2 fields")
+        assertEquals("name", recordType.fields[0].id.value, "First field should be 'name'")
+        assertEquals("age", recordType.fields[1].id.value, "Second field should be 'age'")
+        assertEquals("A", recordType.extension?.value, "Extension should be 'A'")
+
+        // Test parsing of closed record type
+        val closedRecordInput = "type Person = { name: String, age: Int }"
+        val closedRecordStatements = successfulParse(closedRecordInput, 1)
+        
+        val closedTypeAlias = closedRecordStatements[0] as TypeAliasDecl
+        assertEquals("Person", closedTypeAlias.id.value, "Type name should be 'Person'")
+        
+        val closedRecordType = closedTypeAlias.typeExpr as RecordTypeExpr
+        assertEquals(2, closedRecordType.fields.size, "Record should have 2 fields")
+        assertEquals("name", closedRecordType.fields[0].id.value, "First field should be 'name'")
+        assertEquals("age", closedRecordType.fields[1].id.value, "Second field should be 'age'")
+        assertNull(closedRecordType.extension, "Extension should be null for closed record")
+
+        // Test parsing of record type with only extension
+        val onlyExtensionInput = "type ExtendedRecord[A] = { ...A }"
+        val onlyExtensionStatements = successfulParse(onlyExtensionInput, 1)
+        
+        val extendedTypeAlias = onlyExtensionStatements[0] as TypeAliasDecl
+        assertEquals("ExtendedRecord", extendedTypeAlias.id.value, "Type name should be 'ExtendedRecord'")
+        
+        val extendedRecordType = extendedTypeAlias.typeExpr as RecordTypeExpr
+        assertEquals(0, extendedRecordType.fields.size, "Record should have 0 fields")
+        assertEquals("A", extendedRecordType.extension?.value, "Extension should be 'A'")
+
+        // Test parsing of empty record type
+        val emptyRecordInput = "type EmptyRecord = { }"
+        val emptyRecordStatements = successfulParse(emptyRecordInput, 1)
+        
+        val emptyTypeAlias = emptyRecordStatements[0] as TypeAliasDecl
+        assertEquals("EmptyRecord", emptyTypeAlias.id.value, "Type name should be 'EmptyRecord'")
+        
+        val emptyRecordType = emptyTypeAlias.typeExpr as RecordTypeExpr
+        assertEquals(0, emptyRecordType.fields.size, "Record should have 0 fields")
+        assertNull(emptyRecordType.extension, "Extension should be null for empty record")
+    }
+
     private fun successfulParse(input: String, numberOfStatements: Int): List<TopLevel> {
         val errors = Errors()
         val script = parse(input, errors)
