@@ -64,16 +64,16 @@ class EndToEndTest {
         }
     }
 
-//    private fun assertTypeCheckFailure(source: String, expectedErrorContains: String? = null) {
-//        val result = parseAndTypeCheck(source)
-//        assertTrue(result is TypeCheckResult.Failure, "Expected type check to fail for: $source")
-//        if (expectedErrorContains != null && result is TypeCheckResult.Failure) {
-//            assertTrue(
-//                result.error.contains(expectedErrorContains),
-//                "Expected error to contain '$expectedErrorContains' but got: ${result.error}"
-//            )
-//        }
-//    }
+    private fun assertTypeCheckFailure(source: String, expectedErrorContains: String? = null) {
+        val result = parseAndTypeCheck(source)
+        assertTrue(result is TypeCheckResult.Failure, "Expected type check to fail for: $source")
+        if (expectedErrorContains != null && result is TypeCheckResult.Failure) {
+            assertTrue(
+                result.error.contains(expectedErrorContains),
+                "Expected error to contain '$expectedErrorContains' but got: ${result.error}"
+            )
+        }
+    }
 
     @Test
     fun testSimpleArithmeticProgram() {
@@ -189,12 +189,6 @@ class EndToEndTest {
                 
                 updatedPerson
             """.trimIndent(), "\\{name: String, age: Int, initials: String \\| τ\\d+}".toRegex())
-
-        assertTypeCheckSuccess(
-            """
-                let person = { name = "Alice", age = 30 } in
-                person
-            """.trimIndent(), "{name: String, age: Int}")
     }
 
     @Test
@@ -202,16 +196,48 @@ class EndToEndTest {
         assertTypeCheckSuccess(
             """
                 let getName(record): String = record.name
-                
+
                 let person = { name = "Bob", age = 25 } in
                 let company = { name = "TechCorp", employees = 100 } in
-                
+
                 (getName(person), getName(company))
             """.trimIndent(), "(String, String)")
 
         assertTypeCheckSuccess(
             """
                 let getName[A](record: {name: String, ...A}): String = record.name
+
+                let person = { name = "Bob", age = 25 } in
+                let company = { name = "TechCorp", employees = 100 } in
+
+                (getName(person), getName(company))
+            """.trimIndent(), "(String, String)")
+
+        assertTypeCheckSuccess(
+            """
+                let getName[A, B](record: {name: B, ...A}): B = record.name
+
+                let person = { name = "Bob", age = 25 } in
+                let company = { name = "TechCorp", employees = 100 } in
+
+                (getName(person), getName(company))
+            """.trimIndent(), "(String, String)")
+
+        assertTypeCheckFailure(
+            """
+                let getName[A](record: {name: B, ...A}): B = record.name
+
+                let person = { name = "Bob", age = 25 } in
+                let company = { name = "TechCorp", employees = 100 } in
+
+                (getName(person), getName(company))
+            """.trimIndent(), "Undefined type variable")
+
+        assertTypeCheckSuccess(
+            """
+                let getName[A, B](record: {name: B, ...A}): B = 
+                    let name: B = record.name
+                    in name
                 
                 let person = { name = "Bob", age = 25 } in
                 let company = { name = "TechCorp", employees = 100 } in

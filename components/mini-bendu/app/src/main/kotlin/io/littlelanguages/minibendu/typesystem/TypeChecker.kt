@@ -239,7 +239,7 @@ class TypeChecker(
         } ?: emptyList()
         
         // Create temporary environment with type parameters
-        val tempEnvironment = typeParameterMapping.entries.fold(TypeEnvironment.empty()) { env, (name, typeVar) ->
+        val tempEnvironment = typeParameterMapping.entries.fold(initialEnvironment) { env, (name, typeVar) ->
             env.bind(name, TypeScheme.monomorphic(typeVar))
         }
         

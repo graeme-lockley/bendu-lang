@@ -269,11 +269,15 @@ class ConstraintGenerator(
      */
     private fun generateConstraintsForLambda(expr: LambdaExpr, env: TypeEnvironment): Pair<Type, ConstraintSet> {
         val parameterName = expr.param.value
-        val parameterType = expr.paramType?.let { typeExprToType(it) } ?: TypeVariable.fresh()
+        
+        // Create environment with type parameters for processing type annotations
+        val typeParamEnv = createTypeParameterEnvironment(expr.typeParams, env)
+        
+        val parameterType = expr.paramType?.let { typeExprToTypeWithEnv(it, typeParamEnv) } ?: TypeVariable.fresh()
         
         // Extend environment with parameter binding
         val parameterScheme = TypeScheme(emptySet(), parameterType) // Monomorphic scheme
-        val extendedEnv = env.bind(parameterName, parameterScheme)
+        val extendedEnv = typeParamEnv.bind(parameterName, parameterScheme)
         
         // Generate constraints for body with extended environment
         val (bodyType, bodyConstraints) = generateConstraintsInternal(expr.body, extendedEnv)
@@ -301,6 +305,9 @@ class ConstraintGenerator(
     private fun generateConstraintsForLet(expr: LetExpr, env: TypeEnvironment): Pair<Type, ConstraintSet> {
         val bindingName = expr.id.value
         
+        // Create environment with type parameters for processing type annotations
+        val typeParamEnv = createTypeParameterEnvironment(expr.typeParams, env)
+        
         // Convert function syntax to lambda if parameters are present
         val actualValue = if (expr.parameters?.isNotEmpty() == true) {
             // Convert let f(x, y, z) = body to let f = \x => \y => \z => body
@@ -314,19 +321,19 @@ class ConstraintGenerator(
             // Let expression without body - this is a top-level binding
             // We need to solve the value constraints and generalize the type
             // even though there's no body to type-check
-            val (valueType, valueConstraints) = generateConstraintsInternal(actualValue, env)
+            val (valueType, valueConstraints) = generateConstraintsInternal(actualValue, typeParamEnv)
             
             // Handle explicit type annotation if present
             // For function syntax with return type annotations, we need to construct the full function type
             val annotatedType = if (expr.parameters?.isNotEmpty() == true && expr.typeAnnotation != null) {
                 // For function syntax with return type annotation, construct the full function type
-                val returnType = typeExprToType(expr.typeAnnotation)
+                val returnType = typeExprToTypeWithEnv(expr.typeAnnotation, typeParamEnv)
                 expr.parameters.foldRight(returnType) { param, acc ->
-                    val paramType = param.type?.let { typeExprToType(it) } ?: TypeVariable.fresh()
+                    val paramType = param.type?.let { typeExprToTypeWithEnv(it, typeParamEnv) } ?: TypeVariable.fresh()
                     FunctionType(paramType, acc)
                 }
             } else {
-                expr.typeAnnotation?.let { typeExprToType(it) }
+                expr.typeAnnotation?.let { typeExprToTypeWithEnv(it, typeParamEnv) }
             }
             val annotationConstraints = annotatedType?.let { annoType ->
                 val sourceLocation = extractSourceLocation(expr.location())
@@ -371,20 +378,23 @@ class ConstraintGenerator(
     private fun generateConstraintsForNonRecursiveLet(expr: LetExpr, env: TypeEnvironment): Pair<Type, ConstraintSet> {
         val bindingName = expr.id.value
         
+        // Create environment with type parameters for processing type annotations
+        val typeParamEnv = createTypeParameterEnvironment(expr.typeParams, env)
+        
         // Generate constraints for the binding value in the current environment
-        val (valueType, valueConstraints) = generateConstraintsInternal(expr.value, env)
+        val (valueType, valueConstraints) = generateConstraintsInternal(expr.value, typeParamEnv)
         
         // Handle explicit type annotation if present
         // For function syntax with return type annotations, we need to construct the full function type
         val annotatedType = if (expr.parameters?.isNotEmpty() == true && expr.typeAnnotation != null) {
             // For function syntax with return type annotation, construct the full function type
-            val returnType = typeExprToType(expr.typeAnnotation)
+            val returnType = typeExprToTypeWithEnv(expr.typeAnnotation, typeParamEnv)
             expr.parameters.foldRight(returnType) { param, acc ->
-                val paramType = param.type?.let { typeExprToType(it) } ?: TypeVariable.fresh()
+                val paramType = param.type?.let { typeExprToTypeWithEnv(it, typeParamEnv) } ?: TypeVariable.fresh()
                 FunctionType(paramType, acc)
             }
         } else {
-            expr.typeAnnotation?.let { typeExprToType(it) }
+            expr.typeAnnotation?.let { typeExprToTypeWithEnv(it, typeParamEnv) }
         }
         val annotationConstraints = annotatedType?.let { annoType ->
             val sourceLocation = extractSourceLocation(expr.location())
@@ -431,6 +441,9 @@ class ConstraintGenerator(
     private fun generateConstraintsForRecursiveLet(expr: LetExpr, env: TypeEnvironment): Pair<Type, ConstraintSet> {
         val bindingName = expr.id.value
         
+        // Create environment with type parameters for processing type annotations
+        val typeParamEnv = createTypeParameterEnvironment(expr.typeParams, env)
+        
         // Create a fresh type variable for the recursive binding
         val recursiveType = TypeVariable.fresh()
         
@@ -438,13 +451,13 @@ class ConstraintGenerator(
         // For function syntax with return type annotations, we need to construct the full function type
         val annotatedType = if (expr.parameters?.isNotEmpty() == true && expr.typeAnnotation != null) {
             // For function syntax with return type annotation, construct the full function type
-            val returnType = typeExprToType(expr.typeAnnotation)
+            val returnType = typeExprToTypeWithEnv(expr.typeAnnotation, typeParamEnv)
             expr.parameters.foldRight(returnType) { param, acc ->
-                val paramType = param.type?.let { typeExprToType(it) } ?: TypeVariable.fresh()
+                val paramType = param.type?.let { typeExprToTypeWithEnv(it, typeParamEnv) } ?: TypeVariable.fresh()
                 FunctionType(paramType, acc)
             }
         } else {
-            expr.typeAnnotation?.let { typeExprToType(it) }
+            expr.typeAnnotation?.let { typeExprToTypeWithEnv(it, typeParamEnv) }
         }
         val annotationConstraints = annotatedType?.let { annoType ->
             val sourceLocation = extractSourceLocation(expr.location())
@@ -454,8 +467,8 @@ class ConstraintGenerator(
         // Create a monomorphic scheme for the recursive binding
         val recursiveScheme = TypeScheme(emptySet(), recursiveType)
         
-        // Extend environment with the recursive binding
-        val extendedEnv = env.bind(bindingName, recursiveScheme)
+        // Extend environment with the recursive binding and type parameters
+        val extendedEnv = typeParamEnv.bind(bindingName, recursiveScheme)
         
         // Generate constraints for the value in the extended environment (allowing self-reference)
         val (valueType, valueConstraints) = generateConstraintsInternal(expr.value, extendedEnv)
@@ -857,6 +870,14 @@ class ConstraintGenerator(
      * This handles type alias resolution and normalization.
      */
     private fun typeExprToType(typeExpr: TypeExpr): Type {
+        return typeExprToTypeWithEnv(typeExpr, env)
+    }
+    
+    /**
+     * Convert a type expression to a Type using a specific environment.
+     * This allows type parameter resolution in different contexts.
+     */
+    private fun typeExprToTypeWithEnv(typeExpr: TypeExpr, environment: TypeEnvironment): Type {
         return when (typeExpr) {
             is BaseTypeExpr -> {
                 when (typeExpr.id.value) {
@@ -866,10 +887,10 @@ class ConstraintGenerator(
                     "Unit" -> Types.Unit
                     else -> {
                         val typeName = typeExpr.id.value
-                        val typeArguments = typeExpr.args?.map { typeExprToType(it) } ?: emptyList()
+                        val typeArguments = typeExpr.args?.map { typeExprToTypeWithEnv(it, environment) } ?: emptyList()
                         
                         // First check if it's a type parameter in the current environment
-                        val typeParameter = env.lookup(typeName)
+                        val typeParameter = environment.lookup(typeName)
                         if (typeParameter != null) {
                             // It's a type parameter, instantiate it
                             val (instantiatedType, _) = typeParameter.instantiate()
@@ -881,32 +902,43 @@ class ConstraintGenerator(
                         if (expandedType != null) {
                             expandedType
                         } else {
-                            // Not a known type alias or type parameter, could be undefined type
-                            TypeVariable.fresh()
+                            // Not a known type alias or type parameter
+                            // Only throw an error for undefined type variables if:
+                            // 1. We're in a type parameter context (extended environment)
+                            // 2. It looks like a type variable (single uppercase letter)
+                            // 3. It has no type arguments (type aliases usually have arguments or are known)
+                            if (isInTypeParameterContext(environment) && 
+                                isLikelyTypeVariable(typeName) && 
+                                typeArguments.isEmpty()) {
+                                throw ConstraintGenerationException("Undefined type variable: $typeName")
+                            } else {
+                                // Otherwise, create a type alias reference that might be resolved later
+                                TypeAlias(typeName, typeArguments)
+                            }
                         }
                     }
                 }
             }
             is FunctionTypeExpr -> {
-                val domain = typeExprToType(typeExpr.from)
-                val codomain = typeExprToType(typeExpr.to)
+                val domain = typeExprToTypeWithEnv(typeExpr.from, environment)
+                val codomain = typeExprToTypeWithEnv(typeExpr.to, environment)
                 FunctionType(domain, codomain)
             }
             is RecordTypeExpr -> {
                 val fields = typeExpr.fields.associate { field ->
-                    field.id.value to typeExprToType(field.type)
+                    field.id.value to typeExprToTypeWithEnv(field.type, environment)
                 }
                 val rowVar = typeExpr.extension?.let { TypeVariable.fresh() }
                 RecordType(fields, rowVar)
             }
             is UnionTypeExpr -> {
-                val left = typeExprToType(typeExpr.left)
-                val right = typeExprToType(typeExpr.right)
+                val left = typeExprToTypeWithEnv(typeExpr.left, environment)
+                val right = typeExprToTypeWithEnv(typeExpr.right, environment)
                 // Use normalized union creation to handle flattening and simplification
                 UnionType.create(setOf(left, right))
             }
             is TupleTypeExpr -> {
-                val elements = typeExpr.types.map { typeExprToType(it) }
+                val elements = typeExpr.types.map { typeExprToTypeWithEnv(it, environment) }
                 TupleType(elements)
             }
             is LiteralStringTypeExpr -> {
@@ -914,12 +946,47 @@ class ConstraintGenerator(
             }
             is MergeTypeExpr -> {
                 // Properly implement intersection types
-                val left = typeExprToType(typeExpr.left)
-                val right = typeExprToType(typeExpr.right)
+                val left = typeExprToTypeWithEnv(typeExpr.left, environment)
+                val right = typeExprToTypeWithEnv(typeExpr.right, environment)
                 // Use normalized intersection creation to handle flattening and simplification
                 IntersectionType.create(setOf(left, right))
             }
         }
+    }
+    
+    /**
+     * Create an environment that includes type parameters from a let expression.
+     * This allows type parameter resolution when processing type annotations.
+     */
+    private fun createTypeParameterEnvironment(typeParams: List<TypeParam>?, baseEnv: TypeEnvironment): TypeEnvironment {
+        if (typeParams == null) {
+            return baseEnv
+        }
+        
+        return typeParams.fold(baseEnv) { env, typeParam ->
+            val typeVar = TypeVariable.fresh()
+            env.bind(typeParam.id.value, TypeScheme.monomorphic(typeVar))
+        }
+    }
+    
+    /**
+     * Check if we're in a context where type parameters should be defined.
+     * This helps distinguish between undefined type variables and type aliases.
+     */
+    private fun isInTypeParameterContext(environment: TypeEnvironment): Boolean {
+        // If the environment has any type parameter bindings, we're likely in a context
+        // where type parameters are expected to be defined
+        // This is a heuristic - in a more sophisticated implementation, we'd track context explicitly
+        return environment != env // If environment is different from base, we're in a type parameter context
+    }
+    
+    /**
+     * Check if a type name looks like a type variable (single uppercase letter).
+     * This helps distinguish between type variables and type aliases.
+     */
+    private fun isLikelyTypeVariable(typeName: String): Boolean {
+        // Type variables are typically single uppercase letters: A, B, C, T, etc.
+        return typeName.length == 1 && typeName[0].isUpperCase()
     }
 }
 
