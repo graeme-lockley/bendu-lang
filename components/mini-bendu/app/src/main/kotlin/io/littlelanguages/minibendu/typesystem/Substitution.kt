@@ -44,7 +44,10 @@ class Substitution internal constructor(
             is RecordType -> applyToRecordType(type)
             is TupleType -> TupleType(type.elements.map { apply(it) })
             is RecursiveType -> applyToRecursiveType(type)
-            is UnionType -> UnionType(type.alternatives.map { apply(it) }.toSet())
+            is UnionType -> {
+                val substitutedAlternatives = type.alternatives.map { apply(it) }.toSet()
+                UnionType.create(substitutedAlternatives)
+            }
             is IntersectionType -> IntersectionType(type.members.map { apply(it) }.toSet())
             is TypeAlias -> TypeAlias(type.name, type.typeArguments.map { apply(it) })
         }

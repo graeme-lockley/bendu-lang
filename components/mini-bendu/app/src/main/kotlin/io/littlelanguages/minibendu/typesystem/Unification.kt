@@ -259,24 +259,37 @@ object Unification {
      * Enhanced to support more sophisticated union unification patterns.
      */
     private fun unifyUnionTypes(union1: UnionType, union2: UnionType, substitution: Substitution): Substitution {
+        // Apply current substitution to both unions
+        val sub1 = substitution.apply(union1)
+        val sub2 = substitution.apply(union2)
+        
+        // If they're not union types after substitution, delegate to general unification
+        if (sub1 !is UnionType || sub2 !is UnionType) {
+            return unifyInternal(sub1, sub2, substitution)
+        }
+        
+        // Normalize the unions by removing duplicates and flattening
+        val normalizedUnion1 = UnionType.create(sub1.alternatives) as? UnionType ?: return unifyInternal(sub1, sub2, substitution)
+        val normalizedUnion2 = UnionType.create(sub2.alternatives) as? UnionType ?: return unifyInternal(sub1, sub2, substitution)
+        
         // First try simple structural equivalence
-        if (union1.structurallyEquivalent(union2)) {
+        if (normalizedUnion1.structurallyEquivalent(normalizedUnion2)) {
             return substitution
         }
         
-        // If sizes differ, they cannot be unified directly
-        if (union1.alternatives.size != union2.alternatives.size) {
-            throw UnificationException("Cannot unify unions with different number of alternatives: ${union1.alternatives.size} vs ${union2.alternatives.size}")
+        // If sizes differ after normalization, they cannot be unified directly
+        if (normalizedUnion1.alternatives.size != normalizedUnion2.alternatives.size) {
+            throw UnificationException("Cannot unify unions with different number of alternatives: ${normalizedUnion1.alternatives.size} vs ${normalizedUnion2.alternatives.size}")
         }
         
         // Try to find a bijective mapping between alternatives
         val used = mutableSetOf<Type>()
         var currentSubst = substitution
         
-        for (alt1 in union1.alternatives) {
+        for (alt1 in normalizedUnion1.alternatives) {
             var unified = false
             
-            for (alt2 in union2.alternatives) {
+            for (alt2 in normalizedUnion2.alternatives) {
                 if (alt2 in used) continue
                 
                 try {
@@ -293,7 +306,7 @@ object Unification {
             }
             
             if (!unified) {
-                throw UnificationException("Cannot unify union alternative $alt1 with any alternative in $union2")
+                throw UnificationException("Cannot unify union alternative $alt1 with any alternative in $normalizedUnion2")
             }
         }
         

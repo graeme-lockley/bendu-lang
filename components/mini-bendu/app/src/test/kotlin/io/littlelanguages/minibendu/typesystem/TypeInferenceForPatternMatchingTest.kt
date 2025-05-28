@@ -447,7 +447,7 @@ class TypeInferenceForPatternMatchingTest {
     }
     
     @Test
-    fun `inconsistent case body types should fail`() {
+    fun `inconsistent case body types should create union type`() {
         // match x with 1 => "string" | 2 => 42
         val scrutinee = VarExpr(createStringLocation("x"))
         
@@ -467,12 +467,21 @@ class TypeInferenceForPatternMatchingTest {
         val generator = ConstraintGenerator(env)
         val result = generator.generateConstraints(matchExpr)
         
+        assertTrue(result.isSuccess(), "Type checking should succeed for different case types")
+        
         if (result.isSuccess()) {
             val solverResult = ConstraintSolver().solve(result.constraints)
-            assertTrue(solverResult is ConstraintSolverResult.Failure, "Type checking should fail for inconsistent case types")
-        } else {
-            // Also acceptable if constraint generation fails
-            assertTrue(true, "Type checking should fail for inconsistent case types")
+            assertTrue(solverResult is ConstraintSolverResult.Success, "Constraint solving should succeed")
+            
+            if (solverResult is ConstraintSolverResult.Success) {
+                val finalType = solverResult.substitution.apply(result.type)
+                assertTrue(finalType is UnionType, "Match expression should have union type")
+                
+                val unionType = finalType as UnionType
+                assertEquals(2, unionType.alternatives.size, "Union should have 2 alternatives")
+                assertTrue(unionType.alternatives.contains(Types.String), "Union should contain String")
+                assertTrue(unionType.alternatives.contains(Types.Int), "Union should contain Int")
+            }
         }
     }
     

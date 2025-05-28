@@ -246,22 +246,23 @@ class EndToEndTest {
             """.trimIndent(), "(String, String)")
     }
 
-//    @Test
-//    fun testComplexUnionTypeProgram() {
-//        val source = """
-//            let processValue = \value =>
-//                match value with
-//                | n : Int => n + 1
-//                | s : String => s + " processed"
-//                | _ => "unknown"
-//            in
-//            let result1 = processValue 42 in
-//            let result2 = processValue "hello" in
-//            result1
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source)
-//    }
-//
+    @Test
+    fun testComplexUnionTypeProgram() {
+        val source = """
+            let processValue(value: Int | String): Int | String =
+                match value with
+                  n : Int => n + 1
+                | s : String => s
+                | _ => "unknown"
+            in
+            let result1 = processValue(42) in
+            let result2 = processValue("hello") in
+            (result1, result2)
+        """.trimIndent()
+        
+        assertTypeCheckSuccess(source, "(Int | String, Int | String)")
+    }
+
 //    @Test
 //    fun testRecursiveDataStructures() {
 //        val source = """

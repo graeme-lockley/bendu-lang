@@ -591,6 +591,8 @@ class ConstraintGenerator(
      * Generate constraints for match expressions.
      * This implements full pattern matching with proper constraint generation.
      * Now includes pattern analysis for exhaustiveness, reachability, and type refinement.
+     * 
+     * For union types, the result type is the union of all case return types.
      */
     private fun generateConstraintsForMatch(expr: MatchExpr, env: TypeEnvironment): Pair<Type, ConstraintSet> {
         val (scrutineeType, scrutineeConstraints) = generateConstraintsInternal(expr.scrutinee, env)
@@ -614,23 +616,23 @@ class ConstraintGenerator(
         val resultType = TypeVariable.fresh()
         val sourceLocation = extractSourceLocation(expr.location())
         
-        // All case bodies must have the same type
-        val unificationConstraints = if (caseTypes.isNotEmpty()) {
-            caseTypes.drop(1).map { caseType ->
-                EqualityConstraint(caseTypes.first(), caseType, sourceLocation)
+        // For match expressions, the result type should be the union of all case return types
+        // This allows different branches to return different types, which is essential for union types
+        val resultConstraint = if (caseTypes.isNotEmpty()) {
+            if (caseTypes.size == 1) {
+                // Single case - result type equals case type
+                EqualityConstraint(resultType, caseTypes.first(), sourceLocation)
+            } else {
+                // Multiple cases - result type is union of all case types
+                val unionType = UnionType.create(caseTypes.toSet())
+                EqualityConstraint(resultType, unionType, sourceLocation)
             }
         } else {
-            emptyList()
-        }
-        
-        // Result type equals case type
-        val resultConstraint = if (caseTypes.isNotEmpty()) {
-            EqualityConstraint(resultType, caseTypes.first(), sourceLocation)
-        } else {
+            // No cases - result type is Unit
             EqualityConstraint(resultType, Types.Unit, sourceLocation)
         }
         
-        val matchConstraints = ConstraintSet.of(unificationConstraints + resultConstraint)
+        val matchConstraints = ConstraintSet.of(listOf(resultConstraint))
         val allConstraints = scrutineeConstraints
             .union(caseConstraints)
             .union(matchConstraints)
