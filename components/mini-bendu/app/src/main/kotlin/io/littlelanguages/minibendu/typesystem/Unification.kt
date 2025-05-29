@@ -93,6 +93,10 @@ object Unification {
             // Intersection types
             t1 is IntersectionType && t2 is IntersectionType -> unifyIntersectionTypes(t1, t2, substitution)
             
+            // String and LiteralStringType compatibility for discriminated unions
+            t1 == Types.String && t2 is LiteralStringType -> substitution
+            t2 == Types.String && t1 is LiteralStringType -> substitution
+            
             // Different types that cannot be unified
             else -> throw UnificationException("Cannot unify $t1 with $t2")
         }

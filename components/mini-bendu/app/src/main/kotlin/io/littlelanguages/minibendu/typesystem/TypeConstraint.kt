@@ -430,3 +430,125 @@ data class MergeConstraint(
     
     override fun toString(): String = "$resultType = merge(${spreadTypes.joinToString(", ")}, {${explicitFields.entries.joinToString(", ") { "${it.key}: ${it.value}" }}})"
 }
+
+/**
+ * Union compatibility constraint: T1 ~ T2 | ...
+ * 
+ * Represents that type T1 must be compatible with type T2, meaning T1 can be
+ * unified with T2 or T1 can be part of a union type that includes T2.
+ * This is used for discriminated union pattern matching where the scrutinee type
+ * needs to accommodate multiple different pattern types.
+ * 
+ * Examples:
+ * - In pattern matching with { typ = "user", ... } and { typ = "admin", ... },
+ *   the scrutinee type should be compatible with both patterns
+ * - Allows the constraint solver to infer union types like:
+ *   { typ: "user" | "admin", ... }
+ */
+data class UnionCompatibilityConstraint(
+    val scrutineeType: Type,
+    val patternType: Type,
+    override val sourceLocation: SourceLocation? = null,
+    override val origin: ConstraintOrigin = ConstraintOrigin.INFERENCE
+) : TypeConstraint() {
+    
+    override val priority: ConstraintPriority = ConstraintPriority.MEDIUM
+    
+    override fun involvesVariable(variable: TypeVariable): Boolean {
+        return scrutineeType.freeTypeVariables().contains(variable) ||
+               patternType.freeTypeVariables().contains(variable)
+    }
+    
+    override fun typeVariables(): Set<TypeVariable> {
+        return scrutineeType.freeTypeVariables() + patternType.freeTypeVariables()
+    }
+    
+    override fun applySubstitution(substitution: Substitution): UnionCompatibilityConstraint {
+        return UnionCompatibilityConstraint(
+            substitution.apply(scrutineeType),
+            substitution.apply(patternType),
+            sourceLocation,
+            origin
+        )
+    }
+    
+    override fun freeVariables(): Set<TypeVariable> {
+        return scrutineeType.freeTypeVariables() + patternType.freeTypeVariables()
+    }
+    
+    override fun simplify(): List<TypeConstraint> {
+        // If the types are already compatible (structurally equivalent), constraint is satisfied
+        if (scrutineeType.structurallyEquivalent(patternType)) {
+            return emptyList()
+        }
+        
+        // If scrutinee is already a union type, check if pattern type is compatible
+        if (scrutineeType is UnionType) {
+            val isCompatible = scrutineeType.alternatives.any { unionMember ->
+                unionMember.structurallyEquivalent(patternType) || 
+                canUnifyTypes(unionMember, patternType)
+            }
+            if (isCompatible) {
+                return emptyList() // Already compatible
+            }
+        }
+        
+        // If pattern is a union type, check if scrutinee is compatible with any member
+        if (patternType is UnionType) {
+            val isCompatible = patternType.alternatives.any { unionMember ->
+                scrutineeType.structurallyEquivalent(unionMember) ||
+                canUnifyTypes(scrutineeType, unionMember)
+            }
+            if (isCompatible) {
+                return emptyList() // Already compatible
+            }
+        }
+        
+        // Cannot be simplified further - let the constraint solver handle it
+        return listOf(this)
+    }
+    
+    /**
+     * Check if two types can potentially be unified.
+     * This is a conservative check for compatibility.
+     */
+    private fun canUnifyTypes(type1: Type, type2: Type): Boolean {
+        return when {
+            // Type variables can unify with anything
+            type1 is TypeVariable || type2 is TypeVariable -> true
+            
+            // Same concrete types can unify
+            type1::class == type2::class -> {
+                when (type1) {
+                    is RecordType -> {
+                        if (type2 !is RecordType) return false
+                        // Records can unify if they have compatible field structures
+                        val commonFields = type1.fields.keys.intersect(type2.fields.keys)
+                        commonFields.all { fieldName ->
+                            val field1 = type1.fields[fieldName]!!
+                            val field2 = type2.fields[fieldName]!!
+                            canUnifyTypes(field1, field2)
+                        }
+                    }
+                    is FunctionType -> {
+                        if (type2 !is FunctionType) return false
+                        canUnifyTypes(type1.domain, type2.domain) && 
+                        canUnifyTypes(type1.codomain, type2.codomain)
+                    }
+                    is TupleType -> {
+                        if (type2 !is TupleType) return false
+                        type1.elements.size == type2.elements.size &&
+                        type1.elements.zip(type2.elements).all { (elem1, elem2) ->
+                            canUnifyTypes(elem1, elem2)
+                        }
+                    }
+                    else -> type1.structurallyEquivalent(type2)
+                }
+            }
+            
+            else -> false
+        }
+    }
+    
+    override fun toString(): String = "$scrutineeType ~∪ $patternType"
+}

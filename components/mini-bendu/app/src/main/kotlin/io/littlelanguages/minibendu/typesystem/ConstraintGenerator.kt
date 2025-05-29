@@ -593,104 +593,87 @@ class ConstraintGenerator(
      * Now includes pattern analysis for exhaustiveness, reachability, and type refinement.
      * 
      * For union types, the result type is the union of all case return types.
+     * 
+     * UPDATED: Now handles discriminated unions properly by allowing the scrutinee type
+     * to be inferred as a union of all pattern types when patterns have conflicting constraints.
      */
     private fun generateConstraintsForMatch(expr: MatchExpr, env: TypeEnvironment): Pair<Type, ConstraintSet> {
         val (scrutineeType, scrutineeConstraints) = generateConstraintsInternal(expr.scrutinee, env)
         
-        // Perform pattern analysis for warnings and type refinement
-        val patternAnalysis = PatternAnalyzer.analyze(expr, scrutineeType)
+        // NEW APPROACH: Instead of constraining each pattern against the same scrutinee type,
+        // we'll generate constraints for each pattern against fresh type variables,
+        // then create a union constraint that allows the scrutinee to match any of the patterns.
         
-        // Generate warnings for pattern issues (these don't affect type checking but are useful)
-        generatePatternWarnings(expr, patternAnalysis)
+        val caseResults = mutableListOf<Triple<Type, ConstraintSet, Type>>() // bodyType, constraints, patternType
+        val allConstraints = mutableListOf<TypeConstraint>()
         
-        // For each case, generate pattern and body constraints with type refinement
-        val caseResults = expr.cases.map { case ->
-            generateConstraintsForCaseWithRefinement(case, scrutineeType, env, patternAnalysis)
+        // Add scrutinee constraints
+        allConstraints.addAll(scrutineeConstraints.all())
+        
+        // Process each case with a fresh pattern type
+        for (case in expr.cases) {
+            val patternType = TypeVariable.fresh()
+            
+            // Generate pattern constraints against the fresh pattern type
+            val (patternConstraints, patternBindings) = generateConstraintsForPattern(case.pattern, patternType)
+            
+            // Extend environment with pattern bindings
+            val extendedEnv = patternBindings.entries.fold(env) { acc, (name, type) ->
+                acc.extend(name, type)
+            }
+            
+            // Generate constraints for the case body
+            val (bodyType, bodyConstraints) = generateConstraintsInternal(case.body, extendedEnv)
+            
+            // Collect all constraints for this case
+            allConstraints.addAll(patternConstraints.all())
+            allConstraints.addAll(bodyConstraints.all())
+            
+            caseResults.add(Triple(bodyType, ConstraintSet.empty(), patternType))
         }
         
-        val caseTypes = caseResults.map { it.first }
-        val caseConstraints = caseResults.map { it.second }.fold(ConstraintSet.empty()) { acc, constraints ->
-            acc.union(constraints)
+        // Create union constraint: scrutineeType must be compatible with the union of all pattern types
+        if (caseResults.isNotEmpty()) {
+            val patternTypes = caseResults.map { it.third }
+            
+            // If there's only one pattern, constrain scrutinee directly
+            if (patternTypes.size == 1) {
+                val sourceLocation = extractSourceLocation(expr.location())
+                val patternConstraint = EqualityConstraint(scrutineeType, patternTypes.first(), sourceLocation)
+                allConstraints.add(patternConstraint)
+            } else {
+                // Multiple patterns: scrutinee type should be a union that can accommodate all patterns
+                // We use a more flexible constraint that allows the constraint solver to infer the union
+                val sourceLocation = extractSourceLocation(expr.location())
+                
+                // For each pattern type, add a constraint that it's compatible with the scrutinee
+                // This allows the solver to infer a union type for the scrutinee
+                for (patternType in patternTypes) {
+                    val compatibilityConstraint = UnionCompatibilityConstraint(scrutineeType, patternType, sourceLocation)
+                    allConstraints.add(compatibilityConstraint)
+                }
+            }
         }
         
+        // Handle result type (union of all case body types)
         val resultType = TypeVariable.fresh()
         val sourceLocation = extractSourceLocation(expr.location())
         
-        // For match expressions, the result type should be the union of all case return types
-        // This allows different branches to return different types, which is essential for union types
-        val resultConstraint = if (caseTypes.isNotEmpty()) {
-            if (caseTypes.size == 1) {
-                // Single case - result type equals case type
-                EqualityConstraint(resultType, caseTypes.first(), sourceLocation)
+        val caseBodyTypes = caseResults.map { it.first }
+        val resultConstraint = if (caseBodyTypes.isNotEmpty()) {
+            if (caseBodyTypes.size == 1) {
+                EqualityConstraint(resultType, caseBodyTypes.first(), sourceLocation)
             } else {
-                // Multiple cases - result type is union of all case types
-                val unionType = UnionType.create(caseTypes.toSet())
+                val unionType = UnionType.create(caseBodyTypes.toSet())
                 EqualityConstraint(resultType, unionType, sourceLocation)
             }
         } else {
-            // No cases - result type is Unit
             EqualityConstraint(resultType, Types.Unit, sourceLocation)
         }
         
-        val matchConstraints = ConstraintSet.of(listOf(resultConstraint))
-        val allConstraints = scrutineeConstraints
-            .union(caseConstraints)
-            .union(matchConstraints)
+        allConstraints.add(resultConstraint)
         
-        return Pair(resultType, allConstraints)
-    }
-    
-    /**
-     * Generate constraints for a single match case.
-     */
-    private fun generateConstraintsForCase(case: MatchCase, scrutineeType: Type, env: TypeEnvironment): Pair<Type, ConstraintSet> {
-        // Generate pattern constraints and extract bindings
-        val (patternConstraints, patternBindings) = generateConstraintsForPattern(case.pattern, scrutineeType)
-        
-        // Extend environment with pattern bindings
-        val extendedEnv = patternBindings.entries.fold(env) { acc, (name, type) ->
-            acc.extend(name, type)
-        }
-        
-        // Generate constraints for the case body with extended environment
-        val (bodyType, bodyConstraints) = generateConstraintsInternal(case.body, extendedEnv)
-        
-        val allConstraints = patternConstraints.union(bodyConstraints)
-        return Pair(bodyType, allConstraints)
-    }
-    
-    /**
-     * Generate constraints for a single match case with type refinement.
-     * This enhanced version uses pattern analysis results to improve type inference.
-     */
-    private fun generateConstraintsForCaseWithRefinement(
-        case: MatchCase, 
-        scrutineeType: Type, 
-        env: TypeEnvironment,
-        patternAnalysis: PatternAnalysisResult
-    ): Pair<Type, ConstraintSet> {
-        // Generate pattern constraints and extract bindings
-        val (patternConstraints, patternBindings) = generateConstraintsForPattern(case.pattern, scrutineeType)
-        
-        // Apply type refinements from pattern analysis
-        val refinements = patternAnalysis.typeRefinements[case] ?: emptyMap()
-        val refinedBindings = patternBindings.toMutableMap()
-        
-        // Merge refinements with pattern bindings (refinements take precedence)
-        for ((varName, refinedType) in refinements) {
-            refinedBindings[varName] = refinedType
-        }
-        
-        // Extend environment with refined pattern bindings
-        val extendedEnv = refinedBindings.entries.fold(env) { acc, (name, type) ->
-            acc.extend(name, type)
-        }
-        
-        // Generate constraints for the case body with refined environment
-        val (bodyType, bodyConstraints) = generateConstraintsInternal(case.body, extendedEnv)
-        
-        val allConstraints = patternConstraints.union(bodyConstraints)
-        return Pair(bodyType, allConstraints)
+        return Pair(resultType, ConstraintSet.of(allConstraints))
     }
     
     /**

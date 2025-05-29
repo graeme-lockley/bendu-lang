@@ -79,6 +79,7 @@ class ConstraintSolver {
                 is InstanceConstraint -> solveInstanceConstraint(substitutedConstraint)
                 is RecordTypeConstraint -> solveRecordTypeConstraint(substitutedConstraint)
                 is MergeConstraint -> solveMergeConstraint(substitutedConstraint)
+                is UnionCompatibilityConstraint -> solveUnionCompatibilityConstraint(substitutedConstraint)
                 else -> throw UnificationException("Unknown constraint type: ${substitutedConstraint::class.simpleName}")
             }
             
@@ -452,6 +453,171 @@ class ConstraintSolver {
         // Unify the result type with the merged record type
         val unificationResult = unify(constraint.resultType, resultRecordType, constraint.sourceLocation)
         return unificationResult.compose(combinedSubstitution)
+    }
+
+    /**
+     * Solve union compatibility constraint: scrutineeType ~∪ patternType
+     * 
+     * This constraint allows the scrutinee type to be inferred as a union type
+     * that can accommodate the pattern type. This is essential for discriminated
+     * union pattern matching where different patterns have conflicting constraints.
+     */
+    private fun solveUnionCompatibilityConstraint(constraint: UnionCompatibilityConstraint): Substitution {
+        val scrutineeType = constraint.scrutineeType
+        val patternType = constraint.patternType
+        val location = constraint.sourceLocation
+        
+        // Case 1: If types are already compatible, no substitution needed
+        if (scrutineeType.structurallyEquivalent(patternType)) {
+            return Substitution.empty
+        }
+        
+        // Case 2: If scrutinee is a type variable, we can unify it with the pattern type
+        if (scrutineeType is TypeVariable) {
+            // For discriminated unions, we want to allow the scrutinee to be a union
+            // that includes the pattern type. For now, we'll unify directly.
+            return unify(scrutineeType, patternType, location)
+        }
+        
+        // Case 3: If scrutinee is already a union type, check if pattern is compatible
+        if (scrutineeType is UnionType) {
+            // Check if any member of the union can be unified with the pattern
+            for (unionMember in scrutineeType.alternatives) {
+                try {
+                    return unify(unionMember, patternType, location)
+                } catch (e: UnificationException) {
+                    // Continue trying other union members
+                    continue
+                }
+            }
+            
+            // If no existing member is compatible, we could extend the union
+            // For now, we'll fail - more sophisticated handling would create a new union
+            throw UnificationException(
+                "Pattern type $patternType is not compatible with union type $scrutineeType" +
+                if (location != null) " at $location" else ""
+            )
+        }
+        
+        // Case 4: If pattern is a union type, check if scrutinee is compatible with any member
+        if (patternType is UnionType) {
+            for (unionMember in patternType.alternatives) {
+                try {
+                    return unify(scrutineeType, unionMember, location)
+                } catch (e: UnificationException) {
+                    // Continue trying other union members
+                    continue
+                }
+            }
+            
+            throw UnificationException(
+                "Scrutinee type $scrutineeType is not compatible with union pattern $patternType" +
+                if (location != null) " at $location" else ""
+            )
+        }
+        
+        // Case 5: Handle discriminated unions with record types and literal string fields
+        if (scrutineeType is RecordType && patternType is RecordType) {
+            return solveRecordUnionCompatibility(scrutineeType, patternType, location)
+        }
+        
+        // Case 6: Both are concrete types - try direct unification
+        // This handles cases where the types might be unifiable despite appearing different
+        try {
+            return unify(scrutineeType, patternType, location)
+        } catch (e: UnificationException) {
+            // If direct unification fails, we need to create a union type
+            // For now, we'll fail - more sophisticated handling would create a union
+            throw UnificationException(
+                "Cannot establish union compatibility between $scrutineeType and $patternType" +
+                if (location != null) " at $location" else ""
+            )
+        }
+    }
+    
+    /**
+     * Solve union compatibility for record types, particularly for discriminated unions.
+     * This handles cases like {typ: String, ...} vs {typ: "user", ...}
+     */
+    private fun solveRecordUnionCompatibility(scrutineeRecord: RecordType, patternRecord: RecordType, location: SourceLocation?): Substitution {
+        var combinedSubstitution = Substitution.empty
+        
+        // For each field in the pattern, check compatibility with the scrutinee
+        for ((fieldName, patternFieldType) in patternRecord.fields) {
+            val scrutineeFieldType = scrutineeRecord.fields[fieldName]
+            
+            if (scrutineeFieldType == null) {
+                // Pattern has a field that scrutinee doesn't have
+                // This is okay for union compatibility - the scrutinee type can be extended
+                continue
+            }
+            
+            // Try to make the fields compatible
+            try {
+                // Special case: String type vs literal string type
+                if (scrutineeFieldType == Types.String && patternFieldType is LiteralStringType) {
+                    // String can accommodate any literal string - this is compatible
+                    continue
+                } else if (patternFieldType == Types.String && scrutineeFieldType is LiteralStringType) {
+                    // Literal string can be widened to String - this is compatible
+                    continue
+                } else if (canFormUnion(scrutineeFieldType, patternFieldType)) {
+                    // Fields can form a union - this is compatible for union compatibility
+                    continue
+                } else {
+                    // Try direct unification only if the types might be unifiable
+                    val fieldSubstitution = unify(scrutineeFieldType, patternFieldType, location)
+                    combinedSubstitution = fieldSubstitution.compose(combinedSubstitution)
+                }
+            } catch (e: UnificationException) {
+                // Fields are not directly unifiable - check if they can form a union
+                if (canFormUnion(scrutineeFieldType, patternFieldType)) {
+                    // Fields can form a union - this is compatible for union compatibility
+                    continue
+                } else {
+                    throw UnificationException(
+                        "Field '$fieldName' is not compatible: $scrutineeFieldType vs $patternFieldType" +
+                        if (location != null) " at $location" else ""
+                    )
+                }
+            }
+        }
+        
+        return combinedSubstitution
+    }
+    
+    /**
+     * Check if two types can form a union (are compatible for union type creation).
+     */
+    private fun canFormUnion(type1: Type, type2: Type): Boolean {
+        return when {
+            // Same types can always form a union (though it would be simplified)
+            type1.structurallyEquivalent(type2) -> true
+            
+            // String and literal string types can form unions
+            (type1 == Types.String && type2 is LiteralStringType) -> true
+            (type2 == Types.String && type1 is LiteralStringType) -> true
+            
+            // Different literal string types can form unions
+            (type1 is LiteralStringType && type2 is LiteralStringType) -> true
+            
+            // Type variables can form unions with anything
+            type1 is TypeVariable || type2 is TypeVariable -> true
+            
+            // Records with compatible structures can form unions
+            type1 is RecordType && type2 is RecordType -> {
+                // Check if they have compatible field structures
+                val commonFields = type1.fields.keys.intersect(type2.fields.keys)
+                commonFields.all { fieldName ->
+                    val field1 = type1.fields[fieldName]!!
+                    val field2 = type2.fields[fieldName]!!
+                    canFormUnion(field1, field2)
+                }
+            }
+            
+            // Other types can potentially form unions
+            else -> true
+        }
     }
 
 }
