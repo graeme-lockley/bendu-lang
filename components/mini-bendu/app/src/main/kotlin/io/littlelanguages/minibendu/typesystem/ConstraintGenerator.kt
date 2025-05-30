@@ -250,10 +250,20 @@ class ConstraintGenerator(
         val resultType = TypeVariable.fresh()
         val sourceLocation = extractSourceLocation(expr.location())
         
+        // Handle result type: if both branches have the same type, use that type directly.
+        // Otherwise, create a union type from both branch types.
+        val resultConstraint = if (thenType == elseType) {
+            // Optimization: if both branches have the same type, use it directly
+            EqualityConstraint(resultType, thenType, sourceLocation)
+        } else {
+            // Different branch types: create a union type
+            val unionType = UnionType.create(setOf(thenType, elseType))
+            EqualityConstraint(resultType, unionType, sourceLocation)
+        }
+        
         val conditionalConstraints = ConstraintSet.of(
             EqualityConstraint(conditionType, Types.Bool, sourceLocation), // condition must be Bool
-            EqualityConstraint(thenType, elseType, sourceLocation), // branches must have same type
-            EqualityConstraint(resultType, thenType, sourceLocation) // result type equals branch type
+            resultConstraint // result type is union of branch types
         )
         
         val allConstraints = conditionConstraints

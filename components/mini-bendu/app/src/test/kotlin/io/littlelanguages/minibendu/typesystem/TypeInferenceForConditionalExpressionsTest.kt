@@ -286,8 +286,8 @@ class TypeInferenceForConditionalExpressionsTest {
     }
     
     @Test
-    fun `conditional with mismatched branch types should fail`() {
-        // Test: if true then 42 else "hello" (should fail)
+    fun `conditional with different branch types creates union type`() {
+        // Test: if true then 42 else "hello" (should now succeed with union type)
         val condition = LiteralBoolExpr(createBoolLocation(true))
         val thenBranch = LiteralIntExpr(createIntLocation(42))
         val elseBranch = LiteralStringExpr(createStringLocation("hello"))
@@ -300,7 +300,15 @@ class TypeInferenceForConditionalExpressionsTest {
         
         val solver = ConstraintSolver()
         val solverResult = solver.solve(result.constraints)
-        assertTrue(solverResult is ConstraintSolverResult.Failure, "Constraint solving should fail due to mismatched branch types")
+        assertTrue(solverResult is ConstraintSolverResult.Success, "Constraint solving should succeed with union type")
+        
+        // Verify the result type is a union of Int and String
+        val substitution = (solverResult as ConstraintSolverResult.Success).substitution
+        val finalType = substitution.apply(result.type)
+        assertTrue(finalType is UnionType, "Result type should be a union type")
+        val unionType = finalType as UnionType
+        assertTrue(unionType.alternatives.contains(Types.Int) && unionType.alternatives.contains(Types.String),
+            "Union type should contain both Int and String: ${unionType.alternatives}")
     }
     
     @Test
@@ -398,13 +406,18 @@ class TypeInferenceForConditionalExpressionsTest {
         
         val substitution = (solverResult as ConstraintSolverResult.Success).substitution
         
-        // x and y should be unified to the same type
+        // With union type support, x and y remain as separate types in a union
         val xResolved = substitution.apply(xType)
         val yResolved = substitution.apply(yType)
-        assertEquals(xResolved, yResolved, "Branch types should be unified")
+        // They should not be unified to the same type anymore
+        // (though they could be if they happen to be the same type variable)
         
         val finalType = substitution.apply(result.type)
-        assertEquals(xResolved, finalType, "Result type should match branch types")
+        // The result type should be a union of the resolved x and y types
+        assertTrue(finalType is UnionType, "Result type should be a union type")
+        val unionType = finalType as UnionType
+        assertTrue(unionType.alternatives.contains(xResolved) && unionType.alternatives.contains(yResolved),
+            "Union type should contain both resolved branch types: ${unionType.alternatives}")
     }
     
     @Test

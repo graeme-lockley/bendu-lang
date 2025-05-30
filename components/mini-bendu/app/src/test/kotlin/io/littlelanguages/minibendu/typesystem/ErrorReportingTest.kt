@@ -90,7 +90,7 @@ class ErrorReportingTest {
     }
 
     @Test
-    fun `type mismatch error for if expression includes branch types`() {
+    fun `if expression with different branch types creates union type`() {
         // if true then 42 else "hello"
         val expr = IfExpr(
             LiteralBoolExpr(createBoolLocation(true, 7, 4)),
@@ -102,16 +102,18 @@ class ErrorReportingTest {
         val typeChecker = TypeChecker()
         val result = typeChecker.typeCheck(expr)
         
-        assertTrue(result.isFailure(), "Should detect branch type mismatch")
-        val failure = result as TypeCheckResult.Failure
+        // With union type support, this should now succeed with type Int | String
+        assertTrue(result.isSuccess(), "Should succeed with union type for different branch types")
+        val success = result as TypeCheckResult.Success
         
-        // Check error mentions both branch types
-        assertTrue(failure.error.contains("Int") && failure.error.contains("String"),
-            "Error should mention both branch types: ${failure.error}")
+        // Apply substitution to get the final resolved type
+        val finalType = success.substitution.apply(success.type)
         
-        // Check error mentions if expression or branches
-        assertTrue(failure.error.contains("if") || failure.error.contains("branch") || failure.error.contains("then") || failure.error.contains("else"),
-            "Error should mention if expression context: ${failure.error}")
+        // The result type should be a union of Int and String
+        assertTrue(finalType is UnionType, "Result type should be a union type")
+        val unionType = finalType as UnionType
+        assertTrue(unionType.alternatives.contains(Types.Int) && unionType.alternatives.contains(Types.String),
+            "Union type should contain both Int and String: ${unionType.alternatives}")
     }
 
     @Test

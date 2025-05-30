@@ -325,58 +325,80 @@ class EndToEndTest {
         assertTypeCheckSuccess(source, "String")
     }
 
-//    @Test
-//    fun testTypeRefinementInConditions() {
-//        val source = """
-//            let handleValue = \value =>
-//                if typeof value == "string" then
-//                    value + " is a string"
-//                else if typeof value == "number" then
-//                    "Number: " + toString value
-//                else
-//                    "Unknown type"
-//            in
-//            handleValue "test"
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source, "String")
-//    }
-//
-//    @Test
-//    fun testComplexRecordInheritancePattern() {
-//        val source = """
-//            let baseConfig = { timeout = 30, retries = 3 } in
-//            let httpConfig = { ...baseConfig, method = "GET", url = "https://api.example.com" } in
-//            let apiConfig = { ...httpConfig, apiKey = "secret", version = "v1" } in
-//            let makeRequest = \config =>
-//                "Making " + config.method + " request to " + config.url +
-//                " with timeout " + toString config.timeout
-//            in
-//            makeRequest apiConfig
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source, "String")
-//    }
-//
-//    @Test
-//    fun testErrorPropagationAndRecovery() {
-//        val source = """
-//            let safeDiv = \x => \y =>
-//                if y == 0 then
-//                    { error = "Division by zero" }
-//                else
-//                    { result = x / y }
-//            in
-//            let processResults = \results =>
-//                match results with
-//                | { result = value } => value * 2
-//                | { error = msg } => 0
-//            in
-//            let calc1 = safeDiv 10 2 in
-//            let calc2 = safeDiv 10 0 in
-//            (processResults calc1) + (processResults calc2)
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source, "Int")
-//    }
-//
+    @Test
+    fun testTypeRefinementInConditions() {
+        val source = """
+            let toString(n: Int): String = "hello"
+            let typeof(v: Int | String): String = "whatever"
+            
+            let handleValue = \value =>
+                if typeof(value) == "string" then
+                    value
+                else if typeof(value) == "number" then
+                    toString(value)
+                else
+                    "Unknown type"
+            in
+            handleValue "test"
+        """.trimIndent()
+        assertTypeCheckSuccess(source, "String")
+    }
+
+    @Test
+    fun testComplexRecordInheritancePattern() {
+        val source = """
+            let toString(n: Int): String = "hello"
+            let concat(a: String, b: String): String = a
+            
+            let baseConfig = { timeout = 30, retries = 3 } in
+            let httpConfig = { ...baseConfig, method = "GET", url = "https://api.example.com" } in
+            let apiConfig = { ...httpConfig, apiKey = "secret", version = "v1" } in
+            let makeRequest = \config =>
+                concat(concat(concat(concat(concat("Making ", config.method), " request to "), config.url),
+                " with timeout "), toString(config.timeout))
+            in
+            makeRequest(apiConfig)
+        """.trimIndent()
+        assertTypeCheckSuccess(source, "String")
+    }
+
+    @Test
+    fun testErrorPropagationAndRecovery() {
+        assertTypeCheckSuccess(
+            """
+                let safeDiv = \x => \y =>
+                    match y with
+                      0 => { error = "Division by zero" }
+                    | _ => { result = x / y }
+                in
+                let processResults = \results =>
+                    match results with
+                      { result = value } => value * 2
+                    | { error = msg } => 0
+                in
+                let calc1 = safeDiv(10)(2) in
+                let calc2 = safeDiv(10)(0) in
+                processResults(calc1) + processResults(calc2)
+            """.trimIndent(), "Int")
+
+        assertTypeCheckSuccess(
+            """
+                type Result[A, B] = { error: A } | { result: B}
+                
+                let safeDiv(x: Int, y: Int): Result[String, Int] =
+                  if y == 0 then { error = "Division by zero" } else { result = x / y }
+                in
+                let processResults(results: Result[String, Int]) =
+                  match results with
+                    { result = value } => value * 2
+                  | { error = msg } => 0
+                in
+                let calc1 = safeDiv(10, 2) in
+                let calc2 = safeDiv(10, 0) in
+                processResults(calc1) + processResults(calc2)
+            """.trimIndent(), "Int")
+    }
+
 //    @Test
 //    fun testMutualRecursionBetweenFunctions() {
 //        val source = """
