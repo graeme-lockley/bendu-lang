@@ -472,10 +472,13 @@ class ConstraintSolver {
             return Substitution.empty
         }
         
-        // Case 2: If scrutinee is a type variable, we can unify it with the pattern type
+        // Case 2: If scrutinee is a type variable, we can substitute it with the pattern type
+        // This allows the scrutinee to be inferred as a union that includes the pattern type
         if (scrutineeType is TypeVariable) {
             // For discriminated unions, we want to allow the scrutinee to be a union
             // that includes the pattern type. For now, we'll unify directly.
+            // In a more sophisticated implementation, we would collect all pattern types
+            // and create a union type.
             return unify(scrutineeType, patternType, location)
         }
         
@@ -516,13 +519,21 @@ class ConstraintSolver {
             )
         }
         
-        // Case 5: Handle discriminated unions with record types and literal string fields
+        // Case 5: Handle discriminated unions with record types
         if (scrutineeType is RecordType && patternType is RecordType) {
             return solveRecordUnionCompatibility(scrutineeType, patternType, location)
         }
         
-        // Case 6: Both are concrete types - try direct unification
-        // This handles cases where the types might be unifiable despite appearing different
+        // Case 6: For discriminated unions, we need to be more flexible
+        // If the scrutinee and pattern types are incompatible but could form a union,
+        // we should allow this for union compatibility
+        if (canFormDiscriminatedUnion(scrutineeType, patternType)) {
+            // For union compatibility, we don't need to unify the types directly
+            // We just need to ensure they can coexist in a union
+            return Substitution.empty
+        }
+        
+        // Case 7: Both are concrete types - try direct unification as a last resort
         try {
             return unify(scrutineeType, patternType, location)
         } catch (e: UnificationException) {
@@ -617,6 +628,66 @@ class ConstraintSolver {
             
             // Other types can potentially form unions
             else -> true
+        }
+    }
+
+    /**
+     * Check if two types can form a discriminated union.
+     * This is more permissive than canFormUnion and specifically handles
+     * discriminated unions where types have different structures but share
+     * a discriminator field.
+     */
+    private fun canFormDiscriminatedUnion(type1: Type, type2: Type): Boolean {
+        return when {
+            // Same types can always form a union
+            type1.structurallyEquivalent(type2) -> true
+            
+            // Type variables can form unions with anything
+            type1 is TypeVariable || type2 is TypeVariable -> true
+            
+            // Records can form discriminated unions if they have compatible discriminator fields
+            type1 is RecordType && type2 is RecordType -> {
+                canFormDiscriminatedRecordUnion(type1, type2)
+            }
+            
+            // Different concrete types can form unions
+            else -> true
+        }
+    }
+    
+    /**
+     * Check if two record types can form a discriminated union.
+     * This checks if they have compatible discriminator fields (like 'tag', 'type', etc.)
+     */
+    private fun canFormDiscriminatedRecordUnion(record1: RecordType, record2: RecordType): Boolean {
+        // Find potential discriminator fields (fields that exist in both records)
+        val commonFields = record1.fields.keys.intersect(record2.fields.keys)
+        
+        // If there are no common fields, they can still form a union
+        if (commonFields.isEmpty()) {
+            return true
+        }
+        
+        // Check if common fields can form unions (e.g., literal string types)
+        return commonFields.all { fieldName ->
+            val field1 = record1.fields[fieldName]!!
+            val field2 = record2.fields[fieldName]!!
+            
+            // For discriminated unions, we're particularly interested in literal string discriminators
+            when {
+                field1 is LiteralStringType && field2 is LiteralStringType -> {
+                    // Different literal strings can form a union (this is the discriminator)
+                    true
+                }
+                field1 == Types.String || field2 == Types.String -> {
+                    // String type can accommodate literal strings
+                    true
+                }
+                else -> {
+                    // Other field types should be compatible
+                    canFormUnion(field1, field2)
+                }
+            }
         }
     }
 

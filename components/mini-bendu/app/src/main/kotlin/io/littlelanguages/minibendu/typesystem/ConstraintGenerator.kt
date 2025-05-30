@@ -642,16 +642,33 @@ class ConstraintGenerator(
                 val patternConstraint = EqualityConstraint(scrutineeType, patternTypes.first(), sourceLocation)
                 allConstraints.add(patternConstraint)
             } else {
-                // Multiple patterns: scrutinee type should be a union that can accommodate all patterns
-                // We use a more flexible constraint that allows the constraint solver to infer the union
+                // Multiple patterns: create a union type from all pattern types
+                // and constrain the scrutinee to be compatible with this union
                 val sourceLocation = extractSourceLocation(expr.location())
                 
-                // For each pattern type, add a constraint that it's compatible with the scrutinee
-                // This allows the solver to infer a union type for the scrutinee
-                for (patternType in patternTypes) {
-                    val compatibilityConstraint = UnionCompatibilityConstraint(scrutineeType, patternType, sourceLocation)
-                    allConstraints.add(compatibilityConstraint)
+                // Filter out wildcard patterns - they don't contribute to the union type
+                // Wildcard patterns are represented by unconstrained type variables
+                val nonWildcardPatternTypes = mutableListOf<Type>()
+                for ((index, patternType) in patternTypes.withIndex()) {
+                    val case = expr.cases[index]
+                    if (case.pattern !is WildcardPattern) {
+                        nonWildcardPatternTypes.add(patternType)
+                    }
                 }
+                
+                if (nonWildcardPatternTypes.isNotEmpty()) {
+                    // Create a union type from non-wildcard pattern types
+                    val unionType = if (nonWildcardPatternTypes.size == 1) {
+                        nonWildcardPatternTypes.first()
+                    } else {
+                        UnionType.create(nonWildcardPatternTypes.toSet())
+                    }
+                    
+                    // Constrain the scrutinee to be compatible with this union
+                    val unionConstraint = EqualityConstraint(scrutineeType, unionType, sourceLocation)
+                    allConstraints.add(unionConstraint)
+                }
+                // If all patterns are wildcards, no constraint is needed on the scrutinee type
             }
         }
         

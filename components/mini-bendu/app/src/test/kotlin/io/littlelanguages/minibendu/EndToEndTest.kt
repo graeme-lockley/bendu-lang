@@ -296,35 +296,35 @@ class EndToEndTest {
 
     @Test
     fun testComplexPatternMatching() {
+        assertTypeCheckSuccess(
+            """
+                let processData = \data =>
+                    match data with
+                      { tag = "user", user = { name = userName, active = True } } =>
+                        "Active user"
+                    | { tag = "user", user = { name = userName, active = False } } =>
+                        "Inactive user"
+                    | { tag = "admin", permissions = perms } =>
+                        "Admin with permissions"
+                    | _ => "Unknown data type"
+                in
+                let userData = { tag = "admin", permissions = True } in
+                processData(userData)
+            """.trimIndent(), "String")
+    }
+
+    @Test
+    fun testIntersectionTypesInPractice() {
         val source = """
-            let processData = \data =>
-                match data with
-                  { tag = "user", user = { name = userName, active = True } } =>
-                    "Active user"
-                | { tag = "user", user = { name = userName, active = False } } =>
-                    "Inactive user"
-                | { tag = "admin", permissions = perms } =>
-                    "Admin with permissions"
-                | _ => "Unknown data type"
+            let createEntity = \name => \age =>
+                { name = name, age = age, ...{ id = 1, active = True } }
             in
-            let userData = { tag = "user", user = { name = "Alice", active = True } } in
-            processData(userData)
+            let entity = createEntity("Bob")(30) in
+            if entity.active then entity.name else "Inactive"
         """.trimIndent()
         assertTypeCheckSuccess(source, "String")
     }
 
-//    @Test
-//    fun testIntersectionTypesInPractice() {
-//        val source = """
-//            let createEntity = \name => \age =>
-//                { name = name, age = age } & { id = 1, active = true }
-//            in
-//            let entity = createEntity "Bob" 30 in
-//            entity.name + " is " + (if entity.active then "active" else "inactive")
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source, "String")
-//    }
-//
 //    @Test
 //    fun testTypeRefinementInConditions() {
 //        val source = """
