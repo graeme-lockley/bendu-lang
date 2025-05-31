@@ -224,6 +224,12 @@ object Unification {
             
             // Only record2 has a row variable - record2 is open, record1 is closed
             sub1Record2.rowVar != null -> {
+                // Check if record2 has required fields that record1 doesn't have
+                val missingFields = sub1Record2.fields.filterKeys { it !in sub1Record1.fields }
+                if (missingFields.isNotEmpty()) {
+                    throw UnificationException("Cannot unify closed record with open record: closed record is missing required fields ${missingFields.keys}")
+                }
+                
                 // Collect fields in record1 that aren't in record2
                 val uniqueFields1 = sub1Record1.fields.filterKeys { it !in sub1Record2.fields }
                 

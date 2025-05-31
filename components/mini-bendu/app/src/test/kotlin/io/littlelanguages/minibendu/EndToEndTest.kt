@@ -487,16 +487,16 @@ class EndToEndTest {
         """.trimIndent()
         assertTypeCheckFailure(source, "non-exhaustive")
     }
-//
-//    @Test
-//    fun testRecordFieldAccessError() {
-//        val source = """
-//            let person = { name = "Alice", age = 30 } in
-//            person.invalidField
-//        """.trimIndent()
-//        assertTypeCheckFailure(source, "field")
-//    }
-//
+
+    @Test
+    fun testRecordFieldAccessError() {
+        val source = """
+            let person = { name = "Alice", age = 30 } in
+            person.invalidField
+        """.trimIndent()
+        assertTypeCheckFailure(source, "field")
+    }
+
 //    @Test
 //    fun testFunctionArityError() {
 //        val source = """
