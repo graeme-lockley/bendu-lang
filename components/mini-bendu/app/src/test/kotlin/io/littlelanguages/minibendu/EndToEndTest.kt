@@ -497,15 +497,15 @@ class EndToEndTest {
         assertTypeCheckFailure(source, "field")
     }
 
-//    @Test
-//    fun testFunctionArityError() {
-//        val source = """
-//            let add = \x => \y => x + y in
-//            add 5 3 2  // Too many arguments
-//        """.trimIndent()
-//        assertTypeCheckFailure(source)
-//    }
-//
+    @Test
+    fun testFunctionArityError() {
+        val source = """
+            let add = \x => \y => x + y in
+            add(5)(3)(2)  // Too many arguments
+        """.trimIndent()
+        assertTypeCheckFailure(source)
+    }
+
 //    @Test
 //    fun testCircularTypeReference() {
 //        val source = """
@@ -515,72 +515,61 @@ class EndToEndTest {
 //        """.trimIndent()
 //        assertTypeCheckFailure(source, "circular")
 //    }
+
+    // Performance stress tests
+
+    @Test
+    fun testLargeRecordTypeInference() {
+        val fields = (1..50).joinToString(", ") { "field$it = $it" }
+        assertTypeCheckSuccess(
+            """
+                let largeRecord = { $fields } in
+                largeRecord.field25
+            """.trimIndent(), "Int")
+    }
+
+    @Test
+    fun testComplexConstraintChain() {
+        val source = """
+            let chain = \f1 => \f2 => \f3 => \f4 => \f5 => \x =>
+                f1(f2(f3(f4(f5(x)))))
+            in
+            let increment(x) = x + 1 in
+            let double(x) = x * 2 in
+            let toString(x) = "hello" in
+            let length(s) = 10 in
+            let isEven(n) = n / 2 == 0 in
+            let complexChain = chain(isEven)(increment)(double)(length)(toString) in
+            complexChain(5)
+        """.trimIndent()
+        assertTypeCheckSuccess(source, "Bool")
+    }
+
+    // Real-world usage patterns
 //
-//    // Performance stress tests
-//
-//    @Test
-//    fun testLargeRecordTypeInference() {
-//        val fields = (1..50).map { "field$it: $it" }.joinToString(", ")
-//        val source = """
-//            let largeRecord = { $fields } in
-//            largeRecord.field25
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source, "Int")
-//    }
-//
-//    @Test
-//    fun testDeepFunctionNesting() {
-//        val nestedLambdas = (1..20).fold("x") { acc, _ -> "\f$acc => f$acc ($acc)" }
-//        val source = """
-//            let deepNesting = $nestedLambdas in
-//            let identity = \x => x in
-//            deepNesting identity 42
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source, "Int")
-//    }
-//
-//    @Test
-//    fun testComplexConstraintChain() {
-//        val source = """
-//            let chain = \f1 => \f2 => \f3 => \f4 => \f5 => \x =>
-//                f1 (f2 (f3 (f4 (f5 x))))
-//            in
-//            let increment = \x => x + 1 in
-//            let double = \x => x * 2 in
-//            let toString' = \x => toString x in
-//            let length = \s => s.length in
-//            let isEven = \n => n % 2 == 0 in
-//            let complexChain = chain increment double toString' length isEven in
-//            complexChain 5
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source, "Bool")
-//    }
-//
-//    // Real-world usage patterns
-//
-//    @Test
-//    fun testConfigurationMerging() {
-//        val source = """
-//            let defaultConfig = {
-//                timeout = 5000,
-//                retries = 3,
-//                debug = false,
-//                endpoints = { api = "localhost:8080", ws = "localhost:8081" }
-//            } in
-//            let userConfig = {
-//                timeout = 10000,
-//                debug = true,
-//                endpoints = { api = "production.api.com" }
-//            } in
-//            let mergeConfigs = \default => \user =>
-//                { ...default, ...user, endpoints = { ...default.endpoints, ...user.endpoints } }
-//            in
-//            let finalConfig = mergeConfigs defaultConfig userConfig in
-//            finalConfig.timeout + finalConfig.retries
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source, "Int")
-//    }
-//
+    @Test
+    fun testConfigurationMerging() {
+        val source = """
+            let defaultConfig = {
+                timeout = 5000,
+                retries = 3,
+                debug = False,
+                endpoints = { api = "localhost:8080", ws = "localhost:8081" }
+            } in
+            let userConfig = {
+                timeout = 10000,
+                debug = True,
+                endpoints = { api = "production.api.com" }
+            } in
+            let mergeConfigs = \default => \user =>
+                { ...default, ...user, endpoints = { ...default.endpoints, ...user.endpoints } }
+            in
+            let finalConfig = mergeConfigs(defaultConfig)(userConfig) in
+            finalConfig.timeout + finalConfig.retries
+        """.trimIndent()
+        assertTypeCheckSuccess(source, "Int")
+    }
+
 //    @Test
 //    fun testGenericDataPipeline() {
 //        val source = """

@@ -375,7 +375,8 @@ class ConstraintSolver(
     }
     
     /**
-     * Solve merge constraint: result = merge(spreadTypes, explicitFields)
+     * Solve a merge constraint by combining spread types and explicit fields.
+     * This handles record spreading operations like { ...record1, ...record2, field = value }.
      */
     private fun solveMergeConstraint(constraint: MergeConstraint): Substitution {
         val mergedFields = mutableMapOf<String, Type>()
@@ -390,12 +391,23 @@ class ConstraintSolver(
                     for ((fieldName, fieldType) in appliedSpreadType.fields) {
                         val existingType = mergedFields[fieldName]
                         if (existingType != null) {
-                            // Try to unify conflicting field types
+                            // Handle field conflicts in merge operations
+                            // For record spreading, later fields override earlier fields
+                            // But we need to ensure type compatibility
                             try {
-                                val fieldUnification = unify(existingType, fieldType, constraint.sourceLocation)
-                                combinedSubstitution = fieldUnification.compose(combinedSubstitution)
-                                // Use the unified type
-                                mergedFields[fieldName] = combinedSubstitution.apply(fieldType)
+                                // Special case: if both types are records, allow merging
+                                if (existingType is RecordType && fieldType is RecordType) {
+                                    // For record fields in merge operations, we allow the later record
+                                    // to override the earlier one, as this is the expected behavior
+                                    // in record spreading: { ...a, ...b } where b.field overrides a.field
+                                    mergedFields[fieldName] = combinedSubstitution.apply(fieldType)
+                                } else {
+                                    // For non-record types, try to unify
+                                    val fieldUnification = unify(existingType, fieldType, constraint.sourceLocation)
+                                    combinedSubstitution = fieldUnification.compose(combinedSubstitution)
+                                    // Use the unified type
+                                    mergedFields[fieldName] = combinedSubstitution.apply(fieldType)
+                                }
                             } catch (e: UnificationException) {
                                 throw UnificationException(
                                     "Cannot merge field '$fieldName': conflicting types $existingType and $fieldType" +
