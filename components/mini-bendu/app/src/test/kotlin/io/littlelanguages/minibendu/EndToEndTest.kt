@@ -416,21 +416,21 @@ class EndToEndTest {
 //        assertTypeCheckSuccess(source, "Bool")
 //    }
 //
-//    @Test
-//    fun testComplexConstraintSolving() {
-//        val source = """
-//            let processRecord = \record =>
-//                let extended = { ...record, processed = true, timestamp = 12345 } in
-//                let validated = if extended.name != "" then extended else { ...extended, error = "Invalid name" } in
-//                validated
-//            in
-//            let input = { name = "Test", value = 42 } in
-//            let result = processRecord input in
-//            result.processed
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source, "Bool")
-//    }
-//
+    @Test
+    fun testComplexConstraintSolving() {
+        val source = """
+            let processRecord = \record =>
+                let extended = { ...record, processed = True, timestamp = 12345 } in
+                let validated = if extended.name != "" then extended else { ...extended, error = "Invalid name" } in
+                validated
+            in
+            let input = { name = "Test", value = 42 } in
+            let result = processRecord(input) in
+            result.processed
+        """.trimIndent()
+        assertTypeCheckSuccess(source, "Bool")
+    }
+
 //    @Test
 //    fun testTypeInferenceAcrossModuleBoundaries() {
 //        val source = """
@@ -454,37 +454,39 @@ class EndToEndTest {
 //    }
 //
 //    // Error cases for regression testing
-//
-//    @Test
-//    fun testTypeErrorInArithmetic() {
-//        val source = """
-//            let x = 5 + "hello" in
-//            x
-//        """.trimIndent()
-//        assertTypeCheckFailure(source, "Cannot unify")
-//    }
-//
-//    @Test
-//    fun testUndefinedVariableError() {
-//        val source = """
-//            let x = unknownVariable + 5 in
-//            x
-//        """.trimIndent()
-//        assertTypeCheckFailure(source, "Undefined variable")
-//    }
-//
-//    @Test
-//    fun testIncompletePatternMatchError() {
-//        val source = """
-//            let processOption = \opt =>
-//                match opt with
-//                | Some value => value
-//                // Missing None case
-//            in
-//            processOption (Some 42)
-//        """.trimIndent()
-//        assertTypeCheckFailure(source, "non-exhaustive")
-//    }
+
+    @Test
+    fun testTypeErrorInArithmetic() {
+        val source = """
+            let x = 5 + "hello" in
+            x
+        """.trimIndent()
+        assertTypeCheckFailure(source, "Cannot unify")
+    }
+
+    @Test
+    fun testUndefinedVariableError() {
+        val source = """
+            let x = unknownVariable + 5 in
+            x
+        """.trimIndent()
+        assertTypeCheckFailure(source, "Undefined variable")
+    }
+
+    @Test
+    fun testIncompletePatternMatchError() {
+        val source = """
+            type Option[A] = {tag: "Some", value: A} | {tag: "None"}
+            
+            let processOption(opt: Option[Int]): Int =
+                match opt with
+                  {tag = "Some", value = value} => value
+                // Missing None case
+            in
+            processOption({tag = "Some", value = 42})
+        """.trimIndent()
+        assertTypeCheckFailure(source, "non-exhaustive")
+    }
 //
 //    @Test
 //    fun testRecordFieldAccessError() {

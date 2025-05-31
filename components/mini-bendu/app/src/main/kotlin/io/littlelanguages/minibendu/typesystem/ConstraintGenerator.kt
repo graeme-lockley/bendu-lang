@@ -415,7 +415,7 @@ class ConstraintGenerator(
         // This ensures we generalize the solved type, not the raw type with unresolved variables
         val valueConstraintsWithAnnotation = valueConstraints.union(annotationConstraints)
         
-        val solver = ConstraintSolver()
+        val solver = ConstraintSolver(typeAliasRegistry)
         val solverResult = solver.solve(valueConstraintsWithAnnotation)
         
         val bindingScheme = when (solverResult) {
@@ -700,7 +700,24 @@ class ConstraintGenerator(
         
         allConstraints.add(resultConstraint)
         
+        // Add exhaustiveness checking only for types where it makes sense
+        if (shouldCheckExhaustiveness(scrutineeType)) {
+            val exhaustivenessConstraint = ExhaustivenessConstraint(expr, scrutineeType, sourceLocation)
+            allConstraints.add(exhaustivenessConstraint)
+        }
+        
         return Pair(resultType, ConstraintSet.of(allConstraints))
+    }
+    
+    /**
+     * Determine if exhaustiveness checking should be applied to a given type.
+     * Exhaustiveness checking only makes sense for types with a finite or enumerable set of values.
+     */
+    private fun shouldCheckExhaustiveness(type: Type): Boolean {
+        // Always add exhaustiveness constraints for match expressions
+        // The constraint solver will determine if exhaustiveness checking is appropriate
+        // after type variables are resolved
+        return true
     }
     
     /**

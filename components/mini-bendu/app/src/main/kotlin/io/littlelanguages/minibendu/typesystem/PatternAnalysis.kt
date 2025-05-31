@@ -70,6 +70,18 @@ object ExhaustivenessChecker {
             Types.Bool -> checkBoolExhaustiveness(coveredValues)
             is UnionType -> checkUnionExhaustiveness(type, coveredValues)
             is LiteralStringType -> checkLiteralStringExhaustiveness(type, coveredValues)
+            is RecursiveType -> {
+                // Unfold the recursive type and check exhaustiveness on its body
+                checkExhaustiveness(type.body, coveredValues)
+            }
+            is RecordType -> {
+                // For concrete record types, check if patterns cover all required fields
+                checkRecordExhaustiveness(type, coveredValues)
+            }
+            is TupleType -> {
+                // For concrete tuple types, check if patterns cover all elements
+                checkTupleExhaustiveness(type, coveredValues)
+            }
             else -> {
                 // For other types (Int, String, etc.), we can't enumerate all values
                 // so we consider them non-exhaustive unless there's a wildcard
@@ -96,16 +108,83 @@ object ExhaustivenessChecker {
     }
     
     /**
+     * Check exhaustiveness for concrete record types.
+     */
+    private fun checkRecordExhaustiveness(recordType: RecordType, coveredValues: Set<Any>): ExhaustivenessResult {
+        // For concrete record types, we need to check if there's a pattern that covers
+        // all the required fields of the record
+        
+        // Check if any covered value represents a record pattern that matches this record type
+        val isRecordCovered = coveredValues.any { coveredValue ->
+            when (coveredValue) {
+                is Map<*, *> -> {
+                    // This represents a record pattern
+                    val recordPattern = coveredValue as Map<String, Set<Any>>
+                    isRecordPatternCompatible(recordPattern, recordType)
+                }
+                else -> false
+            }
+        }
+        
+        if (isRecordCovered) {
+            return ExhaustivenessResult(isExhaustive = true, missingPatterns = emptyList())
+        }
+        
+        // If not covered, generate a missing pattern for the record type
+        val missingPattern = generatePatternForType(recordType)
+        return ExhaustivenessResult(
+            isExhaustive = false,
+            missingPatterns = listOfNotNull(missingPattern)
+        )
+    }
+    
+    /**
+     * Check exhaustiveness for concrete tuple types.
+     */
+    private fun checkTupleExhaustiveness(tupleType: TupleType, coveredValues: Set<Any>): ExhaustivenessResult {
+        // For concrete tuple types, we need to check if there's a pattern that covers
+        // all the elements of the tuple
+        
+        // Check if any covered value represents a tuple pattern that matches this tuple type
+        val isTupleCovered = coveredValues.any { coveredValue ->
+            when (coveredValue) {
+                is List<*> -> {
+                    // This represents a tuple pattern
+                    val tuplePattern = coveredValue as List<Set<Any>>
+                    isTuplePatternCompatible(tuplePattern, tupleType)
+                }
+                else -> false
+            }
+        }
+        
+        if (isTupleCovered) {
+            return ExhaustivenessResult(isExhaustive = true, missingPatterns = emptyList())
+        }
+        
+        // If not covered, generate a missing pattern for the tuple type
+        val missingPattern = generatePatternForType(tupleType)
+        return ExhaustivenessResult(
+            isExhaustive = false,
+            missingPatterns = listOfNotNull(missingPattern)
+        )
+    }
+    
+    /**
      * Check exhaustiveness for union types.
      */
     private fun checkUnionExhaustiveness(unionType: UnionType, coveredValues: Set<Any>): ExhaustivenessResult {
         val flattened = UnionTypeUtils.flatten(unionType)
         val missing = mutableListOf<Pattern>()
         
+        // For each alternative in the union, check if it's covered by any pattern
         for (alternative in flattened) {
-            val altResult = checkExhaustiveness(alternative, coveredValues)
-            if (!altResult.isExhaustive) {
-                missing.addAll(altResult.missingPatterns)
+            val isCovered = isAlternativeCovered(alternative, coveredValues)
+            if (!isCovered) {
+                // Generate a missing pattern for this alternative
+                val missingPattern = generatePatternForType(alternative)
+                if (missingPattern != null) {
+                    missing.add(missingPattern)
+                }
             }
         }
         
@@ -113,6 +192,137 @@ object ExhaustivenessChecker {
             isExhaustive = missing.isEmpty(),
             missingPatterns = missing
         )
+    }
+    
+    /**
+     * Check if a union alternative is covered by any of the patterns.
+     */
+    private fun isAlternativeCovered(alternative: Type, coveredValues: Set<Any>): Boolean {
+        return when (alternative) {
+            is RecordType -> {
+                // Check if any covered record pattern matches this record type
+                coveredValues.any { coveredValue ->
+                    when (coveredValue) {
+                        is Map<*, *> -> {
+                            // Check if the covered record pattern matches this alternative
+                            isRecordPatternCompatible(coveredValue as Map<String, Set<Any>>, alternative)
+                        }
+                        else -> false
+                    }
+                }
+            }
+            is LiteralStringType -> {
+                coveredValues.contains(alternative.value)
+            }
+            else -> {
+                // For other types, use the original logic
+                val altResult = checkExhaustiveness(alternative, coveredValues)
+                altResult.isExhaustive
+            }
+        }
+    }
+    
+    /**
+     * Check if a covered record pattern is compatible with a record type alternative.
+     */
+    private fun isRecordPatternCompatible(coveredPattern: Map<String, Set<Any>>, recordType: RecordType): Boolean {
+        // For each field in the record type, check if it's covered by the pattern
+        for ((fieldName, fieldType) in recordType.fields) {
+            val coveredFieldValues = coveredPattern[fieldName]
+            if (coveredFieldValues == null) {
+                // Field is not covered by this pattern
+                return false
+            }
+            
+            // Check if the field type is covered
+            when (fieldType) {
+                is LiteralStringType -> {
+                    if (!coveredFieldValues.contains(fieldType.value)) {
+                        return false
+                    }
+                }
+                // For other field types (like Int, String), we assume they're covered
+                // if the field is present in the pattern (this is a simplification)
+                else -> {
+                    // Field is present, assume it's covered
+                }
+            }
+        }
+        
+        return true
+    }
+    
+    /**
+     * Check if a covered tuple pattern is compatible with a tuple type.
+     */
+    private fun isTuplePatternCompatible(coveredPattern: List<Set<Any>>, tupleType: TupleType): Boolean {
+        // Check if the pattern has the same number of elements as the tuple type
+        if (coveredPattern.size != tupleType.elements.size) {
+            return false
+        }
+        
+        // For each element in the tuple type, check if it's covered by the pattern
+        for (i in tupleType.elements.indices) {
+            val elementType = tupleType.elements[i]
+            val coveredElementValues = coveredPattern[i]
+            
+            // Check if the element type is covered
+            when (elementType) {
+                is LiteralStringType -> {
+                    if (!coveredElementValues.contains(elementType.value)) {
+                        return false
+                    }
+                }
+                // For other element types (like Int, String), we assume they're covered
+                // if the element is present in the pattern (this is a simplification)
+                else -> {
+                    // Element is present, assume it's covered
+                }
+            }
+        }
+        
+        return true
+    }
+    
+    /**
+     * Generate a pattern for a missing type alternative.
+     */
+    private fun generatePatternForType(type: Type): Pattern? {
+        return when (type) {
+            is RecordType -> {
+                val fields = type.fields.map { (fieldName, fieldType) ->
+                    val fieldPattern = when (fieldType) {
+                        is LiteralStringType -> {
+                            LiteralStringPattern(StringLocation(fieldType.value, createDummyLocation()))
+                        }
+                        else -> {
+                            // Use a wildcard for non-literal fields
+                            WildcardPattern(createDummyLocation())
+                        }
+                    }
+                    FieldPattern(StringLocation(fieldName, createDummyLocation()), fieldPattern)
+                }
+                RecordPattern(fields, createDummyLocation())
+            }
+            is TupleType -> {
+                val elements = type.elements.map { elementType ->
+                    when (elementType) {
+                        is LiteralStringType -> {
+                            LiteralStringPattern(StringLocation(elementType.value, createDummyLocation()))
+                        }
+                        else -> {
+                            // Use a wildcard for non-literal elements
+                            WildcardPattern(createDummyLocation())
+                        }
+                    }
+                }
+                TuplePattern(elements, createDummyLocation())
+            }
+            is LiteralStringType -> {
+                LiteralStringPattern(StringLocation(type.value, createDummyLocation()))
+            }
+            else -> null
+        }
     }
     
     /**
@@ -144,9 +354,16 @@ object ExhaustivenessChecker {
                 is LiteralBoolPattern -> covered.add(pattern.value.value)
                 is TuplePattern -> {
                     // For tuples, we need to consider combinations
-                    // This is simplified - full implementation would need cartesian products
+                    // If all elements are variable patterns or wildcards, we still cover the tuple structure
                     val elementValues = pattern.elements.map { extractCoveredValues(listOf(it)) }
-                    if (elementValues.all { it.isNotEmpty() }) {
+                    
+                    // If all elements are variables/wildcards (empty sets), we still cover the tuple structure
+                    if (elementValues.all { it.isEmpty() } && pattern.elements.all { isWildcardOrVariable(it) }) {
+                        // Create a representation that indicates this tuple structure is covered
+                        // Use empty sets for each element to indicate variable patterns
+                        val tupleStructure = pattern.elements.map { emptySet<Any>() }
+                        covered.add(tupleStructure)
+                    } else if (elementValues.all { it.isNotEmpty() }) {
                         covered.add(elementValues)
                     }
                 }
@@ -155,7 +372,17 @@ object ExhaustivenessChecker {
                     val fieldValues = pattern.fields.associate { field ->
                         field.id.value to extractCoveredValues(listOf(field.pattern))
                     }
-                    covered.add(fieldValues)
+                    
+                    // If all fields are variables/wildcards, we still cover the record structure
+                    if (fieldValues.values.all { it.isEmpty() } && pattern.fields.all { isWildcardOrVariable(it.pattern) }) {
+                        // Create a representation that indicates this record structure is covered
+                        val recordStructure = pattern.fields.associate { field ->
+                            field.id.value to emptySet<Any>()
+                        }
+                        covered.add(recordStructure)
+                    } else {
+                        covered.add(fieldValues)
+                    }
                 }
                 is VarPattern -> {
                     // Variable patterns match all values - cannot extract specific values
@@ -172,14 +399,23 @@ object ExhaustivenessChecker {
     }
     
     /**
+     * Check if a pattern is a variable or wildcard pattern.
+     */
+    private fun isWildcardOrVariable(pattern: Pattern): Boolean {
+        return pattern is VarPattern || pattern is WildcardPattern
+    }
+    
+    /**
      * Check if a pattern contains a wildcard that matches everything.
      */
     private fun hasWildcardPattern(pattern: Pattern): Boolean {
         return when (pattern) {
             is WildcardPattern -> true
-            is VarPattern -> true  // Variable patterns also match everything
-            is TuplePattern -> pattern.elements.any { hasWildcardPattern(it) }
-            is RecordPattern -> pattern.fields.any { hasWildcardPattern(it.pattern) }
+            is VarPattern -> true  // Only top-level variable patterns match everything
+            // For structured patterns, we don't consider them wildcards even if they contain variable patterns
+            // because they still constrain the structure
+            is TuplePattern -> false  // Tuple patterns constrain the structure to be a tuple
+            is RecordPattern -> false  // Record patterns constrain the structure to be a record with specific fields
             else -> false
         }
     }

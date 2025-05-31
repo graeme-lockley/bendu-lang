@@ -172,7 +172,7 @@ class RecursiveTypesTest {
         
         val consPattern = RecordPattern(listOf(
             FieldPattern(createStringLocation("value"), VarPattern(createStringLocation("value"))),
-            FieldPattern(createStringLocation("rest"), VarPattern(createStringLocation("rest"))),
+            FieldPattern(createStringLocation("next"), VarPattern(createStringLocation("next"))),
         ), createLocation())
         
         // value + length(rest) - simplified as just value for testing
@@ -222,7 +222,7 @@ class RecursiveTypesTest {
         
         val consPattern = RecordPattern(listOf(
             FieldPattern(createStringLocation("value"), WildcardPattern(createLocation())),
-            FieldPattern(createStringLocation("rest"), VarPattern(createStringLocation("rest")))
+            FieldPattern(createStringLocation("next"), VarPattern(createStringLocation("next")))
         ), createLocation())
         
         // 1 + length(rest) - simplified as just 1 for testing constraint generation

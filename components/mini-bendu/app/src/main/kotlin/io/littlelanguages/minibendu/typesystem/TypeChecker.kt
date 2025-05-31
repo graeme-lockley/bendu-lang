@@ -80,7 +80,7 @@ class TypeChecker(
             val success = constraintResult as ConstraintGenerationResult.Success
             
             // Step 2: Solve constraints
-            val solver = ConstraintSolver()
+            val solver = ConstraintSolver(typeAliasRegistry)
             val solverResult = solver.solve(success.constraints)
             
             when (solverResult) {

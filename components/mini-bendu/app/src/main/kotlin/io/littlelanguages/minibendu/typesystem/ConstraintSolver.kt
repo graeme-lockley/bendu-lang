@@ -39,7 +39,12 @@ sealed class ConstraintSolverResult {
 /**
  * Constraint solver that resolves type constraints through unification
  */
-class ConstraintSolver {
+class ConstraintSolver(
+    private val typeAliasRegistry: TypeAliasRegistry = TypeAliasRegistry()
+) {
+    
+    // Track the current substitution during solving
+    private var currentSubstitution = Substitution.empty
     
     /**
      * Solve a set of constraints, returning either a successful substitution
@@ -60,7 +65,7 @@ class ConstraintSolver {
      * Internal constraint solving implementation
      */
     private fun solveConstraints(constraints: ConstraintSet): Substitution {
-        var currentSubstitution = Substitution.empty
+        currentSubstitution = Substitution.empty
         val remainingConstraints = constraints.all().toMutableList()
         
         // Sort constraints by priority (equality first, then subtyping, then instance)
@@ -80,6 +85,7 @@ class ConstraintSolver {
                 is RecordTypeConstraint -> solveRecordTypeConstraint(substitutedConstraint)
                 is MergeConstraint -> solveMergeConstraint(substitutedConstraint)
                 is UnionCompatibilityConstraint -> solveUnionCompatibilityConstraint(substitutedConstraint)
+                is ExhaustivenessConstraint -> solveExhaustivenessConstraint(substitutedConstraint)
                 else -> throw UnificationException("Unknown constraint type: ${substitutedConstraint::class.simpleName}")
             }
             
@@ -688,6 +694,60 @@ class ConstraintSolver {
                     canFormUnion(field1, field2)
                 }
             }
+        }
+    }
+
+    /**
+     * Solve an exhaustiveness constraint by checking if the pattern match is exhaustive.
+     * If the pattern match is not exhaustive, this will throw a UnificationException.
+     */
+    private fun solveExhaustivenessConstraint(constraint: ExhaustivenessConstraint): Substitution {
+        // Apply the current substitution to resolve type variables
+        val resolvedScrutineeType = currentSubstitution.apply(constraint.scrutineeType)
+        
+        // Normalize the type to resolve type aliases
+        val normalizedType = typeAliasRegistry.normalizeType(resolvedScrutineeType)
+        
+        // Only check exhaustiveness for types where it makes sense
+        val shouldCheck = when (normalizedType) {
+            Types.Bool -> true  // Boolean has exactly 2 values
+            is UnionType -> true  // Union types should be exhaustively covered
+            is LiteralStringType -> true  // Literal string types have exactly 1 value
+            is RecursiveType -> {
+                // Check if the recursive type unfolds to something that should be exhaustively checked
+                val unfoldedType = typeAliasRegistry.normalizeType(normalizedType.body)
+                unfoldedType is UnionType || unfoldedType == Types.Bool || unfoldedType is LiteralStringType
+            }
+            // Primitive types like Int, String have infinite values, so exhaustiveness doesn't make sense
+            Types.Int, Types.String, Types.Unit -> false
+            is PrimitiveType -> false
+            is FunctionType -> false
+            is TypeVariable -> false  // Still unresolved
+            is RecordType -> false  // Concrete record types don't need exhaustiveness checking
+            is TupleType -> false   // Concrete tuple types don't need exhaustiveness checking
+            is IntersectionType -> false  // Complex type, skip for now
+            is TypeAlias -> false  // This should not happen after normalization
+            else -> false
+        }
+        
+        if (!shouldCheck) {
+            // Exhaustiveness checking doesn't apply to this type
+            return Substitution.empty
+        }
+        
+        // Check exhaustiveness using the normalized type
+        val exhaustivenessResult = ExhaustivenessChecker.check(constraint.matchExpr, normalizedType)
+        
+        if (exhaustivenessResult.isExhaustive) {
+            // Pattern match is exhaustive - constraint is satisfied
+            return Substitution.empty
+        } else {
+            // Pattern match is not exhaustive - this is a type error
+            val missingPatterns = exhaustivenessResult.missingPatterns.joinToString(", ") { it.toString() }
+            throw UnificationException(
+                "non-exhaustive pattern match. Missing patterns: $missingPatterns" +
+                if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
+            )
         }
     }
 

@@ -1,5 +1,7 @@
 package io.littlelanguages.minibendu.typesystem
 
+import io.littlelanguages.minibendu.MatchExpr
+
 /**
  * Type Constraint Infrastructure for Mini-Bendu Type System
  * 
@@ -551,4 +553,59 @@ data class UnionCompatibilityConstraint(
     }
     
     override fun toString(): String = "$scrutineeType ~∪ $patternType"
+}
+
+/**
+ * Exhaustiveness constraint: match expression must be exhaustive
+ * 
+ * Represents that a match expression must exhaustively cover all possible values
+ * of the scrutinee type. This constraint is checked after type inference to ensure
+ * that pattern matching is complete.
+ * 
+ * Examples:
+ * - match bool with True => ... | False => ... (exhaustive)
+ * - match option with Some(x) => ... (non-exhaustive, missing None case)
+ */
+data class ExhaustivenessConstraint(
+    val matchExpr: MatchExpr,
+    val scrutineeType: Type,
+    override val sourceLocation: SourceLocation? = null,
+    override val origin: ConstraintOrigin = ConstraintOrigin.INFERENCE
+) : TypeConstraint() {
+    
+    override val priority: ConstraintPriority = ConstraintPriority.LOW
+    
+    override fun involvesVariable(variable: TypeVariable): Boolean {
+        return scrutineeType.freeTypeVariables().contains(variable)
+    }
+    
+    override fun typeVariables(): Set<TypeVariable> {
+        return scrutineeType.freeTypeVariables()
+    }
+    
+    override fun applySubstitution(substitution: Substitution): ExhaustivenessConstraint {
+        return ExhaustivenessConstraint(
+            matchExpr,
+            substitution.apply(scrutineeType),
+            sourceLocation,
+            origin
+        )
+    }
+    
+    override fun freeVariables(): Set<TypeVariable> {
+        return scrutineeType.freeTypeVariables()
+    }
+    
+    override fun simplify(): List<TypeConstraint> {
+        // Exhaustiveness checking can only be done once the scrutinee type is fully resolved
+        // If the scrutinee type still contains type variables, we can't check exhaustiveness yet
+        if (scrutineeType.freeTypeVariables().isNotEmpty()) {
+            return listOf(this) // Keep the constraint for later
+        }
+        
+        // If the scrutinee type is fully resolved, the constraint solver should handle this
+        return listOf(this)
+    }
+    
+    override fun toString(): String = "exhaustive($matchExpr, $scrutineeType)"
 }
