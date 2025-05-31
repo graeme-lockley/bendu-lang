@@ -334,11 +334,16 @@ class ConstraintSolver(
     }
     
     /**
-     * Unify two types, producing a substitution that makes them equal
+     * Unify two types using the sophisticated unification algorithm.
+     * Normalizes type aliases before unification to handle recursive types properly.
      */
     private fun unify(type1: Type, type2: Type, location: SourceLocation?): Substitution {
+        // Normalize types to handle type aliases and recursive types
+        val normalizedType1 = typeAliasRegistry.normalizeType(type1)
+        val normalizedType2 = typeAliasRegistry.normalizeType(type2)
+        
         // Use the sophisticated unification algorithm that handles row polymorphism
-        val result = Unification.unify(type1, type2)
+        val result = Unification.unify(normalizedType1, normalizedType2)
         
         if (result.isSuccess()) {
             return result.getSubstitution()

@@ -47,7 +47,7 @@ class EndToEndTest {
     }
 
     private fun assertTypeCheckSuccess(source: String, expectedType: Any? = null) {
-        val result = parseAndTypeCheck(source)
+        val result = parseAndTypeCheck(source.trimIndent())
 
         if (result is TypeCheckResult.Failure) {
             fail("Type check failed: ${result.error}")
@@ -65,7 +65,7 @@ class EndToEndTest {
     }
 
     private fun assertTypeCheckFailure(source: String, expectedErrorContains: String? = null) {
-        val result = parseAndTypeCheck(source)
+        val result = parseAndTypeCheck(source.trimIndent())
         assertTrue(result is TypeCheckResult.Failure, "Expected type check to fail for: $source")
         if (expectedErrorContains != null && result is TypeCheckResult.Failure) {
             assertTrue(
@@ -77,12 +77,12 @@ class EndToEndTest {
 
     @Test
     fun testSimpleArithmeticProgram() {
-        val source = """
-            let x = 5 + 3 in
-            let y = x * 2 in
-            y
-        """.trimIndent()
-        assertTypeCheckSuccess(source, "Int")
+        assertTypeCheckSuccess(
+            """
+                let x = 5 + 3 in
+                let y = x * 2 in
+                y
+            """, "Int")
     }
 
     @Test
@@ -93,7 +93,7 @@ class EndToEndTest {
                 let result1 = identity(42) in
                 let result2 = identity("hello") in
                 result1
-            """.trimIndent(), "Int")
+            """, "Int")
 
         assertTypeCheckSuccess(
             """
@@ -101,7 +101,7 @@ class EndToEndTest {
                 let result1 = identity(42) in
                 let result2 = identity("hello") in
                 result1
-            """.trimIndent(), "Int")
+            """, "Int")
 
         assertTypeCheckSuccess(
             """
@@ -109,7 +109,7 @@ class EndToEndTest {
                 let result1 = identity(42) in
                 let result2 = identity("hello") in
                 (result1, result2)
-            """.trimIndent(), "(Int, String)")
+            """, "(Int, String)")
 
         assertTypeCheckSuccess(
             """
@@ -117,7 +117,7 @@ class EndToEndTest {
                 let result1 = identity(42) in
                 let result2 = identity("hello") in
                 result1
-            """.trimIndent(), "Int")
+            """, "Int")
 
         assertTypeCheckSuccess(
             """
@@ -125,7 +125,7 @@ class EndToEndTest {
                 let result1 = identity(42) in
                 let result2 = identity("hello") in
                 (result1, result2)
-            """.trimIndent(), "(Int, String)")
+            """, "(Int, String)")
 
         assertTypeCheckSuccess(
             """
@@ -133,7 +133,7 @@ class EndToEndTest {
                 let result1 = identity(42) in
                 let result2 = identity("hello") in
                 (result1, result2)
-            """.trimIndent(), "(Int, String)")
+            """, "(Int, String)")
 
         assertTypeCheckSuccess(
             """
@@ -142,7 +142,7 @@ class EndToEndTest {
                 let result1 = identity(42) in
                 let result2 = identity("hello") in
                 result1
-            """.trimIndent(), "Int")
+            """, "Int")
 
         assertTypeCheckSuccess(
             """
@@ -151,7 +151,7 @@ class EndToEndTest {
                 let result1 = identity(42) in
                 let result2 = identity("hello") in
                 result1
-            """.trimIndent(), "Int")
+            """, "Int")
 
         assertTypeCheckSuccess(
             """
@@ -160,7 +160,7 @@ class EndToEndTest {
                 let result1 = identity(42) in
                 let result2 = identity("hello") in
                 result1
-            """.trimIndent(), "Int")
+            """, "Int")
     }
 
     @Test
@@ -170,7 +170,7 @@ class EndToEndTest {
                 let person = { name = "Alice", age = 30 } in
                 let updatedPerson = { ...person, age = 31 } in
                 updatedPerson.age
-            """.trimIndent(), "Int")
+            """, "Int")
 
         assertTypeCheckSuccess(
             """
@@ -178,7 +178,7 @@ class EndToEndTest {
                 let updatedPerson = { ...person, age = 31 }
 
                 updatedPerson.age
-            """.trimIndent(), "Int")
+            """, "Int")
 
         assertTypeCheckSuccess(
             """
@@ -188,7 +188,7 @@ class EndToEndTest {
                 let updatedPerson = { ...person, age = 31, initials = "AS" }
                 
                 updatedPerson
-            """.trimIndent(), "\\{name: String, age: Int, initials: String \\| τ\\d+}".toRegex())
+            """, "\\{name: String, age: Int, initials: String \\| τ\\d+}".toRegex())
     }
 
     @Test
@@ -201,7 +201,7 @@ class EndToEndTest {
                 let company = { name = "TechCorp", employees = 100 } in
 
                 (getName(person), getName(company))
-            """.trimIndent(), "(String, String)")
+            """, "(String, String)")
 
         assertTypeCheckSuccess(
             """
@@ -211,7 +211,7 @@ class EndToEndTest {
                 let company = { name = "TechCorp", employees = 100 } in
 
                 (getName(person), getName(company))
-            """.trimIndent(), "(String, String)")
+            """, "(String, String)")
 
         assertTypeCheckSuccess(
             """
@@ -221,7 +221,7 @@ class EndToEndTest {
                 let company = { name = "TechCorp", employees = 100 } in
 
                 (getName(person), getName(company))
-            """.trimIndent(), "(String, String)")
+            """, "(String, String)")
 
         assertTypeCheckFailure(
             """
@@ -231,7 +231,7 @@ class EndToEndTest {
                 let company = { name = "TechCorp", employees = 100 } in
 
                 (getName(person), getName(company))
-            """.trimIndent(), "Undefined type variable")
+            """, "Undefined type variable")
 
         assertTypeCheckSuccess(
             """
@@ -243,56 +243,61 @@ class EndToEndTest {
                 let company = { name = "TechCorp", employees = 100 } in
                 
                 (getName(person), getName(company))
-            """.trimIndent(), "(String, String)")
+            """, "(String, String)")
     }
 
     @Test
     fun testComplexUnionTypeProgram() {
-        val source = """
-            let processValue(value: Int | String): Int | String =
-                match value with
-                  n : Int => n + 1
-                | s : String => s
-                | _ => "unknown"
-            in
-            let result1 = processValue(42) in
-            let result2 = processValue("hello") in
-            (result1, result2)
-        """.trimIndent()
-        
-        assertTypeCheckSuccess(source, "(Int | String, Int | String)")
+
+        assertTypeCheckSuccess(
+            """
+                let processValue(value: Int | String): Int | String =
+                    match value with
+                      n : Int => n + 1
+                    | s : String => s
+                    | _ => "unknown"
+                in
+                let result1 = processValue(42) in
+                let result2 = processValue("hello") in
+                (result1, result2)
+            """, "(Int | String, Int | String)")
     }
 
-//    @Test
-//    fun testRecursiveDataStructures() {
-//        val source = """
-//            let rec list =
-//                match input with
-//                | [] => 0
-//                | head :: tail => 1 + (list tail)
-//            in
-//            list [1, 2, 3, 4]
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source, "Int")
-//    }
-//
-//    @Test
-//    fun testHigherOrderFunctionComposition() {
-//        val source = """
-//            let map = \f => \list =>
-//                match list with
-//                | [] => []
-//                | head :: tail => (f head) :: (map f tail)
-//            in
-//            let double = \x => x * 2 in
-//            let increment = \x => x + 1 in
-//            let numbers = [1, 2, 3] in
-//            let doubled = map double numbers in
-//            let incremented = map increment doubled in
-//            incremented
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source)
-//    }
+    @Test
+    fun testRecursiveDataStructures() {
+        assertTypeCheckSuccess(
+            """
+                type List[A] = {tag: "Cons", head: A, tail: List[A]} | {tag: "Nil"}
+                
+                let rec list = \input =>
+                    match input with
+                      {tag = "Nil"} => 0
+                    | {tag = "Cons", head = head, tail = tail} => 1 + list(tail)
+                in
+                list({tag = "Cons", head = 1, tail = {tag = "Cons", head = 2, tail = {tag = "Nil"}}})
+            """, "Int")
+    }
+
+    @Test
+    fun testHigherOrderFunctionComposition() {
+        assertTypeCheckSuccess(
+            """
+                type List[A] = {tag: "Cons", head: A, tail: List[A]} | {tag: "Nil"}
+                
+                let rec map[A, B](f: A -> B, list: List[A]): List[B] =
+                    match list with
+                      {tag = "Nil"} => {tag = "Nil"}
+                    | {tag = "Cons", head = head, tail = tail} => {tag = "Cons", head = f(head), tail = map(f)(tail)}
+                in
+                let double = \x => x * 2 in
+                let increment = \x => x + 1 in
+                let numbers = {tag = "Cons", head = 1, tail = {tag = "Cons", head = 2, tail = {tag = "Cons", head = 3, tail = {tag = "Nil"}}}} in
+                let doubled = map(double)(numbers) in
+                let incremented: List[Int] = map(increment)(doubled) in
+                incremented
+            """
+        )
+    }
 
     @Test
     fun testComplexPatternMatching() {
@@ -310,7 +315,7 @@ class EndToEndTest {
                 in
                 let userData = { tag = "admin", permissions = True } in
                 processData(userData)
-            """.trimIndent(), "String")
+            """, "String")
     }
 
     @Test
@@ -321,7 +326,7 @@ class EndToEndTest {
             in
             let entity = createEntity("Bob")(30) in
             if entity.active then entity.name else "Inactive"
-        """.trimIndent()
+        """
         assertTypeCheckSuccess(source, "String")
     }
 
@@ -340,7 +345,7 @@ class EndToEndTest {
                     "Unknown type"
             in
             handleValue "test"
-        """.trimIndent()
+        """
         assertTypeCheckSuccess(source, "String")
     }
 
@@ -358,7 +363,7 @@ class EndToEndTest {
                 " with timeout "), toString(config.timeout))
             in
             makeRequest(apiConfig)
-        """.trimIndent()
+        """
         assertTypeCheckSuccess(source, "String")
     }
 
@@ -379,7 +384,7 @@ class EndToEndTest {
                 let calc1 = safeDiv(10)(2) in
                 let calc2 = safeDiv(10)(0) in
                 processResults(calc1) + processResults(calc2)
-            """.trimIndent(), "Int")
+            """, "Int")
 
         assertTypeCheckSuccess(
             """
@@ -396,7 +401,7 @@ class EndToEndTest {
                 let calc1 = safeDiv(10, 2) in
                 let calc2 = safeDiv(10, 0) in
                 processResults(calc1) + processResults(calc2)
-            """.trimIndent(), "Int")
+            """, "Int")
     }
 
 //    @Test
@@ -412,7 +417,7 @@ class EndToEndTest {
 //            let result1 = isEven 4 in
 //            let result2 = isOdd 4 in
 //            result1 && !result2
-//        """.trimIndent()
+//        """
 //        assertTypeCheckSuccess(source, "Bool")
 //    }
 //
@@ -427,7 +432,7 @@ class EndToEndTest {
             let input = { name = "Test", value = 42 } in
             let result = processRecord(input) in
             result.processed
-        """.trimIndent()
+        """
         assertTypeCheckSuccess(source, "Bool")
     }
 
@@ -449,7 +454,7 @@ class EndToEndTest {
 //            let doubleAndIncrement = utilities.compose increment double in
 //            let processed = doubleAndIncrement total in
 //            utilities.stringify processed
-//        """.trimIndent()
+//        """
 //        assertTypeCheckSuccess(source, "String")
 //    }
 //
@@ -460,7 +465,7 @@ class EndToEndTest {
         val source = """
             let x = 5 + "hello" in
             x
-        """.trimIndent()
+        """
         assertTypeCheckFailure(source, "Cannot unify")
     }
 
@@ -469,7 +474,7 @@ class EndToEndTest {
         val source = """
             let x = unknownVariable + 5 in
             x
-        """.trimIndent()
+        """
         assertTypeCheckFailure(source, "Undefined variable")
     }
 
@@ -484,7 +489,7 @@ class EndToEndTest {
                 // Missing None case
             in
             processOption({tag = "Some", value = 42})
-        """.trimIndent()
+        """
         assertTypeCheckFailure(source, "non-exhaustive")
     }
 
@@ -493,7 +498,7 @@ class EndToEndTest {
         val source = """
             let person = { name = "Alice", age = 30 } in
             person.invalidField
-        """.trimIndent()
+        """
         assertTypeCheckFailure(source, "field")
     }
 
@@ -502,7 +507,7 @@ class EndToEndTest {
         val source = """
             let add = \x => \y => x + y in
             add(5)(3)(2)  // Too many arguments
-        """.trimIndent()
+        """
         assertTypeCheckFailure(source)
     }
 
@@ -512,7 +517,7 @@ class EndToEndTest {
 //            type rec BadType = BadType
 //            let x : BadType = x in
 //            x
-//        """.trimIndent()
+//        """
 //        assertTypeCheckFailure(source, "circular")
 //    }
 
@@ -525,7 +530,7 @@ class EndToEndTest {
             """
                 let largeRecord = { $fields } in
                 largeRecord.field25
-            """.trimIndent(), "Int")
+            """, "Int")
     }
 
     @Test
@@ -541,7 +546,7 @@ class EndToEndTest {
             let isEven(n) = n / 2 == 0 in
             let complexChain = chain(isEven)(increment)(double)(length)(toString) in
             complexChain(5)
-        """.trimIndent()
+        """
         assertTypeCheckSuccess(source, "Bool")
     }
 
@@ -566,7 +571,7 @@ class EndToEndTest {
             in
             let finalConfig = mergeConfigs(defaultConfig)(userConfig) in
             finalConfig.timeout + finalConfig.retries
-        """.trimIndent()
+        """
         assertTypeCheckSuccess(source, "Int")
     }
 
@@ -599,7 +604,7 @@ class EndToEndTest {
 //            let doubled = pipeline.map (\x => x * 2) evens in
 //            let sum = pipeline.reduce (\acc => \x => acc + x) 0 doubled in
 //            sum
-//        """.trimIndent()
+//        """
 //        assertTypeCheckSuccess(source, "Int")
 //    }
 
@@ -635,7 +640,7 @@ class EndToEndTest {
             let result = fetchUser(123) in
             let processed = async.thens(result)(processUser)(handleError) in
             async
-        """.trimIndent()
+        """
         assertTypeCheckSuccess(source)
     }
 
@@ -650,7 +655,7 @@ class EndToEndTest {
                 let name1 = getName(person) in
                 let name2 = getName(company) in
                 name1
-            """.trimIndent(), "String")
+            """, "String")
     }
 
     @Test
@@ -664,6 +669,18 @@ class EndToEndTest {
                 let name1 = getName(person) in
                 let name2 = getName(company) in
                 name1
-            """.trimIndent(), "String")
+            """, "String")
+    }
+
+    @Test
+    fun testSimpleRecursiveTypeAlias() {
+        val source = """
+            type List[A] = {tag: "Cons", head: A, tail: List[A]} | {tag: "Nil"}
+            
+            let test: List[Int] = {tag = "Nil"}
+            
+            test
+        """
+        assertTypeCheckSuccess(source)
     }
 }

@@ -226,7 +226,42 @@ object ExhaustivenessChecker {
      * Check if a covered record pattern is compatible with a record type alternative.
      */
     private fun isRecordPatternCompatible(coveredPattern: Map<String, Set<Any>>, recordType: RecordType): Boolean {
-        // For each field in the record type, check if it's covered by the pattern
+        // For discriminated unions, we need to check if the pattern matches the specific alternative
+        // A pattern is compatible if:
+        // 1. All fields in the record type are either covered by the pattern OR
+        // 2. The pattern covers at least the discriminator fields and the record type has those same discriminator values
+        
+        // First, check if this is a discriminated union pattern by looking for literal string fields
+        val patternDiscriminators = coveredPattern.entries.mapNotNull { (fieldName, values) ->
+            // If the field has exactly one literal string value, it's likely a discriminator
+            if (values.size == 1 && values.first() is String) {
+                fieldName to values.first() as String
+            } else null
+        }.toMap()
+        
+        val recordDiscriminators = recordType.fields.entries.mapNotNull { (fieldName, fieldType) ->
+            if (fieldType is LiteralStringType) {
+                fieldName to fieldType.value
+            } else null
+        }.toMap()
+        
+        // If both have discriminators, check if they match
+        if (patternDiscriminators.isNotEmpty() && recordDiscriminators.isNotEmpty()) {
+            // Check if the discriminators match
+            for ((fieldName, patternValue) in patternDiscriminators) {
+                val recordValue = recordDiscriminators[fieldName]
+                if (recordValue != null && recordValue != patternValue) {
+                    // Discriminator mismatch - this pattern doesn't match this alternative
+                    return false
+                }
+            }
+            
+            // If discriminators match, this pattern is compatible with this alternative
+            // We don't require all fields to be present in the pattern for discriminated unions
+            return true
+        }
+        
+        // For non-discriminated unions, require all fields in the record type to be covered
         for ((fieldName, fieldType) in recordType.fields) {
             val coveredFieldValues = coveredPattern[fieldName]
             if (coveredFieldValues == null) {
@@ -290,6 +325,7 @@ object ExhaustivenessChecker {
     private fun generatePatternForType(type: Type): Pattern? {
         return when (type) {
             is RecordType -> {
+                // Only generate patterns for fields that actually exist in this record type
                 val fields = type.fields.map { (fieldName, fieldType) ->
                     val fieldPattern = when (fieldType) {
                         is LiteralStringType -> {

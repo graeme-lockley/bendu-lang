@@ -139,6 +139,81 @@ class TypeAliasRegistry {
     }
     
     /**
+     * Expand a type alias to a RecursiveType if it's recursive, or expand normally if not
+     */
+    fun expandAliasToRecursiveType(name: String, typeArguments: List<Type>): Type? {
+        val definition = aliases[name] ?: return null
+        
+        // Check if this is a recursive type alias
+        if (definition.directlyReferences(name) && isValidRecursiveType(definition)) {
+            // Create a RecursiveType for this recursive alias
+            val recursiveVar = TypeVariable.fresh()
+            
+            // First, substitute type parameters with arguments if any
+            val parameterSubstitution = if (typeArguments.isEmpty()) {
+                Substitution.empty
+            } else {
+                val substitutionBuilder = Substitution.builder()
+                for ((param, arg) in definition.typeParameters.zip(typeArguments)) {
+                    substitutionBuilder.add(param, arg)
+                }
+                substitutionBuilder.build()
+            }
+            
+            // Apply parameter substitution to get the body with parameters replaced
+            val bodyWithParams = parameterSubstitution.apply(definition.aliasedType)
+            
+            // Now substitute recursive references with the recursive variable
+            val bodyWithRecursion = substituteRecursiveReferences(bodyWithParams, name, typeArguments, recursiveVar)
+            
+            return RecursiveType(name, recursiveVar, bodyWithRecursion)
+        } else {
+            // Not recursive, expand normally
+            return definition.expand(typeArguments)
+        }
+    }
+    
+    /**
+     * Substitute recursive type alias references with a recursive variable
+     */
+    private fun substituteRecursiveReferences(type: Type, aliasName: String, aliasArgs: List<Type>, recursiveVar: TypeVariable): Type {
+        return when (type) {
+            is TypeAlias -> {
+                if (type.name == aliasName && type.typeArguments == aliasArgs) {
+                    // This is the recursive reference - replace with recursive variable
+                    recursiveVar
+                } else {
+                    // Different type alias - recursively substitute in its arguments
+                    TypeAlias(type.name, type.typeArguments.map { substituteRecursiveReferences(it, aliasName, aliasArgs, recursiveVar) })
+                }
+            }
+            is FunctionType -> FunctionType(
+                substituteRecursiveReferences(type.domain, aliasName, aliasArgs, recursiveVar),
+                substituteRecursiveReferences(type.codomain, aliasName, aliasArgs, recursiveVar)
+            )
+            is RecordType -> {
+                val substitutedFields = type.fields.mapValues { (_, fieldType) ->
+                    substituteRecursiveReferences(fieldType, aliasName, aliasArgs, recursiveVar)
+                }
+                val substitutedRowVar = type.rowVar?.let { 
+                    substituteRecursiveReferences(it, aliasName, aliasArgs, recursiveVar) as? TypeVariable 
+                } ?: type.rowVar
+                RecordType(substitutedFields, substitutedRowVar)
+            }
+            is TupleType -> TupleType(type.elements.map { 
+                substituteRecursiveReferences(it, aliasName, aliasArgs, recursiveVar) 
+            })
+            is UnionType -> UnionType(type.alternatives.map { 
+                substituteRecursiveReferences(it, aliasName, aliasArgs, recursiveVar) 
+            }.toSet())
+            is IntersectionType -> IntersectionType(type.members.map { 
+                substituteRecursiveReferences(it, aliasName, aliasArgs, recursiveVar) 
+            }.toSet())
+            else -> type // Primitive types, variables, etc. don't need substitution
+        }
+    }
+    
+    /**
      * Normalize a type by recursively expanding all type aliases
      */
     fun normalizeType(type: Type): Type {
@@ -147,12 +222,17 @@ class TypeAliasRegistry {
                 // Check cache first
                 normalizationCache[type]?.let { return it }
                 
-                val expanded = expandAlias(type.name, type.typeArguments)
+                // Try to expand as recursive type first
+                val expanded = expandAliasToRecursiveType(type.name, type.typeArguments)
                 if (expanded == null) {
                     // Undefined alias - return as-is
                     type
+                } else if (expanded is RecursiveType) {
+                    // This is a recursive type - cache and return it
+                    normalizationCache[type] = expanded
+                    expanded
                 } else {
-                    // Recursively normalize the expanded type
+                    // Regular type alias - recursively normalize the expanded type
                     val normalized = normalizeType(expanded)
                     normalizationCache[type] = normalized
                     normalized
