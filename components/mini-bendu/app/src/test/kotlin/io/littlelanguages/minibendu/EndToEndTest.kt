@@ -453,7 +453,7 @@ class EndToEndTest {
 //        assertTypeCheckSuccess(source, "String")
 //    }
 //
-//    // Error cases for regression testing
+    // Error cases for regression testing
 
     @Test
     fun testTypeErrorInArithmetic() {
@@ -602,38 +602,42 @@ class EndToEndTest {
 //        """.trimIndent()
 //        assertTypeCheckSuccess(source, "Int")
 //    }
-//
-//    @Test
-//    fun testAsyncPatternSimulation() {
-//        val source = """
-//            let async = {
-//                success = \value => { status = "success", data = value },
-//                error = \message => { status = "error", error = message },
-//
-//                then = \asyncResult => \successCallback => \errorCallback =>
-//                    match asyncResult with
-//                    | { status = "success", data = value } => successCallback value
-//                    | { status = "error", error = message } => errorCallback message
-//                    | _ => async.error "Invalid async result"
-//            } in
-//            let fetchUser = \id =>
-//                if id > 0 then
-//                    async.success { id = id, name = "User " + toString id }
-//                else
-//                    async.error "Invalid user ID"
-//            in
-//            let processUser = \user =>
-//                async.success ("Processing user: " + user.name)
-//            in
-//            let handleError = \error =>
-//                async.success ("Error handled: " + error)
-//            in
-//            let result = fetchUser 123 in
-//            let processed = async.then result processUser handleError in
-//            processed
-//        """.trimIndent()
-//        assertTypeCheckSuccess(source)
-//    }
+
+    @Test
+    fun testAsyncPatternSimulation() {
+        val source = """
+            let toString(n: Int): String = "hello"
+            
+            type AsyncResult[A, B] = { status: "success", data: A } | { status: "error", error: B }
+            
+            let async = {
+                success = \value => { status = "success", data = value },
+                error = \message => { status = "error", error = message },
+
+                thens = \asyncResult => \successCallback => \errorCallback =>
+                    match asyncResult with
+                      { status = "success", data = value } => successCallback(value)
+                    | { status = "error", error = message } => errorCallback(message)
+                    | _ => errorCallback("Invalid async result")
+            } in
+            let fetchUser = \id =>
+                if id == 0 then
+                    async.success({ id = id, name = toString(id) })
+                else
+                    async.error("Invalid user ID")
+            in
+            let processUser = \user =>
+                async.success (user.name)
+            in
+            let handleError = \error =>
+                async.success (error)
+            in
+            let result = fetchUser(123) in
+            let processed = async.thens(result)(processUser)(handleError) in
+            async
+        """.trimIndent()
+        assertTypeCheckSuccess(source)
+    }
 
     @Test
     fun testReturnTypeAnnotationInFunctionSyntax() {
