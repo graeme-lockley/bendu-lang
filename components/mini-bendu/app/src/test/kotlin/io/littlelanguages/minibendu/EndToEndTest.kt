@@ -283,7 +283,7 @@ class EndToEndTest {
         assertTypeCheckSuccess(
             """
                 type List[A] = {tag: "Cons", head: A, tail: List[A]} | {tag: "Nil"}
-                
+
                 let rec map[A, B](f: A -> B, list: List[A]): List[B] =
                     match list with
                       {tag = "Nil"} => {tag = "Nil"}
@@ -436,28 +436,88 @@ class EndToEndTest {
         assertTypeCheckSuccess(source, "Bool")
     }
 
-//    @Test
-//    fun testTypeInferenceAcrossModuleBoundaries() {
-//        val source = """
-//            let utilities = {
-//                stringify = \value => toString value,
-//                sum = \list =>
-//                    match list with
-//                    | [] => 0
-//                    | head :: tail => head + (utilities.sum tail),
-//                compose = \f => \g => \x => f (g x)
-//            } in
-//            let numbers = [1, 2, 3, 4, 5] in
-//            let total = utilities.sum numbers in
-//            let double = \x => x * 2 in
-//            let increment = \x => x + 1 in
-//            let doubleAndIncrement = utilities.compose increment double in
-//            let processed = doubleAndIncrement total in
-//            utilities.stringify processed
-//        """
-//        assertTypeCheckSuccess(source, "String")
-//    }
+    @Test
+    fun sampleTest() {
+        assertTypeCheckSuccess(
+            """
+                type List[A] = {tag: "Cons", head: A, tail: List[A]} | {tag: "Nil"}
+                
+                let rec utilities = {
+                    sum = \list:List[Int] =>
+                        match list with
+                          {tag = "Nil"} => 0
+                        | {tag = "Cons", head = head, tail = tail} => head + utilities.sum(tail)
+                }
+                
+                100
+            """, "Int")
+    }
+
+    @Test
+    fun testTypeInferenceAcrossModuleBoundaries() {
+//        assertTypeCheckSuccess(
+//            """
+//                type List[A] = {tag: "Cons", head: A, tail: List[A]} | {tag: "Nil"}
 //
+//                let toString(value: Int): String = "hello"
+//
+//                let rec utilities = {
+//                    stringify = \value => toString(value),
+//                    sum = \list =>
+//                        match list with
+//                          {tag = "Nil"} => 0
+//                        | {tag = "Cons", head = head, tail = tail} => head + utilities.sum(tail),
+//                    compose = \f => \g => \x => f(g(x))
+//                } in
+//                let numbers: List[Int] = {tag = "Cons", head = 1, tail = {tag = "Nil"}} in
+//                let total = utilities.sum(numbers) in
+//                let double = \x => x * 2 in
+//                let increment = \x => x + 1 in
+//                let doubleAndIncrement = utilities.compose(increment)(double) in
+//                let processed: Int = doubleAndIncrement(total) in
+//                utilities.stringify(processed)
+//            """, "String")
+
+        assertTypeCheckSuccess(
+            """
+                type List[A] = {tag: "Cons", head: A, tail: List[A]} | {tag: "Nil"}
+                
+                let toString(value: Int): String = "hello"
+                
+                let rec utilities = {
+                    stringify = \value => toString(value),
+                    sum = \list:List[Int] =>
+                        match list with
+                          {tag = "Nil"} => 0
+                        | {tag = "Cons", head = head, tail = tail} => head + utilities.sum(tail),
+                    compose = \f => \g => \x => f(g(x))
+                } in utilities
+            """)
+
+//        assertTypeCheckSuccess(
+//            """
+//                type List[A] = {tag: "Cons", head: A, tail: List[A]} | {tag: "Nil"}
+//
+//                let toString(value: Int): String = "hello"
+//
+//                let rec utilities = {
+//                    stringify = \value => toString(value),
+//                    sum = \list =>
+//                        match list with
+//                          {tag = "Nil"} => 0
+//                        | {tag = "Cons", head = head, tail = tail} => head + utilities.sum(tail),
+//                    compose = \f => \g => \x => f(g(x))
+//                } in
+//                let numbers: List[Int] = {tag = "Cons", head = 1, tail = {tag = "Nil"}} in
+//                let total = utilities.sum(numbers) in
+//                let double = \x => x * 2 in
+//                let increment = \x => x + 1 in
+//                let doubleAndIncrement = utilities.compose(increment)(double) in
+//                let processed = doubleAndIncrement(total) in
+//                processed
+//            """, "Int")
+    }
+
     // Error cases for regression testing
 
     @Test
@@ -682,5 +742,18 @@ class EndToEndTest {
             test
         """
         assertTypeCheckSuccess(source)
+    }
+
+    @Test
+    fun testSimpleFunctionComposition() {
+        assertTypeCheckSuccess(
+            """
+                let compose = \f => \g => \x => f(g(x)) in
+                let double = \x => x * 2 in
+                let increment = \x => x + 1 in
+                let doubleAndIncrement = compose(increment)(double) in
+                let result = doubleAndIncrement(5) in
+                result
+            """, "Int")
     }
 }

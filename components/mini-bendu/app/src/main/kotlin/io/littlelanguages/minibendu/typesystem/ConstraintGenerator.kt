@@ -329,32 +329,35 @@ class ConstraintGenerator(
         
         if (expr.body == null) {
             // Let expression without body - this is a top-level binding
-            // We need to solve the value constraints and generalize the type
-            // even though there's no body to type-check
-            val (valueType, valueConstraints) = generateConstraintsInternal(actualValue, typeParamEnv)
-            
-            // Handle explicit type annotation if present
-            // For function syntax with return type annotations, we need to construct the full function type
-            val annotatedType = if (expr.parameters?.isNotEmpty() == true && expr.typeAnnotation != null) {
-                // For function syntax with return type annotation, construct the full function type
-                val returnType = typeExprToTypeWithEnv(expr.typeAnnotation, typeParamEnv)
-                expr.parameters.foldRight(returnType) { param, acc ->
-                    val paramType = param.type?.let { typeExprToTypeWithEnv(it, typeParamEnv) } ?: TypeVariable.fresh()
-                    FunctionType(paramType, acc)
-                }
+            if (expr.recursive) {
+                // For recursive top-level bindings, we need to handle self-reference
+                return generateConstraintsForRecursiveTopLevelBinding(expr.copy(value = actualValue), typeParamEnv)
             } else {
-                expr.typeAnnotation?.let { typeExprToTypeWithEnv(it, typeParamEnv) }
+                // For non-recursive top-level bindings, process normally
+                val (valueType, valueConstraints) = generateConstraintsInternal(actualValue, typeParamEnv)
+                
+                // Handle explicit type annotation if present
+                val annotatedType = if (expr.parameters?.isNotEmpty() == true && expr.typeAnnotation != null) {
+                    // For function syntax with return type annotation, construct the full function type
+                    val returnType = typeExprToTypeWithEnv(expr.typeAnnotation, typeParamEnv)
+                    expr.parameters.foldRight(returnType) { param, acc ->
+                        val paramType = param.type?.let { typeExprToTypeWithEnv(it, typeParamEnv) } ?: TypeVariable.fresh()
+                        FunctionType(paramType, acc)
+                    }
+                } else {
+                    expr.typeAnnotation?.let { typeExprToTypeWithEnv(it, typeParamEnv) }
+                }
+                val annotationConstraints = annotatedType?.let { annoType ->
+                    val sourceLocation = extractSourceLocation(expr.location())
+                    ConstraintSet.of(EqualityConstraint(valueType, annoType, sourceLocation))
+                } ?: ConstraintSet.empty()
+                
+                val allConstraints = valueConstraints.union(annotationConstraints)
+                
+                // For top-level bindings, return the value type and constraints
+                // The binding will be handled by the incremental type checker
+                return Pair(valueType, allConstraints)
             }
-            val annotationConstraints = annotatedType?.let { annoType ->
-                val sourceLocation = extractSourceLocation(expr.location())
-                ConstraintSet.of(EqualityConstraint(valueType, annoType, sourceLocation))
-            } ?: ConstraintSet.empty()
-            
-            val allConstraints = valueConstraints.union(annotationConstraints)
-            
-            // For top-level bindings, return the value type and constraints
-            // The binding will be handled by the incremental type checker
-            return Pair(valueType, allConstraints)
         }
         
         if (expr.recursive) {
@@ -496,6 +499,55 @@ class ConstraintGenerator(
             .add(recursiveConstraint)
         
         return Pair(bodyType, allConstraints)
+    }
+    
+    /**
+     * Generate constraints for recursive top-level bindings (let rec without body).
+     * The binding is added to the environment before evaluating the value, allowing self-reference.
+     */
+    private fun generateConstraintsForRecursiveTopLevelBinding(expr: LetExpr, env: TypeEnvironment): Pair<Type, ConstraintSet> {
+        val bindingName = expr.id.value
+        
+        // Create a fresh type variable for the recursive binding
+        val recursiveType = TypeVariable.fresh()
+        
+        // Handle explicit type annotation if present
+        // For function syntax with return type annotations, we need to construct the full function type
+        val annotatedType = if (expr.parameters?.isNotEmpty() == true && expr.typeAnnotation != null) {
+            // For function syntax with return type annotation, construct the full function type
+            val returnType = typeExprToTypeWithEnv(expr.typeAnnotation, env)
+            expr.parameters.foldRight(returnType) { param, acc ->
+                val paramType = param.type?.let { typeExprToTypeWithEnv(it, env) } ?: TypeVariable.fresh()
+                FunctionType(paramType, acc)
+            }
+        } else {
+            expr.typeAnnotation?.let { typeExprToTypeWithEnv(it, env) }
+        }
+        val annotationConstraints = annotatedType?.let { annoType ->
+            val sourceLocation = extractSourceLocation(expr.location())
+            ConstraintSet.of(EqualityConstraint(recursiveType, annoType, sourceLocation))
+        } ?: ConstraintSet.empty()
+        
+        // Create a monomorphic scheme for the recursive binding
+        val recursiveScheme = TypeScheme(emptySet(), recursiveType)
+        
+        // Extend environment with the recursive binding
+        val extendedEnv = env.bind(bindingName, recursiveScheme)
+        
+        // Generate constraints for the value in the extended environment (allowing self-reference)
+        val (valueType, valueConstraints) = generateConstraintsInternal(expr.value, extendedEnv)
+        
+        // The recursive type must equal the value type
+        val sourceLocation = extractSourceLocation(expr.location())
+        val recursiveConstraint = EqualityConstraint(recursiveType, valueType, sourceLocation)
+        
+        val allConstraints = valueConstraints
+            .union(annotationConstraints)
+            .add(recursiveConstraint)
+        
+        // For top-level recursive bindings, return the recursive type (not value type)
+        // This ensures the binding gets the correct type
+        return Pair(recursiveType, allConstraints)
     }
     
     /**
@@ -1022,4 +1074,4 @@ class ConstraintGenerator(
 /**
  * Exception thrown when constraint generation fails.
  */
-class ConstraintGenerationException(message: String) : Exception(message) 
+class ConstraintGenerationException(message: String) : Exception(message)
