@@ -323,6 +323,22 @@ class ConstraintSolver(
                     )
                 }
             }
+            "AddableType" -> {
+                // Only Int and String types are addable (for polymorphic + operator)
+                val appliedType = currentSubstitution.apply(constraint.type)
+                if (appliedType == Types.Int || appliedType == Types.String) {
+                    return Substitution.empty
+                } else if (appliedType is TypeVariable) {
+                    // Type variable case - default to Int for backward compatibility
+                    // This ensures that unconstrained type variables in arithmetic default to Int
+                    return Substitution.single(appliedType, Types.Int)
+                } else {
+                    throw UnificationException(
+                        "Type ${appliedType} is not addable (only Int and String support + operator)" +
+                        if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
+                    )
+                }
+            }
             else -> {
                 throw UnificationException(
                     "Unknown type class: ${constraint.typeClass}" +

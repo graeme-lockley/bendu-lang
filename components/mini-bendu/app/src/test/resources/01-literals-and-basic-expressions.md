@@ -254,7 +254,7 @@ Tests that adding different types still produces an error.
 
 ```bendu
 "hello" + 42
--- Expected: Cannot unify Int with String
+-- Expected: Cannot unify String with Int
 ```
 
 ---

@@ -152,8 +152,7 @@ class ConstraintGenerationTest {
         
         assertTrue(result.isSuccess(), "Constraint generation for function application should succeed")
         val constraints = result.constraints
-        val inferredType = result.type
-        
+
         // Should generate constraints for:
         // 1. Function variable f
         // 2. Argument variable x  
@@ -198,8 +197,7 @@ class ConstraintGenerationTest {
         
         assertTrue(result.isSuccess(), "Constraint generation should succeed with type variables")
         val constraints = result.constraints
-        val inferredType = result.type
-        
+
         // Should generate constraints that allow f to be unified as a function type
         // The exact constraint pattern may vary, but the system should be solvable
         val constraintsList = constraints.all()
@@ -208,7 +206,7 @@ class ConstraintGenerationTest {
         val hasRelevantConstraints = constraintsList.any { constraint ->
             constraint is EqualityConstraint && 
             (constraint.type1 is FunctionType || constraint.type2 is FunctionType ||
-             constraint.involvesVariable(fType as? TypeVariable ?: TypeVariable.fresh()))
+             constraint.involvesVariable(fType))
         }
         assertTrue(hasRelevantConstraints, "Should have constraints that enable function type inference")
     }
@@ -239,14 +237,23 @@ class ConstraintGenerationTest {
         // Should generate constraints for operands and result type
         assertTrue(constraints.size() >= 3, "Should have constraints for operands and result")
         
-        // Result should be constrained to Int for arithmetic operations
+        // For polymorphic + operator, result should be constrained through type class constraints
+        // The result type should be unified with the operand types, and operands should be addable
         val constraintsList = constraints.all()
-        val hasResultConstraint = constraintsList.any { constraint ->
+        
+        // Check that the result type is connected to the operand types
+        val hasOperandResultConnection = constraintsList.any { constraint ->
             constraint is EqualityConstraint && 
-            (constraint.type1 == inferredType && constraint.type2 == Types.Int ||
-             constraint.type2 == inferredType && constraint.type1 == Types.Int)
+            (constraint.type1 == inferredType || constraint.type2 == inferredType)
         }
-        assertTrue(hasResultConstraint, "Should constrain result type to Int")
+        
+        // Check that there's an AddableType constraint for the polymorphic + operator
+        val hasAddableTypeConstraint = constraintsList.any { constraint ->
+            constraint is InstanceConstraint && constraint.typeClass == "AddableType"
+        }
+        
+        assertTrue(hasOperandResultConnection, "Should connect result type to operand types")
+        assertTrue(hasAddableTypeConstraint, "Should have AddableType constraint for polymorphic + operator")
     }
     
     @Test

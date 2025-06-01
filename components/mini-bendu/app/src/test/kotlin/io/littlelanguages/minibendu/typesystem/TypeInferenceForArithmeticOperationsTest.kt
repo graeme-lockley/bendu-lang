@@ -134,28 +134,6 @@ class TypeInferenceForArithmeticOperationsTest {
     }
     
     @Test
-    fun `type error for string addition`() {
-        // Test: "hello" + "world" should produce type error (strings not supported for arithmetic)
-        val left = LiteralStringExpr(createStringLocation("hello"))
-        val right = LiteralStringExpr(createStringLocation("world"))
-        val addition = BinaryOpExpr(left, BinaryOp.Plus, right, createLocation())
-        
-        val generator = ConstraintGenerator()
-        val result = generator.generateConstraints(addition)
-        
-        assertTrue(result.isSuccess(), "Constraint generation should succeed even with incompatible types")
-        
-        val solver = ConstraintSolver()
-        val solverResult = solver.solve(result.constraints)
-        assertTrue(solverResult is ConstraintSolverResult.Failure, "Should fail to solve constraints for string arithmetic")
-        
-        val failure = solverResult as ConstraintSolverResult.Failure
-        assertNotNull(failure.error, "Should provide meaningful error message")
-        assertTrue(failure.error.contains("Int") || failure.error.contains("String"), 
-                  "Error should mention type conflict")
-    }
-    
-    @Test
     fun `type error for mixed type arithmetic`() {
         // Test: 5 + "hello" should produce type error
         val left = LiteralIntExpr(createIntLocation(5))
@@ -393,5 +371,25 @@ class TypeInferenceForArithmeticOperationsTest {
         
         val finalType = (solverResult as ConstraintSolverResult.Success).substitution.apply(result.type)
         assertEquals(Types.Int, finalType, "Complex arithmetic should result in Int")
+    }
+    
+    @Test
+    fun `type success for string concatenation`() {
+        // Test: "hello" + "world" should succeed (strings now supported for concatenation)
+        val left = LiteralStringExpr(createStringLocation("hello"))
+        val right = LiteralStringExpr(createStringLocation("world"))
+        val addition = BinaryOpExpr(left, BinaryOp.Plus, right, createLocation())
+        
+        val generator = ConstraintGenerator()
+        val result = generator.generateConstraints(addition)
+        
+        assertTrue(result.isSuccess(), "Constraint generation should succeed for string concatenation")
+        
+        val solver = ConstraintSolver()
+        val solverResult = solver.solve(result.constraints)
+        assertTrue(solverResult is ConstraintSolverResult.Success, "Should succeed for string concatenation")
+        
+        val finalType = (solverResult as ConstraintSolverResult.Success).substitution.apply(result.type)
+        assertEquals(Types.String, finalType, "String concatenation should result in String")
     }
 } 
