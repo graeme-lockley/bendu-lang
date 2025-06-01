@@ -208,8 +208,31 @@ class ConstraintGenerator(
         val sourceLocation = extractSourceLocation(expr.location())
         
         val operatorConstraints = when (expr.op) {
-            BinaryOp.Plus, BinaryOp.Minus, BinaryOp.Star, BinaryOp.Slash -> {
-                // Arithmetic operators: both operands must be Int, result is Int
+            BinaryOp.Plus -> {
+                // Plus operator: polymorphic over Int and String
+                // Both operands must be the same type (either Int or String), result is same type
+                // This implements: [A: Int | String] A -> A -> A
+                
+                // Create a fresh type variable for the operand type
+                val operandType = TypeVariable.fresh()
+                
+                // The operand type must be either Int or String (use subtyping)
+                val constraints = mutableListOf<TypeConstraint>()
+                
+                // Both operands must have the same type
+                constraints.add(EqualityConstraint(leftType, operandType, sourceLocation))
+                constraints.add(EqualityConstraint(rightType, operandType, sourceLocation))
+                constraints.add(EqualityConstraint(resultType, operandType, sourceLocation))
+                
+                // The operand type must be either Int or String
+                // We'll use a union compatibility approach: operand must unify with Int OR String
+                val intOrStringType = UnionType.create(setOf(Types.Int, Types.String))
+                constraints.add(SubtypingConstraint(operandType, intOrStringType, sourceLocation))
+                
+                ConstraintSet.of(*constraints.toTypedArray())
+            }
+            BinaryOp.Minus, BinaryOp.Star, BinaryOp.Slash -> {
+                // Other arithmetic operators: both operands must be Int, result is Int
                 ConstraintSet.of(
                     EqualityConstraint(leftType, Types.Int, sourceLocation),
                     EqualityConstraint(rightType, Types.Int, sourceLocation),

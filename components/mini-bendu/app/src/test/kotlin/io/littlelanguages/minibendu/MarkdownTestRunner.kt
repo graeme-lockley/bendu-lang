@@ -242,11 +242,22 @@ class MarkdownTestRunner {
     }
 
     @TestFactory
-    fun controlFlowMarkdownTests(): Stream<DynamicTest> {
+    fun controlFlowTests(): Stream<DynamicTest> {
         val testCases = parseMarkdownFile("05-control-flow.md")
         
         return testCases.stream().map { testCase ->
-            DynamicTest.dynamicTest("Control Flow: ${testCase.name}") {
+            DynamicTest.dynamicTest(testCase.name) {
+                executeTestCase(testCase)
+            }
+        }
+    }
+
+    @TestFactory
+    fun literalsAndBasicExpressionsTests(): Stream<DynamicTest> {
+        val testCases = parseMarkdownFile("01-literals-and-basic-expressions.md")
+        
+        return testCases.stream().map { testCase ->
+            DynamicTest.dynamicTest(testCase.name) {
                 executeTestCase(testCase)
             }
         }
