@@ -48,7 +48,8 @@ sealed class ConstraintGenerationResult {
  */
 class ConstraintGenerator(
     private val env: TypeEnvironment = TypeEnvironment.empty(),
-    private val typeAliasRegistry: TypeAliasRegistry = TypeAliasRegistry()
+    private val typeAliasRegistry: TypeAliasRegistry = TypeAliasRegistry(),
+    private val errorRecovery: ErrorRecovery = ErrorRecovery()
 ) {
     
     /**
@@ -357,13 +358,13 @@ class ConstraintGenerator(
                 return Pair(valueType, allConstraints)
             }
         }
-        
-        if (expr.recursive) {
+
+        return if (expr.recursive) {
             // For recursive let, we need to add the binding to the environment first
-            return generateConstraintsForRecursiveLet(expr.copy(value = actualValue), env)
+            generateConstraintsForRecursiveLet(expr.copy(value = actualValue), env)
         } else {
             // For non-recursive let, generate constraints for value first, then extend environment
-            return generateConstraintsForNonRecursiveLet(expr.copy(value = actualValue), env)
+            generateConstraintsForNonRecursiveLet(expr.copy(value = actualValue), env)
         }
     }
     
@@ -801,22 +802,32 @@ class ConstraintGenerator(
         // Exhaustiveness warnings
         if (!analysis.isExhaustive && analysis.missingPatterns.isNotEmpty()) {
             val sourceLocation = extractSourceLocation(matchExpr.location())
-            // Note: In a full implementation, these would be stored and reported
-            // For now, we'll just track them internally
-            // println("Warning: Non-exhaustive pattern match. Missing patterns: ${analysis.missingPatterns}")
+            errorRecovery.recordWarning(
+                message = "Non-exhaustive pattern match. Missing patterns: ${analysis.missingPatterns.joinToString(", ")}",
+                location = sourceLocation,
+                context = "pattern matching"
+            )
         }
         
         // Unreachable pattern warnings
         for (unreachableCase in analysis.unreachablePatterns) {
             val sourceLocation = extractSourceLocation(unreachableCase.pattern.location())
-            // println("Warning: Unreachable pattern at ${sourceLocation}")
+            errorRecovery.recordWarning(
+                message = "Unreachable pattern at $sourceLocation",
+                location = sourceLocation,
+                context = "pattern matching"
+            )
         }
         
         // Contradiction warnings
         for ((case1, case2) in analysis.contradictoryPatterns) {
             val location1 = extractSourceLocation(case1.pattern.location())
             val location2 = extractSourceLocation(case2.pattern.location())
-            // println("Warning: Contradictory patterns at ${location1} and ${location2}")
+            errorRecovery.recordWarning(
+                message = "Contradictory patterns at $location1 and $location2",
+                location = location1,
+                context = "pattern matching"
+            )
         }
     }
     
@@ -1001,23 +1012,20 @@ class ConstraintGenerator(
                         
                         // Check if it's a type alias
                         val expandedType = typeAliasRegistry.expandAlias(typeName, typeArguments)
-                        if (expandedType != null) {
-                            expandedType
-                        } else {
-                            // Not a known type alias or type parameter
+                        expandedType
+                            ?: // Not a known type alias or type parameter
                             // Only throw an error for undefined type variables if:
                             // 1. We're in a type parameter context (extended environment)
                             // 2. It looks like a type variable (single uppercase letter)
                             // 3. It has no type arguments (type aliases usually have arguments or are known)
-                            if (isInTypeParameterContext(environment) && 
-                                isLikelyTypeVariable(typeName) && 
+                            if (isInTypeParameterContext(environment) &&
+                                isLikelyTypeVariable(typeName) &&
                                 typeArguments.isEmpty()) {
                                 throw ConstraintGenerationException("Undefined type variable: $typeName")
                             } else {
                                 // Otherwise, create a type alias reference that might be resolved later
                                 TypeAlias(typeName, typeArguments)
                             }
-                        }
                     }
                 }
             }

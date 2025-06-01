@@ -56,14 +56,6 @@ class EndToEndTest {
         assertTrue(result is TypeCheckResult.Success, "Expected type check to succeed for: $source")
         if (expectedType != null) {
             val actualType = result.getFinalType().toString()
-            // Add debug output for the specific failing test
-            if (source.contains("utilities.compose") && actualType.contains("τ")) {
-                println("=== DEBUG: Function composition type inference ===")
-                println("Source: $source")
-                println("Final type: $actualType")
-                println("Expected: $expectedType")
-                println("=== END DEBUG ===")
-            }
             when (expectedType) {
                 is String -> assertEquals(expectedType, actualType, "Type mismatch for source: $source\nExpected: $expectedType\nActual: $actualType")
                 is Regex -> assertTrue(expectedType.matches(actualType), "Type mismatch for source: $source\nExpected to match: $expectedType\nActual: $actualType")

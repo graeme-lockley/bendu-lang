@@ -1,7 +1,5 @@
 package io.littlelanguages.minibendu.typesystem
 
-import io.littlelanguages.minibendu.*
-
 /**
  * Error recovery system for the type checker.
  * 

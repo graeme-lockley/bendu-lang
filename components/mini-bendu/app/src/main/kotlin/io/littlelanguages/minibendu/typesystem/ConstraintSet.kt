@@ -33,7 +33,7 @@ data class ConstraintInconsistency(
  * by managing collections of constraints with operations for simplification,
  * consistency checking, and propagation.
  */
-data class ConstraintSet private constructor(
+data class ConstraintSet(
     private val constraints: Set<TypeConstraint>
 ) {
     
@@ -315,34 +315,6 @@ data class ConstraintSet private constructor(
     fun apply(substitution: Substitution): ConstraintSet {
         val substituted = constraints.map { it.applySubstitution(substitution) }.toSet()
         return ConstraintSet(substituted)
-    }
-    
-    /**
-     * Get all free variables mentioned in any constraint in the set
-     */
-    fun freeVariables(): Set<TypeVariable> {
-        return constraints.flatMap { it.freeVariables() }.toSet()
-    }
-    
-    /**
-     * Check if any constraints have the given origin
-     */
-    fun hasOrigin(origin: ConstraintOrigin): Boolean {
-        return constraints.any { it.origin == origin }
-    }
-    
-    /**
-     * Filter constraints by origin
-     */
-    fun filterByOrigin(origin: ConstraintOrigin): ConstraintSet {
-        return ConstraintSet(constraints.filter { it.origin == origin }.toSet())
-    }
-    
-    /**
-     * Get constraints with specific priority
-     */
-    fun filterByPriority(priority: ConstraintPriority): ConstraintSet {
-        return ConstraintSet(constraints.filter { it.priority == priority }.toSet())
     }
     
     override fun toString(): String {

@@ -1,59 +1,9 @@
 package io.littlelanguages.minibendu
 
-import io.littlelanguages.minibendu.ApplicationExpr
-import io.littlelanguages.minibendu.BaseTypeExpr
-import io.littlelanguages.minibendu.BinaryOp
-import io.littlelanguages.minibendu.BinaryOpExpr
-import io.littlelanguages.minibendu.BoolLocation
-import io.littlelanguages.minibendu.Errors
-import io.littlelanguages.minibendu.Expr
-import io.littlelanguages.minibendu.ExprStmt
-import io.littlelanguages.minibendu.FieldExpr
-import io.littlelanguages.minibendu.FieldPattern
-import io.littlelanguages.minibendu.FunctionTypeExpr
-import io.littlelanguages.minibendu.IfExpr
-import io.littlelanguages.minibendu.IntLocation
-import io.littlelanguages.minibendu.InvalidLiteralError
-import io.littlelanguages.minibendu.LambdaExpr
-import io.littlelanguages.minibendu.LetExpr
-import io.littlelanguages.minibendu.LiteralBoolExpr
-import io.littlelanguages.minibendu.LiteralBoolPattern
-import io.littlelanguages.minibendu.LiteralIntExpr
-import io.littlelanguages.minibendu.LiteralIntPattern
-import io.littlelanguages.minibendu.LiteralPattern
-import io.littlelanguages.minibendu.LiteralStringExpr
-import io.littlelanguages.minibendu.LiteralStringPattern
-import io.littlelanguages.minibendu.LiteralStringTypeExpr
-import io.littlelanguages.minibendu.MatchCase
-import io.littlelanguages.minibendu.MatchExpr
-import io.littlelanguages.minibendu.MergeTypeExpr
-import io.littlelanguages.minibendu.Parameter
-import io.littlelanguages.minibendu.Pattern
-import io.littlelanguages.minibendu.Program
-import io.littlelanguages.minibendu.ProjectionExpr
-import io.littlelanguages.minibendu.RecordExpr
-import io.littlelanguages.minibendu.RecordPattern
-import io.littlelanguages.minibendu.RecordTypeExpr
-import io.littlelanguages.minibendu.SpreadExpr
-import io.littlelanguages.minibendu.SpreadOrField
-import io.littlelanguages.minibendu.StringLocation
-import io.littlelanguages.minibendu.TopLevel
-import io.littlelanguages.minibendu.TupleExpr
-import io.littlelanguages.minibendu.TuplePattern
-import io.littlelanguages.minibendu.TupleTypeExpr
-import io.littlelanguages.minibendu.TypeAliasDecl
-import io.littlelanguages.minibendu.TypeExpr
-import io.littlelanguages.minibendu.TypeField
-import io.littlelanguages.minibendu.TypeParam
-import io.littlelanguages.minibendu.UnionTypeExpr
-import io.littlelanguages.minibendu.VarExpr
-import io.littlelanguages.minibendu.VarPattern
-import io.littlelanguages.minibendu.WildcardPattern
 import io.littlelanguages.minibendu.parser.*
 import io.littlelanguages.data.Tuple2
 import io.littlelanguages.data.Tuple3
 import java.io.StringReader
-
 
 
 /**
@@ -347,9 +297,9 @@ class ParserVisitor(val errors: Errors = Errors()) :
         // "..." UpperID - only extension
         return RecordBodyType.OnlyExtension(StringLocation(a2.lexeme, a2.location))
     }
-    
+
     override fun visitRecordBodyType2(
-        a1: TypeField, 
+        a1: TypeField,
         a2: Tuple2<Token, RecordBodyType>?
     ): RecordBodyType {
         // TypeField ["," RecordBodyType] - field with optional rest
@@ -367,6 +317,7 @@ class ParserVisitor(val errors: Errors = Errors()) :
                     location = a1.location + a3.location
                 )
             }
+
             is RecordBodyType.OnlyExtension -> {
                 // Only extension: { ...A }
                 RecordTypeExpr(
@@ -375,6 +326,7 @@ class ParserVisitor(val errors: Errors = Errors()) :
                     location = a1.location + a3.location
                 )
             }
+
             is RecordBodyType.FieldWithOptionalRecordBodyType -> {
                 // Field with optional rest: { name: String } or { name: String, ...A } or { name: String, age: Int }
                 val (fields, extension) = collectFieldsAndExtension(a2)
@@ -386,23 +338,24 @@ class ParserVisitor(val errors: Errors = Errors()) :
             }
         }
     }
-    
+
     private fun collectFieldsAndExtension(recordBodyType: RecordBodyType.FieldWithOptionalRecordBodyType): Pair<List<TypeField>, StringLocation?> {
         val fields = mutableListOf<TypeField>()
         var current: RecordBodyType? = recordBodyType
-        
+
         while (current != null) {
             when (current) {
                 is RecordBodyType.OnlyExtension -> {
                     return Pair(fields, current.extension)
                 }
+
                 is RecordBodyType.FieldWithOptionalRecordBodyType -> {
                     fields.add(current.field)
                     current = current.rest
                 }
             }
         }
-        
+
         return Pair(fields, null)
     }
 
@@ -501,7 +454,7 @@ class ParserVisitor(val errors: Errors = Errors()) :
 
     // Helper classes for parser intermediate types
     data class GenericArgs(val types: List<TypeExpr>)
-    
+
     // Helper sealed class for RecordBodyType
     sealed class RecordBodyType {
         data class OnlyExtension(val extension: StringLocation) : RecordBodyType()
@@ -547,14 +500,4 @@ fun parseLiteralString(s: String): String {
     }
 
     return sb.toString()
-}
-
-/**
- * Create a parser utility function to parse a source string
- */
-fun parse(source: String): Program {
-    val scanner = Scanner(StringReader(source))
-    scanner.next()
-
-    return Parser(scanner, ParserVisitor()).program()
 }

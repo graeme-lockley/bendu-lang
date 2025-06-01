@@ -5,7 +5,7 @@ import java.io.StringReader
 
 fun parse(scanner: Scanner, errors: Errors): Program {
     try {
-        return Parser(scanner, io.littlelanguages.minibendu.ParserVisitor(errors)).program()
+        return Parser(scanner, ParserVisitor(errors)).program()
     } catch (e: ParsingException) {
         errors.addError(ParsingError(e.found, e.expected))
         return Program( emptyList())

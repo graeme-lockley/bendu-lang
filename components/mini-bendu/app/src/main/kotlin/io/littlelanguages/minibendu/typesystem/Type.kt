@@ -24,6 +24,16 @@ sealed class Type {
      * This simplifies unused row variables and other display artifacts.
      */
     open fun normalize(): Type = this
+
+    /**
+     * Check if this type is a supertype of another type.
+     * A type T is a supertype of U if U is a subtype of T.
+     */
+    open fun isSupertypeOf(other: Type): Boolean {
+        return other.structurallyEquivalent(this) ||
+               (this is IntersectionType && this.contains(other)) ||
+               (other is UnionType && other.alternatives.all { this.isSupertypeOf(it) })
+    }
 }
 
 /**
@@ -220,11 +230,17 @@ class IntersectionType(val members: Set<Type>) : Type() {
                 }
             }
             
-            // Remove duplicates through Set semantics
-            // TODO: Could add more sophisticated redundancy elimination
-            // e.g., if we have both Int and (Int & String), keep only (Int & String)
-            
-            return result
+            // Remove duplicates and redundant types
+            return result.filter { type ->
+                !result.any { other ->
+                    other != type && (
+                        // Remove if it's a subtype of another type in the set
+                        other.isSupertypeOf(type) ||
+                        // Remove if it's equivalent to another type in the set
+                        other.structurallyEquivalent(type)
+                    )
+                }
+            }.toSet()
         }
     }
     
@@ -255,21 +271,6 @@ class IntersectionType(val members: Set<Type>) : Type() {
         return members.any { member ->
             member.structurallyEquivalent(supertype) ||
             (supertype is IntersectionType && supertype.contains(member))
-        }
-    }
-    
-    /**
-     * Check if a type is a supertype of this intersection.
-     * A type T is a supertype of intersection (A & B) if T is a supertype of the intersection.
-     * This means T must be a supertype of both A and B.
-     */
-    fun isSupertypeOf(subtype: Type): Boolean {
-        // A type is a supertype of an intersection if it's a supertype of all members
-        return when (subtype) {
-            is IntersectionType -> subtype.members.all { subtypeMember ->
-                members.any { member -> member.structurallyEquivalent(subtypeMember) }
-            }
-            else -> members.any { member -> member.structurallyEquivalent(subtype) }
         }
     }
     
@@ -307,6 +308,14 @@ class IntersectionType(val members: Set<Type>) : Type() {
     }
     
     override fun hashCode(): Int = members.hashCode()
+
+    override fun isSupertypeOf(other: Type): Boolean {
+        // A type is a supertype of an intersection if it's a supertype of all members
+        return when (other) {
+            is IntersectionType -> other.members.all { member -> this.contains(member) }
+            else -> this.contains(other)
+        }
+    }
 }
 
 /**
@@ -357,11 +366,17 @@ class UnionType(val alternatives: Set<Type>) : Type() {
                 }
             }
             
-            // Remove duplicates through Set semantics
-            // TODO: Could add more sophisticated redundancy elimination
-            // e.g., if we have both Int and (Int | String), keep only (Int | String)
-            
-            return result
+            // Remove duplicates and redundant types
+            return result.filter { type ->
+                !result.any { other ->
+                    other != type && (
+                        // Remove if it's a supertype of another type in the set
+                        type.isSupertypeOf(other) ||
+                        // Remove if it's equivalent to another type in the set
+                        type.structurallyEquivalent(other)
+                    )
+                }
+            }.toSet()
         }
     }
     
@@ -397,11 +412,11 @@ class UnionType(val alternatives: Set<Type>) : Type() {
      * Check if a type is a subtype of this union.
      * A type T is a subtype of union (A | B) if T <: A or T <: B.
      */
-    fun isSupertypeOf(subtype: Type): Boolean {
+    override fun isSupertypeOf(other: Type): Boolean {
         return alternatives.any { alternative ->
             // Simplified subtype check
-            subtype.structurallyEquivalent(alternative) ||
-            (subtype is UnionType && subtype.isSubtypeOf(alternative))
+            other.structurallyEquivalent(alternative) ||
+            (other is UnionType && other.isSubtypeOf(alternative))
         }
     }
     

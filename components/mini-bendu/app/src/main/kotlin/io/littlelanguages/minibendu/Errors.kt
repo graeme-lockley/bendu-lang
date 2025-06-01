@@ -51,15 +51,6 @@ sealed class BenduError {
     abstract fun printError()
 }
 
-data class IdentifierRedefinitionError(val id: StringLocation, val otherLocation: Location) : BenduError() {
-    override fun printError() {
-        printMessage(
-            "Identifier Redefinition",
-            "${id.value} declared at ${locationToString(otherLocation)} redeclared at ${locationToString(id.location)}"
-        )
-    }
-}
-
 data class InvalidLiteralError(val value: String, val location: Location) : BenduError() {
     override fun printError() {
         printMessage("Invalid literal", "$value at ${locationToString(location)}")

@@ -116,14 +116,10 @@ object ExhaustivenessChecker {
         
         // Check if any covered value represents a record pattern that matches this record type
         val isRecordCovered = coveredValues.any { coveredValue ->
-            when (coveredValue) {
-                is Map<*, *> -> {
-                    // This represents a record pattern
-                    val recordPattern = coveredValue as Map<String, Set<Any>>
-                    isRecordPatternCompatible(recordPattern, recordType)
-                }
-                else -> false
-            }
+            if (coveredValue is Map<*, *>) {
+                val recordPattern = coveredValue as? Map<String, Set<Any>>
+                recordPattern != null && isRecordPatternCompatible(recordPattern, recordType)
+            } else false
         }
         
         if (isRecordCovered) {
@@ -147,14 +143,10 @@ object ExhaustivenessChecker {
         
         // Check if any covered value represents a tuple pattern that matches this tuple type
         val isTupleCovered = coveredValues.any { coveredValue ->
-            when (coveredValue) {
-                is List<*> -> {
-                    // This represents a tuple pattern
-                    val tuplePattern = coveredValue as List<Set<Any>>
-                    isTuplePatternCompatible(tuplePattern, tupleType)
-                }
-                else -> false
-            }
+            if (coveredValue is List<*>) {
+                val tuplePattern = coveredValue as? List<Set<Any>>
+                tuplePattern != null && isTuplePatternCompatible(tuplePattern, tupleType)
+            } else false
         }
         
         if (isTupleCovered) {
@@ -202,13 +194,10 @@ object ExhaustivenessChecker {
             is RecordType -> {
                 // Check if any covered record pattern matches this record type
                 coveredValues.any { coveredValue ->
-                    when (coveredValue) {
-                        is Map<*, *> -> {
-                            // Check if the covered record pattern matches this alternative
-                            isRecordPatternCompatible(coveredValue as Map<String, Set<Any>>, alternative)
-                        }
-                        else -> false
-                    }
+                    if (coveredValue is Map<*, *>) {
+                        val recordPattern = coveredValue as? Map<String, Set<Any>>
+                        recordPattern != null && isRecordPatternCompatible(recordPattern, alternative)
+                    } else false
                 }
             }
             is LiteralStringType -> {

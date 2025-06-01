@@ -94,15 +94,17 @@ object IntersectionTypeUtils {
         // Remove duplicates (handled by Set)
         val deduplicated = flattened.toSet()
         
-        // TODO: Add more sophisticated simplification
-        // - Remove members that are supertypes of others
-        // - Merge compatible constraint types
-        // - Simplify nested function constraints
+        // Remove members that are supertypes of others
+        val simplified = deduplicated.filter { type ->
+            !deduplicated.any { other ->
+                other != type && other.isSupertypeOf(type)
+            }
+        }.toSet()
         
         return when {
-            deduplicated.isEmpty() -> throw IllegalStateException("Cannot simplify intersection to empty set")
-            deduplicated.size == 1 -> deduplicated.first()
-            else -> IntersectionType(deduplicated)
+            simplified.isEmpty() -> throw IllegalStateException("Cannot simplify intersection to empty set")
+            simplified.size == 1 -> simplified.first()
+            else -> IntersectionType(simplified)
         }
     }
     
