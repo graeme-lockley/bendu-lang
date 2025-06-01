@@ -14,3 +14,17 @@ fun parse(scanner: Scanner, errors: Errors): Program {
 
 fun parse(input: String, errors: Errors): Program =
     parse(Scanner(StringReader(input)), errors)
+
+fun parseType(input: String, errors: Errors): TypeExpr? {
+    return try {
+        val scanner = Scanner(StringReader(input))
+        val parser = Parser(scanner, ParserVisitor(errors))
+        parser.typeExpr()
+    } catch (e: ParsingException) {
+        errors.addError(ParsingError(e.found, e.expected))
+        null
+    } catch (_: Exception) {
+        // Handle any other parsing errors gracefully
+        null
+    }
+}
