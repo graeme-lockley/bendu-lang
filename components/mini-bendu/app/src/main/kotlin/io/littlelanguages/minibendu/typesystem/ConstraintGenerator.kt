@@ -313,8 +313,6 @@ class ConstraintGenerator(
      * - Proper variable scoping and shadowing
      */
     private fun generateConstraintsForLet(expr: LetExpr, env: TypeEnvironment): Pair<Type, ConstraintSet> {
-        val bindingName = expr.id.value
-        
         // Create environment with type parameters for processing type annotations
         val typeParamEnv = createTypeParameterEnvironment(expr.typeParams, env)
         
@@ -490,8 +488,31 @@ class ConstraintGenerator(
         val sourceLocation = extractSourceLocation(expr.location())
         val recursiveConstraint = EqualityConstraint(recursiveType, valueType, sourceLocation)
         
-        // Generate constraints for the body (if present)
-        val (bodyType, bodyConstraints) = generateConstraintsInternal(expr.body!!, extendedEnv)
+        // For recursive let with body, we need to solve the value constraints first, then generalize
+        // This ensures the body uses the properly generalized type, not the raw recursive type variable
+        val valueConstraintsWithAnnotation = valueConstraints.union(annotationConstraints).add(recursiveConstraint)
+        
+        val solver = ConstraintSolver(typeAliasRegistry)
+        val solverResult = solver.solve(valueConstraintsWithAnnotation)
+        
+        val bindingScheme = when (solverResult) {
+            is ConstraintSolverResult.Success -> {
+                // Apply substitution to get the solved type, then generalize
+                val solvedRecursiveType = solverResult.substitution.apply(recursiveType)
+                env.generalize(solvedRecursiveType)
+            }
+            is ConstraintSolverResult.Failure -> {
+                // If constraint solving fails, fall back to monomorphic scheme
+                // This allows error recovery and prevents cascading failures
+                TypeScheme.monomorphic(recursiveType)
+            }
+        }
+        
+        // Create a new environment with the properly generalized binding for the body
+        val bodyEnv = env.bind(bindingName, bindingScheme)
+        
+        // Generate constraints for the body in the environment with the generalized binding
+        val (bodyType, bodyConstraints) = generateConstraintsInternal(expr.body!!, bodyEnv)
         
         val allConstraints = valueConstraints
             .union(annotationConstraints)
