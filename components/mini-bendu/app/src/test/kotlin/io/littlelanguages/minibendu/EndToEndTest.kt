@@ -86,6 +86,16 @@ class EndToEndTest {
     }
 
     @Test
+    fun testRecursiveFunction() {
+        assertTypeCheckSuccess(
+            """
+                let rec fib = \n =>
+                    if n == 0 then 0 else if n == 1 then 1 else fib(n - 1) + fib (n - 2) in
+                fib(5)
+            """, "Int")
+    }
+
+    @Test
     fun testPolymorphicIdentityFunction() {
         assertTypeCheckSuccess(
             """

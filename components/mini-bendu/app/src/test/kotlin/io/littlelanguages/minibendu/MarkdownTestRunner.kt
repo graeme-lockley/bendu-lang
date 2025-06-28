@@ -262,6 +262,10 @@ class MarkdownTestRunner {
         factoryTestsForFile("03-functions.md")
 
     @TestFactory
+    fun letBindingsMarkdownTests(): Stream<DynamicTest> =
+        factoryTestsForFile("04-let-bindings.md")
+
+    @TestFactory
     fun controlFlowMarkdownTests(): Stream<DynamicTest> =
         factoryTestsForFile("05-control-flow.md")
 

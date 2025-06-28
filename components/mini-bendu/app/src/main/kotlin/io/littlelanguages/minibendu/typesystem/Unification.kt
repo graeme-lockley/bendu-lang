@@ -122,7 +122,28 @@ object Unification {
             }
         }
         
-        // Occurs check: ensure the variable doesn't occur in the type
+        // Special case: Handle recursive union types like τn = A | B | τn
+        // This should resolve to τn := A | B (extracting the non-recursive parts)
+        if (type is UnionType && type.alternatives.contains(typeVar)) {
+            val nonRecursiveAlternatives = type.alternatives.filter { it != typeVar }.toSet()
+            
+            // If there are no non-recursive alternatives, this would create an infinite type
+            if (nonRecursiveAlternatives.isEmpty()) {
+                throw UnificationException("Occurs check failed: $typeVar occurs in $type (would create infinite type)")
+            }
+            
+            // Create the simplified type without the recursive reference
+            val simplifiedType = when {
+                nonRecursiveAlternatives.size == 1 -> nonRecursiveAlternatives.first()
+                else -> UnionType(nonRecursiveAlternatives)
+            }
+            
+            // Create new substitution with the simplified binding
+            val newBinding = Substitution.single(typeVar, simplifiedType)
+            return newBinding.compose(substitution)
+        }
+        
+        // Regular occurs check: ensure the variable doesn't occur in the type
         if (occursCheck(typeVar, type)) {
             throw UnificationException("Occurs check failed: $typeVar occurs in $type (would create infinite type)")
         }
@@ -309,7 +330,7 @@ object Unification {
                     currentSubst = altSubst
                     unified = true
                     break
-                } catch (e: UnificationException) {
+                } catch (_: UnificationException) {
                     // Try next alternative
                     continue
                 }
@@ -355,7 +376,7 @@ object Unification {
                     currentSubst = memberSubst
                     unified = true
                     break
-                } catch (e: UnificationException) {
+                } catch (_: UnificationException) {
                     // Try next member
                     continue
                 }
@@ -432,7 +453,7 @@ object Unification {
             try {
                 // If unification succeeds with this alternative, return the result
                 return unifyInternal(alternative, type, substitution)
-            } catch (e: UnificationException) {
+            } catch (_: UnificationException) {
                 // Try next alternative
                 continue
             }
