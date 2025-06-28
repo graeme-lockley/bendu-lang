@@ -107,7 +107,8 @@ class MarkdownTestRunner {
                     expectedError = if (expectedType?.contains("error", ignoreCase = true) == true ||
                         expectedType?.contains("cannot unify", ignoreCase = true) == true ||
                         expectedType?.contains("undefined", ignoreCase = true) == true ||
-                        expectedType?.contains("unify", ignoreCase = true) == true
+                        expectedType?.contains("unify", ignoreCase = true) == true ||
+                        expectedType?.contains("non-exhaustive", ignoreCase = true) == true
                     ) expectedType else null
                 )
             )
@@ -268,6 +269,10 @@ class MarkdownTestRunner {
     @TestFactory
     fun controlFlowMarkdownTests(): Stream<DynamicTest> =
         factoryTestsForFile("05-control-flow.md")
+
+    @TestFactory
+    fun patternMatchingMarkdownTests(): Stream<DynamicTest> =
+        factoryTestsForFile("06-pattern-matching.md")
 
     private fun factoryTestsForFile(fileName: String): Stream<DynamicTest> {
         val testCases = parseMarkdownFile(fileName)
