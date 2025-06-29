@@ -24,10 +24,18 @@ sealed class TypeCheckResult {
     
     data class Failure(
         val error: String,
-        val location: SourceLocation?
+        val location: SourceLocation?,
+        val structuredError: CompilerError? = null
     ) : TypeCheckResult() {
         override fun isSuccess(): Boolean = false
         override fun isFailure(): Boolean = true
+        
+        // Constructor for structured errors with backward compatibility
+        constructor(structuredError: CompilerError, location: SourceLocation?) : this(
+            error = structuredError.getMessage(),
+            location = location,
+            structuredError = structuredError
+        )
     }
 }
 
@@ -73,7 +81,8 @@ class TypeChecker(
                 val failure = constraintResult as ConstraintGenerationResult.Failure
                 return TypeCheckResult.Failure(
                     error = failure.error,
-                    location = extractSourceLocation(expr.location())
+                    location = extractSourceLocation(expr.location()),
+                    structuredError = failure.structuredError
                 )
             }
             
@@ -100,7 +109,7 @@ class TypeChecker(
             }
         } catch (e: Exception) {
             TypeCheckResult.Failure(
-                error = "Internal type checker error: ${e.message}",
+                structuredError = InternalError.CompilerBug(e.message ?: "Unknown error", e),
                 location = extractSourceLocation(expr.location())
             )
         }

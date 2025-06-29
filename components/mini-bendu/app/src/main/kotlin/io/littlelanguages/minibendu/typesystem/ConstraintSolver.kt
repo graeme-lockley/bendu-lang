@@ -28,11 +28,17 @@ sealed class ConstraintSolverResult {
     }
     
     /**
-     * Failed constraint solving with error message
+     * Failed constraint solving with structured compiler error
      */
-    data class Failure(val error: String) : ConstraintSolverResult() {
+    data class Failure(val compilerError: CompilerError) : ConstraintSolverResult() {
         fun isSuccess(): Boolean = false
         fun isFailure(): Boolean = true
+        
+        // Backward compatibility - get error message as string
+        val error: String get() = compilerError.getMessage()
+        
+        // Backward compatibility constructor for string messages
+        constructor(error: String) : this(InternalError.CompilerBug(error))
     }
 }
 
@@ -54,10 +60,10 @@ class ConstraintSolver(
         return try {
             val substitution = solveConstraints(constraints)
             ConstraintSolverResult.Success(substitution)
-        } catch (e: UnificationException) {
-            ConstraintSolverResult.Failure(e.message ?: "Constraint solving failed")
+        } catch (e: CompilerErrorException) {
+            ConstraintSolverResult.Failure(e.compilerError)
         } catch (e: Exception) {
-            ConstraintSolverResult.Failure("Internal error during constraint solving: ${e.message}")
+            ConstraintSolverResult.Failure(InternalError.CompilerBug("Internal error during constraint solving: ${e.message}"))
         }
     }
     
@@ -159,9 +165,9 @@ class ConstraintSolver(
             }
             
             else -> {
-                throw UnificationException(
-                    "Cannot establish subtyping relationship ${constraint.subtype} <: ${constraint.supertype}" +
-                    if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
+                throw CompilerErrorException.subtypingError(
+                    constraint.subtype, 
+                    constraint.supertype
                 )
             }
         }
@@ -177,7 +183,7 @@ class ConstraintSolver(
             try {
                 // If unification succeeds with any alternative, the constraint is satisfied
                 return unify(subtype, alternative, location)
-            } catch (_: UnificationException) {
+            } catch (_: CompilerErrorException) {
                 // Continue trying other alternatives
                 continue
             }
@@ -186,15 +192,17 @@ class ConstraintSolver(
         // If no alternative works, check if subtype is a type variable that can be constrained
         if (subtype is TypeVariable) {
             // For now, fail - more sophisticated handling could create fresh variables
-            throw UnificationException(
-                "Type variable $subtype cannot be constrained to union type $superUnion" +
-                if (location != null) " at $location" else ""
+            throw CompilerErrorException.subtypingError(
+                subtype, 
+                superUnion,
+                "type variable cannot be constrained to union type"
             )
         }
         
-        throw UnificationException(
-            "Type $subtype is not a subtype of union $superUnion" +
-            if (location != null) " at $location" else ""
+        throw CompilerErrorException.subtypingError(
+            subtype, 
+            superUnion,
+            "not a subtype of union"
         )
     }
     
@@ -210,10 +218,11 @@ class ConstraintSolver(
             try {
                 val altSubstitution = unify(alternative, supertype, location)
                 combinedSubstitution = altSubstitution.compose(combinedSubstitution)
-            } catch (_: UnificationException) {
-                throw UnificationException(
-                    "Union alternative $alternative is not a subtype of $supertype in union subtyping" +
-                    if (location != null) " at $location" else ""
+            } catch (_: CompilerErrorException) {
+                throw CompilerErrorException.subtypingError(
+                    alternative, 
+                    supertype,
+                    "union alternative is not a subtype in union subtyping"
                 )
             }
         }
@@ -232,15 +241,16 @@ class ConstraintSolver(
             try {
                 // If any member can be unified with the supertype, the constraint is satisfied
                 return unify(member, supertype, location)
-            } catch (_: UnificationException) {
+            } catch (_: CompilerErrorException) {
                 // Continue trying other members
                 continue
             }
         }
         
-        throw UnificationException(
-            "Intersection $intersectionSubtype is not a subtype of $supertype" +
-            if (location != null) " at $location" else ""
+        throw CompilerErrorException.subtypingError(
+            intersectionSubtype, 
+            supertype,
+            "intersection is not a subtype"
         )
     }
     
@@ -256,10 +266,11 @@ class ConstraintSolver(
             try {
                 val memberSubstitution = unify(subtype, member, location)
                 combinedSubstitution = memberSubstitution.compose(combinedSubstitution)
-            } catch (_: UnificationException) {
-                throw UnificationException(
-                    "Type $subtype is not a subtype of intersection member $member in intersection subtyping" +
-                    if (location != null) " at $location" else ""
+            } catch (_: CompilerErrorException) {
+                throw CompilerErrorException.subtypingError(
+                    subtype, 
+                    member,
+                    "not a subtype of intersection member in intersection subtyping"
                 )
             }
         }
@@ -276,10 +287,7 @@ class ConstraintSolver(
         // Check that all fields in supertype exist in subtype with compatible types
         for ((fieldName, supertypeFieldType) in supertype.fields) {
             val subtypeFieldType = subtype.fields[fieldName]
-                ?: throw UnificationException(
-                    "Missing field '$fieldName' in record subtyping" +
-                    if (location != null) " at $location" else ""
-                )
+                ?: throw CompilerErrorException.missingRecordField(fieldName, "record subtyping")
             
             // Field types must be unifiable (for now, using equality)
             val fieldSubstitution = unify(subtypeFieldType, supertypeFieldType, location)
@@ -317,34 +325,35 @@ class ConstraintSolver(
                 if (constraint.type is PrimitiveType) {
                     return Substitution.empty
                 } else {
-                    throw UnificationException(
-                        "Type ${constraint.type} is not comparable" +
-                        if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
+                    throw CompilerErrorException.typeClassConstraintError(
+                        "Comparable", 
+                        constraint.type,
+                        "only primitive types are comparable"
                     )
                 }
             }
             "AddableType" -> {
                 // Only Int and String types are addable (for polymorphic + operator)
                 val appliedType = currentSubstitution.apply(constraint.type)
-                if (appliedType == Types.Int || appliedType == Types.String) {
-                    return Substitution.empty
-                } else if (appliedType is TypeVariable) {
-                    // Type variable case - default to Int for backward compatibility
-                    // This ensures that unconstrained type variables in arithmetic default to Int
-                    return Substitution.single(appliedType, Types.Int)
-                } else {
-                    throw UnificationException(
-                        "Type ${appliedType} is not addable (only Int and String support + operator)" +
-                        if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
+                return when (appliedType) {
+                    Types.Int, Types.String -> Substitution.empty
+                    is TypeVariable ->
+                        // Type variable case - default to Int for backward compatibility
+                        // This ensures that unconstrained type variables in arithmetic default to Int
+                        Substitution.single(appliedType, Types.Int)
+
+                    else -> throw CompilerErrorException.typeClassConstraintError(
+                        "AddableType",
+                        appliedType,
+                        "only Int and String support + operator"
                     )
                 }
             }
-            else -> {
-                throw UnificationException(
-                    "Unknown type class: ${constraint.typeClass}" +
-                    if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
-                )
-            }
+            else -> throw CompilerErrorException.typeClassConstraintError(
+                constraint.typeClass,
+                constraint.type,
+                "unknown type class"
+            )
         }
     }
     
@@ -363,10 +372,22 @@ class ConstraintSolver(
         if (result.isSuccess()) {
             return result.getSubstitution()
         } else {
-            throw UnificationException(
-                result.getError() + 
-                if (location != null) " at $location" else ""
-            )
+            // Preserve the structured error from unification
+            val compilerError = result.getCompilerError()
+            if (compilerError != null) {
+                // Add location information while preserving the original error type
+                val enhancedError = if (location != null) {
+                    LocatedError(compilerError, location)
+                } else {
+                    compilerError
+                }
+                throw CompilerErrorException(enhancedError)
+            } else {
+                // Fallback for backward compatibility - convert string error to structured error
+                val message = result.getError() + 
+                    if (location != null) " at $location" else ""
+                throw CompilerErrorException(message.toCompilerError())
+            }
         }
     }
     
@@ -386,10 +407,7 @@ class ConstraintSolver(
                 unify(constraint.type, emptyRecord, constraint.sourceLocation)
             }
             else -> {
-                throw UnificationException(
-                    "Type ${constraint.type} cannot be constrained to be a record type" +
-                    if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
-                )
+                throw CompilerErrorException.cannotConstrainToRecordType(constraint.type)
             }
         }
     }
@@ -428,10 +446,10 @@ class ConstraintSolver(
                                     // Use the unified type
                                     mergedFields[fieldName] = combinedSubstitution.apply(fieldType)
                                 }
-                            } catch (_: UnificationException) {
-                                throw UnificationException(
-                                    "Cannot merge field '$fieldName': conflicting types $existingType and $fieldType" +
-                                    if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
+                            } catch (_: CompilerErrorException) {
+                                throw CompilerErrorException.mergeOperationError(
+                                    "Cannot merge field '$fieldName'",
+                                    existingType to fieldType
                                 )
                             }
                         } else {
@@ -446,18 +464,12 @@ class ConstraintSolver(
                     try {
                         val varUnification = unify(appliedSpreadType, freshRecordType, constraint.sourceLocation)
                         combinedSubstitution = varUnification.compose(combinedSubstitution)
-                    } catch (_: UnificationException) {
-                        throw UnificationException(
-                            "Type variable $appliedSpreadType cannot be constrained to record type in merge operation" +
-                            if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
-                        )
+                    } catch (_: CompilerErrorException) {
+                        throw CompilerErrorException.cannotConstrainToRecordType(appliedSpreadType)
                     }
                 }
                 else -> {
-                    throw UnificationException(
-                        "Cannot spread non-record type $appliedSpreadType in merge operation" +
-                        if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
-                    )
+                    throw CompilerErrorException.cannotSpreadNonRecordType(appliedSpreadType)
                 }
             }
         }
@@ -473,10 +485,12 @@ class ConstraintSolver(
                     combinedSubstitution = fieldUnification.compose(combinedSubstitution)
                     // Use the unified type (explicit field wins, but must be compatible)
                     mergedFields[fieldName] = combinedSubstitution.apply(appliedFieldType)
-                } catch (_: UnificationException) {
-                    throw UnificationException(
-                        "Cannot override field '$fieldName': incompatible types $existingType and $appliedFieldType" +
-                        if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
+                } catch (_: CompilerErrorException) {
+                    throw CompilerErrorException.recordFieldConflict(
+                        fieldName, 
+                        existingType, 
+                        appliedFieldType, 
+                        "field override"
                     )
                 }
             } else {
@@ -526,7 +540,7 @@ class ConstraintSolver(
             for (unionMember in scrutineeType.alternatives) {
                 try {
                     return unify(unionMember, patternType, location)
-                } catch (_: UnificationException) {
+                } catch (_: CompilerErrorException) {
                     // Continue trying other union members
                     continue
                 }
@@ -534,9 +548,10 @@ class ConstraintSolver(
             
             // If no existing member is compatible, we could extend the union
             // For now, we'll fail - more sophisticated handling would create a new union
-            throw UnificationException(
-                "Pattern type $patternType is not compatible with union type $scrutineeType" +
-                if (location != null) " at $location" else ""
+            throw CompilerErrorException.unionCompatibilityError(
+                scrutineeType, 
+                patternType,
+                "pattern type not compatible with union type"
             )
         }
         
@@ -545,15 +560,16 @@ class ConstraintSolver(
             for (unionMember in patternType.alternatives) {
                 try {
                     return unify(scrutineeType, unionMember, location)
-                } catch (_: UnificationException) {
+                } catch (_: CompilerErrorException) {
                     // Continue trying other union members
                     continue
                 }
             }
             
-            throw UnificationException(
-                "Scrutinee type $scrutineeType is not compatible with union pattern $patternType" +
-                if (location != null) " at $location" else ""
+            throw CompilerErrorException.unionCompatibilityError(
+                scrutineeType, 
+                patternType,
+                "scrutinee type not compatible with union pattern"
             )
         }
         
@@ -574,12 +590,13 @@ class ConstraintSolver(
         // Case 7: Both are concrete types - try direct unification as a last resort
         try {
             return unify(scrutineeType, patternType, location)
-        } catch (_: UnificationException) {
+        } catch (_: CompilerErrorException) {
             // If direct unification fails, we need to create a union type
             // For now, we'll fail - more sophisticated handling would create a union
-            throw UnificationException(
-                "Cannot establish union compatibility between $scrutineeType and $patternType" +
-                if (location != null) " at $location" else ""
+            throw CompilerErrorException.unionCompatibilityError(
+                scrutineeType, 
+                patternType,
+                "cannot establish union compatibility"
             )
         }
     }
@@ -618,15 +635,17 @@ class ConstraintSolver(
                     val fieldSubstitution = unify(scrutineeFieldType, patternFieldType, location)
                     combinedSubstitution = fieldSubstitution.compose(combinedSubstitution)
                 }
-            } catch (_: UnificationException) {
+            } catch (_: CompilerErrorException) {
                 // Fields are not directly unifiable - check if they can form a union
                 if (canFormUnion(scrutineeFieldType, patternFieldType)) {
                     // Fields can form a union - this is compatible for union compatibility
                     continue
                 } else {
-                    throw UnificationException(
-                        "Field '$fieldName' is not compatible: $scrutineeFieldType vs $patternFieldType" +
-                        if (location != null) " at $location" else ""
+                    throw CompilerErrorException.recordFieldConflict(
+                        fieldName, 
+                        scrutineeFieldType, 
+                        patternFieldType, 
+                        "union compatibility"
                     )
                 }
             }
@@ -774,11 +793,10 @@ class ConstraintSolver(
             return Substitution.empty
         } else {
             // Pattern match is not exhaustive - this is a type error
-            val missingPatterns = exhaustivenessResult.missingPatterns.joinToString(", ") { it.toString() }
-            throw UnificationException(
-                "non-exhaustive pattern match. Missing patterns: $missingPatterns" +
-                if (constraint.sourceLocation != null) " at ${constraint.sourceLocation}" else ""
+            val structuredError = TypeError.NonExhaustivePatternMatch(
+                exhaustivenessResult.missingPatterns.map { it.toString() }
             )
+            throw CompilerErrorException(structuredError)
         }
     }
 

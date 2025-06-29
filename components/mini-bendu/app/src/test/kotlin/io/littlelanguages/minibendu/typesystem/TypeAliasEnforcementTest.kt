@@ -154,7 +154,7 @@ class TypeAliasEnforcementTest {
                 let person: Person = { name = "Alice", age = 30 }
                 
                 person.age
-            """.trimIndent(), "cannot unify")
+            """.trimIndent(), "Field 'age' type mismatch")
     }
     
     @Test
@@ -218,7 +218,7 @@ class TypeAliasEnforcementTest {
                 let person: Person = { name = 123, age = 25 }
                 
                 person.name
-            """.trimIndent(), "cannot unify")
+            """.trimIndent(), "Field 'name' type mismatch")
     }
     
     @Test
@@ -282,7 +282,7 @@ class TypeAliasEnforcementTest {
                 let employee: Employee = { ...person, department = "Engineering" }
                 
                 employee.age
-            """.trimIndent(), "cannot unify")
+            """.trimIndent(), "Field 'age' type mismatch")
     }
     
     // ===== PARAMETRIC TYPE ALIAS TESTS =====

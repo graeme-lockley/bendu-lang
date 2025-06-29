@@ -28,10 +28,17 @@ sealed class ConstraintGenerationResult {
     data class Failure(
         val error: String,
         override val type: Type = TypeVariable.fresh(), // Dummy type for failure cases
-        override val constraints: ConstraintSet = ConstraintSet.empty()
+        override val constraints: ConstraintSet = ConstraintSet.empty(),
+        val structuredError: CompilerError? = null
     ) : ConstraintGenerationResult() {
         override fun isSuccess(): Boolean = false
         override fun isFailure(): Boolean = true
+        
+        // Constructor for structured errors with backward compatibility
+        constructor(structuredError: CompilerError) : this(
+            error = structuredError.getMessage(),
+            structuredError = structuredError
+        )
     }
 }
 
@@ -72,8 +79,8 @@ class ConstraintGenerator(
         return try {
             val (type, constraints) = generateConstraintsInternal(expr, env)
             ConstraintGenerationResult.Success(type, constraints)
-        } catch (e: ConstraintGenerationException) {
-            ConstraintGenerationResult.Failure(e.message ?: "Constraint generation failed")
+        } catch (e: CompilerErrorException) {
+            ConstraintGenerationResult.Failure(e.compilerError)
         }
     }
     
@@ -145,7 +152,7 @@ class ConstraintGenerator(
     private fun generateConstraintsForVariable(expr: VarExpr, env: TypeEnvironment): Pair<Type, ConstraintSet> {
         val variableName = expr.id.value
         val variableTypeScheme = env.lookup(variableName)
-            ?: throw ConstraintGenerationException("Undefined variable: $variableName")
+            ?: throw CompilerErrorException.undefinedVariable(variableName)
         
         val resultType = TypeVariable.fresh()
         val sourceLocation = extractSourceLocation(expr.location())
@@ -962,7 +969,9 @@ class ConstraintGenerator(
             
             else -> {
                 // Unknown pattern type, generate error or default behavior
-                throw ConstraintGenerationException("Unsupported pattern type: ${pattern::class.simpleName}")
+                throw CompilerErrorException(
+                InternalError.UnimplementedFeature("Pattern type: ${pattern::class.simpleName}")
+            )
             }
         }
     }
@@ -1033,7 +1042,7 @@ class ConstraintGenerator(
                             if (isInTypeParameterContext(environment) &&
                                 isLikelyTypeVariable(typeName) &&
                                 typeArguments.isEmpty()) {
-                                throw ConstraintGenerationException("Undefined type variable: $typeName")
+                                throw CompilerErrorException(TypeError.UndefinedTypeVariable(typeName))
                             } else {
                                 // Otherwise, create a type alias reference that might be resolved later
                                 TypeAlias(typeName, typeArguments)
@@ -1112,7 +1121,3 @@ class ConstraintGenerator(
     }
 }
 
-/**
- * Exception thrown when constraint generation fails.
- */
-class ConstraintGenerationException(message: String) : Exception(message)

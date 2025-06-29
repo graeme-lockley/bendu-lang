@@ -200,7 +200,7 @@ class ParameterizedTypeAliasTest {
                 let wrongData: BoxedPair[String, Int] = { value = ("hello", "world") }
                 
                 wrongData
-            """.trimIndent(), "cannot unify"
+            """.trimIndent(), "Field 'value' type mismatch"
         )
     }
 
@@ -370,7 +370,7 @@ class ParameterizedTypeAliasTest {
                 let wrongContainer: Container[String] = { item = 42, count = 1 }
                 
                 wrongContainer
-            """.trimIndent(), "cannot unify"
+            """.trimIndent(), "Field 'item' type mismatch"
         )
     }
 

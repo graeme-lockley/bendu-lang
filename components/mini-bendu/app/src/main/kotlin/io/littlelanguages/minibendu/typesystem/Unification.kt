@@ -2,26 +2,32 @@ package io.littlelanguages.minibendu.typesystem
 
 /**
  * Result of a unification attempt.
- * Contains either a successful substitution or an error message.
+ * Contains either a successful substitution or a structured compiler error.
  */
 sealed class UnificationResult {
     abstract fun isSuccess(): Boolean
     abstract fun isFailure(): Boolean
     abstract fun getSubstitution(): Substitution
     abstract fun getError(): String?
+    abstract fun getCompilerError(): CompilerError?
     
     data class Success(private val substitution: Substitution) : UnificationResult() {
         override fun isSuccess(): Boolean = true
         override fun isFailure(): Boolean = false
         override fun getSubstitution(): Substitution = substitution
         override fun getError(): String? = null
+        override fun getCompilerError(): CompilerError? = null
     }
     
-    data class Failure(private val error: String) : UnificationResult() {
+    data class Failure(private val compilerError: CompilerError) : UnificationResult() {
         override fun isSuccess(): Boolean = false
         override fun isFailure(): Boolean = true
         override fun getSubstitution(): Substitution = Substitution.empty
-        override fun getError(): String = error
+        override fun getError(): String = compilerError.getMessage()
+        override fun getCompilerError(): CompilerError = compilerError
+        
+        // Backward compatibility constructor for string messages
+        constructor(error: String) : this(InternalError.CompilerBug(error))
     }
 }
 
@@ -43,8 +49,8 @@ object Unification {
         return try {
             val substitution = unifyInternal(type1, type2, existingSubst)
             UnificationResult.Success(substitution)
-        } catch (e: UnificationException) {
-            UnificationResult.Failure(e.message ?: "Unification failed")
+        } catch (e: CompilerErrorException) {
+            UnificationResult.Failure(e.compilerError)
         }
     }
     
@@ -98,7 +104,7 @@ object Unification {
             t2 == Types.String && t1 is LiteralStringType -> substitution
             
             // Different types that cannot be unified
-            else -> throw UnificationException("Cannot unify $t1 with $t2")
+            else -> throw CompilerErrorException.cannotUnifyTypes(t1, t2)
         }
     }
     
@@ -129,7 +135,7 @@ object Unification {
             
             // If there are no non-recursive alternatives, this would create an infinite type
             if (nonRecursiveAlternatives.isEmpty()) {
-                throw UnificationException("Occurs check failed: $typeVar occurs in $type (would create infinite type)")
+                throw CompilerErrorException.unificationFailure("Occurs check failed: $typeVar occurs in $type (would create infinite type)")
             }
             
             // Create the simplified type without the recursive reference
@@ -145,7 +151,7 @@ object Unification {
         
         // Regular occurs check: ensure the variable doesn't occur in the type
         if (occursCheck(typeVar, type)) {
-            throw UnificationException("Occurs check failed: $typeVar occurs in $type (would create infinite type)")
+            throw CompilerErrorException.occursCheckFailure(typeVar, type)
         }
         
         // Create new substitution with the binding and compose correctly
@@ -169,7 +175,7 @@ object Unification {
      */
     private fun unifyTupleTypes(tuple1: TupleType, tuple2: TupleType, substitution: Substitution): Substitution {
         if (tuple1.elements.size != tuple2.elements.size) {
-            throw UnificationException("Cannot unify tuples of different lengths: ${tuple1.elements.size} vs ${tuple2.elements.size}")
+            throw CompilerErrorException.tupleLengthMismatch(tuple1.elements.size, tuple2.elements.size)
         }
         
         return tuple1.elements.zip(tuple2.elements).fold(substitution) { currentSubst, (elem1, elem2) ->
@@ -191,8 +197,14 @@ object Unification {
             val fieldType2 = record2.fields[fieldName]!!
             try {
                 unifyInternal(fieldType1, fieldType2, currentSubst)
-            } catch (e: UnificationException) {
-                throw UnificationException("Cannot unify field '$fieldName': ${e.message}")
+            } catch (e: CompilerErrorException) {
+                // Re-throw with field context - preserve the original structured error
+                if (e.compilerError is TypeError.TypeMismatch) {
+                    val originalError = e.compilerError as TypeError.TypeMismatch
+                    throw CompilerErrorException.recordFieldMismatch(fieldName, originalError.expected, originalError.actual)
+                } else {
+                    throw CompilerErrorException.unificationFailure("Cannot unify field '$fieldName': ${e.compilerError.getMessage()}")
+                }
             }
         }
         
@@ -230,7 +242,7 @@ object Unification {
                 // Check if record1 has concrete fields not in record2
                 val extraFields1 = sub1Record1.fields.filterKeys { it !in sub1Record2.fields }
                 if (extraFields1.isNotEmpty()) {
-                    throw UnificationException("Cannot unify open record with closed record: open record has extra fields ${extraFields1.keys} not present in closed record")
+                    throw CompilerErrorException.unificationFailure("Cannot unify open record with closed record: open record has extra fields ${extraFields1.keys} not present in closed record")
                 }
                 
                 // Collect fields in record2 that aren't in record1
@@ -248,7 +260,7 @@ object Unification {
                 // Check if record2 has required fields that record1 doesn't have
                 val missingFields = sub1Record2.fields.filterKeys { it !in sub1Record1.fields }
                 if (missingFields.isNotEmpty()) {
-                    throw UnificationException("Cannot unify closed record with open record: closed record is missing required fields ${missingFields.keys}")
+                    throw CompilerErrorException.unificationFailure("Cannot unify closed record with open record: closed record is missing required fields ${missingFields.keys}")
                 }
                 
                 // Collect fields in record1 that aren't in record2
@@ -277,7 +289,7 @@ object Unification {
                             "Cannot unify closed records: missing fields $missingInRecord1, extra fields $missingInRecord2"
                     }
                     
-                    throw UnificationException(errorMessage)
+                    throw CompilerErrorException.unificationFailure(errorMessage)
                 }
                 
                 fieldSubst
@@ -310,7 +322,7 @@ object Unification {
         
         // If sizes differ after normalization, they cannot be unified directly
         if (normalizedUnion1.alternatives.size != normalizedUnion2.alternatives.size) {
-            throw UnificationException("Cannot unify unions with different number of alternatives: ${normalizedUnion1.alternatives.size} vs ${normalizedUnion2.alternatives.size}")
+            throw CompilerErrorException.unificationFailure("Cannot unify unions with different number of alternatives: ${normalizedUnion1.alternatives.size} vs ${normalizedUnion2.alternatives.size}")
         }
         
         // Try to find a bijective mapping between alternatives
@@ -330,14 +342,14 @@ object Unification {
                     currentSubst = altSubst
                     unified = true
                     break
-                } catch (_: UnificationException) {
+                } catch (_: CompilerErrorException) {
                     // Try next alternative
                     continue
                 }
             }
             
             if (!unified) {
-                throw UnificationException("Cannot unify union alternative $alt1 with any alternative in $normalizedUnion2")
+                throw CompilerErrorException.unificationFailure("Cannot unify union alternative $alt1 with any alternative in $normalizedUnion2")
             }
         }
         
@@ -356,7 +368,7 @@ object Unification {
         
         // If sizes differ, they cannot be unified directly
         if (intersection1.members.size != intersection2.members.size) {
-            throw UnificationException("Cannot unify intersections with different number of members: ${intersection1.members.size} vs ${intersection2.members.size}")
+            throw CompilerErrorException.unificationFailure("Cannot unify intersections with different number of members: ${intersection1.members.size} vs ${intersection2.members.size}")
         }
         
         // Try to find a bijective mapping between members
@@ -376,14 +388,14 @@ object Unification {
                     currentSubst = memberSubst
                     unified = true
                     break
-                } catch (_: UnificationException) {
+                } catch (_: CompilerErrorException) {
                     // Try next member
                     continue
                 }
             }
             
             if (!unified) {
-                throw UnificationException("Cannot unify intersection member $member1 with any member in $intersection2")
+                throw CompilerErrorException.unificationFailure("Cannot unify intersection member $member1 with any member in $intersection2")
             }
         }
         
@@ -431,7 +443,7 @@ object Unification {
         // For equi-recursive types, we check if the types have the same structure
         // by checking if their names match and their bodies are equivalent
         if (rec1.name != rec2.name) {
-            throw UnificationException("Cannot unify recursive types with different names: ${rec1.name} vs ${rec2.name}")
+            throw CompilerErrorException.unificationFailure("Cannot unify recursive types with different names: ${rec1.name} vs ${rec2.name}")
         }
         
         // Create a mapping from rec2's recursive variable to rec1's recursive variable
@@ -453,14 +465,14 @@ object Unification {
             try {
                 // If unification succeeds with this alternative, return the result
                 return unifyInternal(alternative, type, substitution)
-            } catch (_: UnificationException) {
+            } catch (_: CompilerErrorException) {
                 // Try next alternative
                 continue
             }
         }
         
         // If none of the alternatives unify, the unification fails
-        throw UnificationException("Cannot unify $type with any alternative in union $union")
+        throw CompilerErrorException.unificationFailure("Cannot unify $type with any alternative in union $union")
     }
     
     /**
@@ -476,7 +488,4 @@ object Unification {
     }
 }
 
-/**
- * Exception thrown when unification fails.
- */
-class UnificationException(message: String) : Exception(message)
+

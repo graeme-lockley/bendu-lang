@@ -106,8 +106,8 @@ class RowOperationsTest {
         
         if (solverResult is ConstraintSolverResult.Failure) {
             // This should fail because we're trying to override Int with String
-            assertTrue(solverResult.error.contains("conflicting types") || 
-                      solverResult.error.contains("Cannot override field"),
+            assertTrue(solverResult.error.contains("Field 'a' type mismatch") || 
+                      solverResult.error.contains("field override"),
                       "Should report field override conflict: ${solverResult.error}")
         } else {
             fail<Unit>("Field override with incompatible types should fail")
@@ -187,7 +187,7 @@ class RowOperationsTest {
             "Multiple conflicting field types should cause solver failure")
         
         val error = (solverResult as ConstraintSolverResult.Failure).error
-        assertTrue(error.contains("conflicting types") || error.contains("Cannot merge field"),
+        assertTrue(error.contains("Cannot merge field") || error.contains("type mismatch"),
             "Error should mention field conflict: $error")
     }
 

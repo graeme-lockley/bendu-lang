@@ -2,6 +2,7 @@ package io.littlelanguages.minibendu
 
 import io.littlelanguages.minibendu.parser.TToken
 import io.littlelanguages.minibendu.parser.Token
+import io.littlelanguages.minibendu.typesystem.*
 import io.littlelanguages.scanpiler.Location
 import io.littlelanguages.scanpiler.LocationCoordinate
 import io.littlelanguages.scanpiler.LocationRange
@@ -14,6 +15,10 @@ class Errors {
 
     fun addError(error: BenduError) {
         errors.add(error)
+    }
+    
+    fun addCompilerError(error: CompilerError, location: Location? = null) {
+        errors.add(CompilerErrorWrapper(error, location))
     }
 
     fun hasErrors(): Boolean {
@@ -62,6 +67,20 @@ data class ParsingError(val found: Token, val expected: Set<TToken>) : BenduErro
         printMessage(
             "Parsing Error", "found ${found.lexeme} at ${locationToString(found.location)}, expected $expected"
         )
+    }
+}
+
+data class CompilerErrorWrapper(val error: CompilerError, val location: Location? = null) : BenduError() {
+    override fun printError() {
+        val categoryName = when (error.getCategory()) {
+            ErrorCategory.SYNTAX -> "Syntax Error"
+            ErrorCategory.TYPE -> "Type Error"
+            ErrorCategory.SEMANTIC -> "Semantic Error"
+            ErrorCategory.INTERNAL -> "Internal Error"
+        }
+        
+        val locationStr = location?.let { " at ${locationToString(it)}" } ?: ""
+        printMessage(categoryName, "${error.getMessage()}$locationStr")
     }
 }
 

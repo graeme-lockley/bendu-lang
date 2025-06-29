@@ -131,9 +131,30 @@ class MarkdownTestRunner {
                         .replace("Type error (", "")
                         .replace(")", "")
                         .lowercase()
+                    
+                    // Check for specific error types first (structured matching)
+                    val matches = when {
+                        expectedErrorPart.contains("non-exhaustive pattern match") -> 
+                            result.structuredError is TypeError.NonExhaustivePatternMatch || result.error.lowercase().contains("non-exhaustive")
+                        expectedErrorPart.contains("cannot unify") -> 
+                            result.structuredError is TypeError.TypeMismatch || result.error.lowercase().contains("cannot unify")
+                        expectedErrorPart.contains("undefined variable") -> 
+                            result.structuredError is TypeError.UndefinedVariable || result.error.lowercase().contains("undefined variable")
+                        expectedErrorPart.contains("undefined type variable") -> 
+                            result.structuredError is TypeError.UndefinedTypeVariable || result.error.lowercase().contains("undefined type variable")
+                        expectedErrorPart.contains("undefined constructor") -> 
+                            result.structuredError is TypeError.UndefinedConstructor || result.error.lowercase().contains("undefined constructor")
+                        expectedErrorPart.contains("overlapping patterns") -> 
+                            result.structuredError is TypeError.OverlappingPatterns || result.error.lowercase().contains("overlapping patterns")
+                        expectedErrorPart.contains("parse error") -> 
+                            result.structuredError is SyntaxError || result.error.lowercase().contains("parse error")
+                        else -> 
+                            result.error.lowercase().contains(expectedErrorPart)
+                    }
+                    
                     assertTrue(
-                        result.error.lowercase().contains(expectedErrorPart),
-                        "Expected error to contain '$expectedErrorPart' but got: ${result.error}"
+                        matches,
+                        "Expected error to contain '$expectedErrorPart' but got: ${result.error} (structured error type: ${result.structuredError?.let { it::class.simpleName } ?: "none"})"
                     )
                 }
             }
@@ -226,7 +247,10 @@ class MarkdownTestRunner {
                 for (error in errors) {
                     errorMessages.add(error.toString())
                 }
-                TypeCheckResult.Failure("Parse error: ${errorMessages.joinToString("; ")}", SourceLocation(1, 1))
+                TypeCheckResult.Failure(
+                    structuredError = SyntaxError.GenericSyntaxError("Parse error: ${errorMessages.joinToString("; ")}"),
+                    location = SourceLocation(1, 1)
+                )
             } else {
                 val typeChecker = TypeChecker()
                 val incrementalResult = typeChecker.typeCheckProgram(program)
@@ -239,14 +263,20 @@ class MarkdownTestRunner {
                         .map { (result, _) -> result }
 
                     if (expressionResults.isEmpty()) {
-                        TypeCheckResult.Failure("No expressions found in program", SourceLocation(1, 1))
+                        TypeCheckResult.Failure(
+                            structuredError = InternalError.CompilerBug("No expressions found in program"),
+                            location = SourceLocation(1, 1)
+                        )
                     } else {
                         expressionResults.last()
                     }
                 }
             }
         } catch (e: Exception) {
-            TypeCheckResult.Failure("Parse error: ${e.message}", SourceLocation(1, 1))
+            TypeCheckResult.Failure(
+                structuredError = SyntaxError.GenericSyntaxError("Parse error: ${e.message}"),
+                location = SourceLocation(1, 1)
+            )
         }
     }
 
