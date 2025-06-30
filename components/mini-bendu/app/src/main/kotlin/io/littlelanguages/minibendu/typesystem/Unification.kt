@@ -135,7 +135,7 @@ object Unification {
             
             // If there are no non-recursive alternatives, this would create an infinite type
             if (nonRecursiveAlternatives.isEmpty()) {
-                throw CompilerErrorException.unificationFailure("Occurs check failed: $typeVar occurs in $type (would create infinite type)")
+                throw CompilerErrorException.occursCheckFailure(typeVar, type)
             }
             
             // Create the simplified type without the recursive reference
@@ -200,10 +200,10 @@ object Unification {
             } catch (e: CompilerErrorException) {
                 // Re-throw with field context - preserve the original structured error
                 if (e.compilerError is TypeError.TypeMismatch) {
-                    val originalError = e.compilerError as TypeError.TypeMismatch
+                    val originalError = e.compilerError
                     throw CompilerErrorException.recordFieldMismatch(fieldName, originalError.expected, originalError.actual)
                 } else {
-                    throw CompilerErrorException.unificationFailure("Cannot unify field '$fieldName': ${e.compilerError.getMessage()}")
+                    throw CompilerErrorException.recordFieldMismatch(fieldName, Types.Unit, Types.Unit)
                 }
             }
         }
@@ -242,7 +242,10 @@ object Unification {
                 // Check if record1 has concrete fields not in record2
                 val extraFields1 = sub1Record1.fields.filterKeys { it !in sub1Record2.fields }
                 if (extraFields1.isNotEmpty()) {
-                    throw CompilerErrorException.unificationFailure("Cannot unify open record with closed record: open record has extra fields ${extraFields1.keys} not present in closed record")
+                    throw CompilerErrorException.recordStructureMismatch(
+                        "open record has extra fields ${extraFields1.keys} not present in closed record",
+                        sub1Record1, sub1Record2
+                    )
                 }
                 
                 // Collect fields in record2 that aren't in record1
@@ -260,7 +263,10 @@ object Unification {
                 // Check if record2 has required fields that record1 doesn't have
                 val missingFields = sub1Record2.fields.filterKeys { it !in sub1Record1.fields }
                 if (missingFields.isNotEmpty()) {
-                    throw CompilerErrorException.unificationFailure("Cannot unify closed record with open record: closed record is missing required fields ${missingFields.keys}")
+                    throw CompilerErrorException.recordStructureMismatch(
+                        "closed record is missing required fields ${missingFields.keys}",
+                        sub1Record1, sub1Record2
+                    )
                 }
                 
                 // Collect fields in record1 that aren't in record2
@@ -289,7 +295,7 @@ object Unification {
                             "Cannot unify closed records: missing fields $missingInRecord1, extra fields $missingInRecord2"
                     }
                     
-                    throw CompilerErrorException.unificationFailure(errorMessage)
+                    throw CompilerErrorException.recordStructureMismatch(errorMessage, sub1Record1, sub1Record2)
                 }
                 
                 fieldSubst
@@ -322,7 +328,10 @@ object Unification {
         
         // If sizes differ after normalization, they cannot be unified directly
         if (normalizedUnion1.alternatives.size != normalizedUnion2.alternatives.size) {
-            throw CompilerErrorException.unificationFailure("Cannot unify unions with different number of alternatives: ${normalizedUnion1.alternatives.size} vs ${normalizedUnion2.alternatives.size}")
+            throw CompilerErrorException.unionStructureMismatch(
+                "different number of alternatives: ${normalizedUnion1.alternatives.size} vs ${normalizedUnion2.alternatives.size}",
+                normalizedUnion1, normalizedUnion2
+            )
         }
         
         // Try to find a bijective mapping between alternatives
@@ -349,7 +358,10 @@ object Unification {
             }
             
             if (!unified) {
-                throw CompilerErrorException.unificationFailure("Cannot unify union alternative $alt1 with any alternative in $normalizedUnion2")
+                throw CompilerErrorException.unionStructureMismatch(
+                    "alternative $alt1 cannot be unified with any alternative",
+                    normalizedUnion1, normalizedUnion2
+                )
             }
         }
         
@@ -368,7 +380,10 @@ object Unification {
         
         // If sizes differ, they cannot be unified directly
         if (intersection1.members.size != intersection2.members.size) {
-            throw CompilerErrorException.unificationFailure("Cannot unify intersections with different number of members: ${intersection1.members.size} vs ${intersection2.members.size}")
+            throw CompilerErrorException.intersectionStructureMismatch(
+                "different number of members: ${intersection1.members.size} vs ${intersection2.members.size}",
+                intersection1, intersection2
+            )
         }
         
         // Try to find a bijective mapping between members
@@ -395,7 +410,10 @@ object Unification {
             }
             
             if (!unified) {
-                throw CompilerErrorException.unificationFailure("Cannot unify intersection member $member1 with any member in $intersection2")
+                throw CompilerErrorException.intersectionStructureMismatch(
+                    "member $member1 cannot be unified with any member",
+                    intersection1, intersection2
+                )
             }
         }
         
@@ -443,7 +461,7 @@ object Unification {
         // For equi-recursive types, we check if the types have the same structure
         // by checking if their names match and their bodies are equivalent
         if (rec1.name != rec2.name) {
-            throw CompilerErrorException.unificationFailure("Cannot unify recursive types with different names: ${rec1.name} vs ${rec2.name}")
+            throw CompilerErrorException.recursiveTypeMismatch(rec1.name, rec2.name)
         }
         
         // Create a mapping from rec2's recursive variable to rec1's recursive variable
@@ -472,7 +490,10 @@ object Unification {
         }
         
         // If none of the alternatives unify, the unification fails
-        throw CompilerErrorException.unificationFailure("Cannot unify $type with any alternative in union $union")
+        throw CompilerErrorException.cannotUnifyTypes(
+            type, union,
+            "type cannot be unified with any alternative in union"
+        )
     }
     
     /**

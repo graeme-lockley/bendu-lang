@@ -107,9 +107,16 @@ class TypeChecker(
                     )
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: CompilerErrorException) {
+            // Handle structured compiler errors
             TypeCheckResult.Failure(
-                structuredError = InternalError.CompilerBug(e.message ?: "Unknown error", e),
+                structuredError = e.compilerError,
+                location = extractSourceLocation(expr.location())
+            )
+        } catch (e: Exception) {
+            // Handle unexpected exceptions
+            TypeCheckResult.Failure(
+                structuredError = InternalError.CompilerBug("Unexpected error during type checking: ${e.message}", e),
                 location = extractSourceLocation(expr.location())
             )
         }
@@ -128,14 +135,14 @@ class TypeChecker(
                     programType = result.getFinalType(),
                     environment = result.environment,
                     substitution = result.substitution,
-                    warnings = extractWarnings(program, result.environment)
+                    warnings = extractWarnings(program)
                 )
             }
             is TypeCheckResult.Failure -> {
                 ProgramTypeCheckResult.Failure(
                     error = result.error,
                     location = result.location,
-                    suggestions = generateSuggestions(result.error, program)
+                    suggestions = generateSuggestions(result.error)
                 )
             }
         }
@@ -261,19 +268,10 @@ class TypeChecker(
     }
     
     /**
-     * Validate type annotations in expressions.
-     * Checks that explicit type annotations are consistent with inferred types.
-     */
-    fun validateTypeAnnotations(expr: Expr): AnnotationValidationResult {
-        val visitor = TypeAnnotationValidator()
-        return visitor.validate(expr, initialEnvironment)
-    }
-    
-    /**
      * Extract type information for IDE support.
      * Returns hover information, completions, and other IDE features.
      */
-    fun getTypeInformation(expr: Expr, location: Location): TypeInformation {
+    fun getTypeInformation(expr: Expr): TypeInformation {
         val result = typeCheck(expr)
         return when (result) {
             is TypeCheckResult.Success -> {
@@ -300,11 +298,11 @@ class TypeChecker(
         }
     }
     
-    private fun extractWarnings(program: Expr, environment: TypeEnvironment): List<TypeWarning> {
+    private fun extractWarnings(program: Expr): List<TypeWarning> {
         val warnings = mutableListOf<TypeWarning>()
         
         // Check for unused variables
-        val unusedVars = findUnusedVariables(program, environment)
+        val unusedVars = findUnusedVariables()
         warnings.addAll(unusedVars.map { varName ->
             TypeWarning.UnusedVariable(varName, extractSourceLocation(program.location()))
         })
@@ -324,7 +322,7 @@ class TypeChecker(
         return warnings
     }
     
-    private fun generateSuggestions(error: String, program: Expr): List<String> {
+    private fun generateSuggestions(error: String): List<String> {
         val suggestions = mutableListOf<String>()
         
         when {
@@ -373,11 +371,9 @@ class TypeChecker(
         }
     }
     
-    private fun findUnusedVariables(expr: Expr, environment: TypeEnvironment): List<String> {
-        // Simplified implementation - in practice would need more sophisticated analysis
-        return emptyList()
-    }
-    
+    private fun findUnusedVariables(): List<String> =
+        emptyList()
+
     private fun findMatchExpressions(expr: Expr): List<MatchExpr> {
         val matches = mutableListOf<MatchExpr>()
         
@@ -495,93 +491,4 @@ sealed class TypeWarning {
         val location: SourceLocation,
         val missingPatterns: List<String>
     ) : TypeWarning()
-    
-    data class ShadowedVariable(
-        val variableName: String,
-        val location: SourceLocation
-    ) : TypeWarning()
 }
-
-/**
- * Result of type annotation validation.
- */
-data class AnnotationValidationResult(
-    val isValid: Boolean,
-    val errors: List<String>,
-    val warnings: List<String>
-)
-
-/**
- * Visitor for validating type annotations.
- */
-class TypeAnnotationValidator {
-    fun validate(expr: Expr, environment: TypeEnvironment): AnnotationValidationResult {
-        val errors = mutableListOf<String>()
-        val warnings = mutableListOf<String>()
-        
-        fun validateExpr(e: Expr) {
-            when (e) {
-                is LambdaExpr -> {
-                    e.paramType?.let { paramType ->
-                        // Validate that the parameter type annotation is reasonable
-                        val convertedType = convertTypeExprToType(paramType)
-                        if (convertedType == null) {
-                            errors.add("Invalid type annotation: $paramType")
-                        }
-                    }
-                    validateExpr(e.body)
-                }
-                is LetExpr -> {
-                    e.typeAnnotation?.let { typeAnnotation ->
-                        val convertedType = convertTypeExprToType(typeAnnotation)
-                        if (convertedType == null) {
-                            errors.add("Invalid type annotation: $typeAnnotation")
-                        }
-                    }
-                    validateExpr(e.value)
-                    e.body?.let { validateExpr(it) }
-                }
-                // Add more cases as needed
-                else -> {
-                    // Recursively validate subexpressions
-                    // This is a simplified implementation
-                }
-            }
-        }
-        
-        validateExpr(expr)
-        
-        return AnnotationValidationResult(
-            isValid = errors.isEmpty(),
-            errors = errors,
-            warnings = warnings
-        )
-    }
-    
-    private fun convertTypeExprToType(typeExpr: TypeExpr): Type? {
-        return try {
-            when (typeExpr) {
-                is BaseTypeExpr -> {
-                    when (typeExpr.id.value) {
-                        "Int" -> Types.Int
-                        "String" -> Types.String
-                        "Bool" -> Types.Bool
-                        "Unit" -> Types.Unit
-                        else -> null
-                    }
-                }
-                is FunctionTypeExpr -> {
-                    val domain = convertTypeExprToType(typeExpr.from)
-                    val codomain = convertTypeExprToType(typeExpr.to)
-                    if (domain != null && codomain != null) {
-                        FunctionType(domain, codomain)
-                    } else null
-                }
-                // Add more cases as needed
-                else -> null
-            }
-        } catch (e: Exception) {
-            null
-        }
-    }
-} 

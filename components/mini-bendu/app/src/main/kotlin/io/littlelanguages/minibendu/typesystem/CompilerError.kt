@@ -15,7 +15,6 @@ enum class ErrorCategory {
 enum class CompilerErrorSeverity {
     ERROR,       // Blocks compilation
     WARNING,     // Compilation continues
-    INFO         // Informational
 }
 
 /**
@@ -69,21 +68,6 @@ sealed class SyntaxError : CompilerError() {
     ) : SyntaxError() {
         override fun getMessage(): String = 
             "Unterminated string literal" + (position?.let { " at $it" } ?: "")
-    }
-    
-    data class InvalidNumber(
-        val value: String,
-        val position: String? = null
-    ) : SyntaxError() {
-        override fun getMessage(): String = 
-            "Invalid number format: '$value'" + (position?.let { " at $it" } ?: "")
-    }
-    
-    data class UnbalancedParentheses(
-        val position: String? = null
-    ) : SyntaxError() {
-        override fun getMessage(): String = 
-            "Unbalanced parentheses" + (position?.let { " at $it" } ?: "")
     }
     
     data class GenericSyntaxError(
@@ -157,14 +141,6 @@ sealed class TypeError : CompilerError() {
         val containingType: Type
     ) : TypeError() {
         override fun getMessage(): String = "Cannot construct infinite type: $typeVariable = $containingType"
-    }
-    
-    data class InvalidTypeAnnotation(
-        val annotation: String,
-        val reason: String? = null
-    ) : TypeError() {
-        override fun getMessage(): String = 
-            "Invalid type annotation: $annotation" + (reason?.let { " ($it)" } ?: "")
     }
     
     data class UndefinedTypeVariable(
@@ -243,18 +219,6 @@ sealed class SemanticError : CompilerError() {
     ) : SemanticError() {
         override fun getMessage(): String = "Duplicate $kind definition: $name"
     }
-    
-    data class CircularTypeDefinition(
-        val typeName: String
-    ) : SemanticError() {
-        override fun getMessage(): String = "Circular type definition: $typeName"
-    }
-    
-    data class InvalidRecursion(
-        val functionName: String
-    ) : SemanticError() {
-        override fun getMessage(): String = "Invalid recursion in function: $functionName"
-    }
 }
 
 // =============================================================================
@@ -293,20 +257,6 @@ sealed class CompilerWarning : CompilerError() {
     ) : CompilerWarning() {
         override fun getCategory(): ErrorCategory = ErrorCategory.SEMANTIC
         override fun getMessage(): String = "Unused variable: $variableName"
-    }
-    
-    data class UnreachablePattern(
-        val pattern: String
-    ) : CompilerWarning() {
-        override fun getCategory(): ErrorCategory = ErrorCategory.TYPE
-        override fun getMessage(): String = "Unreachable pattern: $pattern"
-    }
-    
-    data class ShadowedVariable(
-        val variableName: String
-    ) : CompilerWarning() {
-        override fun getCategory(): ErrorCategory = ErrorCategory.SEMANTIC
-        override fun getMessage(): String = "Variable shadows previous definition: $variableName"
     }
 }
 
@@ -360,9 +310,6 @@ class CompilerErrorException(val compilerError: CompilerError) : Exception(compi
         // Factory methods for common error types
         fun undefinedVariable(name: String): CompilerErrorException =
             CompilerErrorException(TypeError.UndefinedVariable(name))
-            
-        fun typeMismatch(expected: Type, actual: Type, context: String? = null): CompilerErrorException =
-            CompilerErrorException(TypeError.TypeMismatch(expected, actual, context))
             
         fun unificationFailure(message: String): CompilerErrorException =
             CompilerErrorException(TypeError.TypeMismatch(Types.Unit, Types.Unit, message))
@@ -420,6 +367,23 @@ class CompilerErrorException(val compilerError: CompilerError) : Exception(compi
             CompilerErrorException(TypeError.MergeOperationError(
                 "Cannot spread non-record type $type",
                 null
+            ))
+            
+        // Factory methods for unification-specific errors
+        fun recordStructureMismatch(reason: String, type1: RecordType, type2: RecordType): CompilerErrorException =
+            CompilerErrorException(TypeError.TypeMismatch(type1, type2, "Record structure mismatch: $reason"))
+            
+        fun unionStructureMismatch(reason: String, union1: UnionType, union2: UnionType): CompilerErrorException =
+            CompilerErrorException(TypeError.TypeMismatch(union1, union2, "Union structure mismatch: $reason"))
+            
+        fun intersectionStructureMismatch(reason: String, intersection1: IntersectionType, intersection2: IntersectionType): CompilerErrorException =
+            CompilerErrorException(TypeError.TypeMismatch(intersection1, intersection2, "Intersection structure mismatch: $reason"))
+            
+        fun recursiveTypeMismatch(name1: String, name2: String): CompilerErrorException =
+            CompilerErrorException(TypeError.TypeMismatch(
+                Types.Unit, // Placeholder for recursive type
+                Types.Unit, // Placeholder for recursive type  
+                "Cannot unify recursive types with different names: $name1 vs $name2"
             ))
     }
 } 
