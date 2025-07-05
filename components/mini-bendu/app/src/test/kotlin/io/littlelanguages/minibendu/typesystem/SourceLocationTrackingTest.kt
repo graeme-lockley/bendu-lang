@@ -314,7 +314,7 @@ class SourceLocationTrackingTest {
         )
         
         val typeChecker = TypeChecker()
-        val typeInfo = typeChecker.getTypeInformation(expr, createLocation(20, 4))
+        val typeInfo = typeChecker.getTypeInformation(expr)
         
         assertTrue(typeInfo is TypeInformation.Available, "Type information should be available")
         val available = typeInfo as TypeInformation.Available
